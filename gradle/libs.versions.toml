@@ -7,14 +7,14 @@ espressoCore = "3.5.1"
 lifecycleRuntimeKtx = "2.6.1"
 activityCompose = "1.8.0"
 fragment = "1.8.5"
-kotlin = "2.2.10"
+kotlin = "2.0.21"
 composeBom = "2024.09.00"
 readium = "3.1.2"
 desugarJdkLibs = "2.1.5"
 coil = "2.7.0"
 documentfile = "1.1.0"
 material-icons-extended = "1.7.8"
-room = "2.6.1"
+room = "2.7.0-alpha11"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -48,5 +48,5 @@ androidx-room-compiler = { group = "androidx.room", name = "room-compiler", vers
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-ksp = { id = "com.google.devtools.ksp", version = "2.0.21-1.0.27" }
+ksp = { id = "com.google.devtools.ksp", version = "2.0.21-1.0.28" }
 
