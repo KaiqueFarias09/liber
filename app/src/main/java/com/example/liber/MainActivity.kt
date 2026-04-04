@@ -70,10 +70,12 @@ class MainActivity : FragmentActivity() {
                 var selectedPublication by remember { mutableStateOf<Publication?>(null) }
                 val scope = rememberCoroutineScope()
 
-                val folderLauncher = rememberLauncherForActivityResult(
-                    contract = ActivityResultContracts.OpenDocumentTree()
-                ) { uri: Uri? ->
-                    uri?.let { viewModel.loadBooksFromFolder(it) }
+                val bookLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.OpenMultipleDocuments()
+                ) { uris: List<Uri> ->
+                    if (uris.isNotEmpty()) {
+                        viewModel.loadBooksFromUris(uris)
+                    }
                 }
 
                 Scaffold(
@@ -83,8 +85,8 @@ class MainActivity : FragmentActivity() {
                             CenterAlignedTopAppBar(
                                 title = { Text("Library", fontWeight = FontWeight.Bold, fontSize = 24.sp) },
                                 actions = {
-                                    IconButton(onClick = { folderLauncher.launch(null) }) {
-                                        Icon(Icons.Default.Folder, contentDescription = "Select Folder")
+                                    IconButton(onClick = { bookLauncher.launch(arrayOf("application/epub+zip")) }) {
+                                        Icon(Icons.Default.Folder, contentDescription = "Add Books")
                                     }
                                 }
                             )
@@ -109,7 +111,7 @@ class MainActivity : FragmentActivity() {
                                         }
                                     }
                                 },
-                                onSelectFolderClick = { folderLauncher.launch(null) }
+                                onSelectFolderClick = { bookLauncher.launch(arrayOf("application/epub+zip")) }
                             )
                         } else {
                             ReadiumNavigator(selectedPublication!!)
