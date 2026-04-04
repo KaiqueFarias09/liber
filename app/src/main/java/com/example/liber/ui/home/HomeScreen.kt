@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -28,12 +29,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.liber.data.Book
 import com.example.liber.ui.components.BookListCard
 import com.example.liber.ui.components.WantToReadCover
@@ -57,9 +55,7 @@ fun HomeScreen(
         item {
             Text(
                 text = "Home",
-                fontFamily = FontFamily.Serif,
-                fontWeight = FontWeight.Bold,
-                fontSize = 34.sp,
+                style = MaterialTheme.typography.headlineLarge,
                 color = Color(0xFFF2F2F7),
                 modifier = Modifier
                     .statusBarsPadding()
@@ -94,7 +90,7 @@ fun HomeScreen(
                 SectionTitleWithChevron(text = "Want to Read")
                 Text(
                     text = "Books you would like to read next.",
-                    fontSize = 13.sp,
+                    style = MaterialTheme.typography.bodySmall,
                     color = Color(0xFF636366),
                     modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
                 )
@@ -169,9 +165,7 @@ fun HomeScreen(
 private fun SectionTitle(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
-        fontFamily = FontFamily.Serif,
-        fontWeight = FontWeight.Bold,
-        fontSize = 20.sp,
+        style = MaterialTheme.typography.titleLarge,
         color = Color(0xFFF2F2F7),
         modifier = modifier.padding(start = 24.dp, bottom = 12.dp),
     )
@@ -185,9 +179,7 @@ private fun SectionTitleWithChevron(text: String, modifier: Modifier = Modifier)
     ) {
         Text(
             text = text,
-            fontFamily = FontFamily.Serif,
-            fontWeight = FontWeight.Bold,
-            fontSize = 20.sp,
+            style = MaterialTheme.typography.titleLarge,
             color = Color(0xFFF2F2F7),
         )
         Icon(
@@ -213,7 +205,7 @@ private fun SectionDivider() {
 private fun ProgressText(progress: Int) {
     Text(
         text = "Book \u2022 $progress%",
-        fontSize = 11.sp,
+        style = MaterialTheme.typography.labelSmall,
         color = Color(0xFF8E8E93),
         modifier = Modifier.padding(top = 4.dp),
     )
@@ -234,7 +226,7 @@ private fun PreviousStatusContent(progress: Int) {
             )
             Text(
                 text = " Finished",
-                fontSize = 11.sp,
+                style = MaterialTheme.typography.labelSmall,
                 color = Color(0xFF8E8E93),
             )
         }
@@ -253,10 +245,9 @@ private fun WantToReadEmptyState() {
     ) {
         Text(
             text = "No books yet.\nTap the bookmark icon in Library to add.",
+            style = MaterialTheme.typography.bodySmall,
             color = Color(0xFF636366),
-            fontSize = 13.sp,
             textAlign = TextAlign.Center,
-            lineHeight = 20.sp,
         )
     }
 }

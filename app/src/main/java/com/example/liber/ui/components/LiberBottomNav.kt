@@ -1,6 +1,7 @@
 package com.example.liber.ui.components
 
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -8,7 +9,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.sp
 import com.example.liber.ui.navigation.AppTab
 import com.example.liber.ui.theme.LiberTheme
 
@@ -37,7 +37,7 @@ fun LiberBottomNav(
                         contentDescription = tab.label,
                     )
                 },
-                label = { Text(tab.label, fontSize = 10.sp) },
+                label = { Text(tab.label, style = MaterialTheme.typography.labelSmall) },
                 colors = itemColors,
             )
         }

@@ -12,16 +12,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.liber.data.Book
 import com.example.liber.ui.theme.LiberTheme
 
@@ -61,8 +60,7 @@ fun BookListCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = book.title,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.titleSmall,
                     color = Color(0xFFF2F2F7),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -70,7 +68,7 @@ fun BookListCard(
                 book.author?.let { author ->
                     Text(
                         text = author,
-                        fontSize = 12.sp,
+                        style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFF8E8E93),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -102,7 +100,7 @@ private fun BookListCardPreview() {
         ) {
             Text(
                 text = "Book \u2022 42%",
-                fontSize = 11.sp,
+                style = MaterialTheme.typography.labelSmall,
                 color = Color(0xFF8E8E93),
                 modifier = Modifier.padding(top = 4.dp),
             )

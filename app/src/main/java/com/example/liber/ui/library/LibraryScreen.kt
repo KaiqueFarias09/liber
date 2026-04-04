@@ -32,6 +32,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -39,12 +40,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 
 import com.example.liber.data.Book
 import com.example.liber.ui.home.HomeViewModel
@@ -114,9 +112,7 @@ private fun LibraryHeader(onAddBooks: () -> Unit) {
     ) {
         Text(
             text = "Library",
-            fontFamily = FontFamily.Serif,
-            fontWeight = FontWeight.Bold,
-            fontSize = 34.sp,
+            style = MaterialTheme.typography.headlineLarge,
             color = Color(0xFFF2F2F7),
         )
         IconButton(onClick = onAddBooks) {
@@ -149,15 +145,14 @@ private fun EmptyState(onAddBooks: () -> Unit) {
             Spacer(Modifier.height(16.dp))
             Text(
                 text = "Your library is empty",
+                style = MaterialTheme.typography.titleMedium,
                 color = Color(0xFF8E8E93),
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Medium,
             )
             Spacer(Modifier.height(8.dp))
             Text(
                 text = "Tap + to add EPUB books",
+                style = MaterialTheme.typography.bodyMedium,
                 color = Color(0xFF636366),
-                fontSize = 14.sp,
             )
             Spacer(Modifier.height(24.dp))
             Button(
@@ -237,18 +232,16 @@ private fun LibraryBookItem(
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = book.title,
+            style = MaterialTheme.typography.titleSmall,
             color = Color(0xFFF2F2F7),
-            fontSize = 13.sp,
-            fontWeight = FontWeight.SemiBold,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
-            lineHeight = 18.sp,
         )
         book.author?.let { author ->
             Text(
                 text = author,
+                style = MaterialTheme.typography.labelSmall,
                 color = Color(0xFF8E8E93),
-                fontSize = 11.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = 2.dp),
