@@ -20,12 +20,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.LibraryBooks
+import com.example.liber.ui.components.BookCover
+import com.example.liber.ui.components.CoverStyle
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -37,16 +38,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
+
 import com.example.liber.data.Book
 import com.example.liber.ui.home.HomeViewModel
 import com.example.liber.ui.theme.LiberTheme
@@ -212,15 +211,13 @@ private fun LibraryBookItem(
         Box(
             modifier = Modifier
                 .aspectRatio(0.67f)
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color(0xFF2C2C2E)),
+                .fillMaxWidth(),
         ) {
-            AsyncImage(
-                model = book.coverUri,
+            BookCover(
+                coverUri = book.coverUri,
                 contentDescription = book.title,
+                style = CoverStyle.LARGE,
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
             )
             IconButton(
                 onClick = onToggleWantToRead,
