@@ -37,38 +37,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val sevenDaysMs = 7L * 24 * 60 * 60 * 1000
 
-    private fun BookEntity.toBook() = Book(
-        id = id,
-        title = title,
-        author = author,
-        coverUri = coverPath?.let { Uri.fromFile(File(it)) },
-        fileUri = Uri.parse(fileUri),
-        lastOpenedAt = lastOpenedAt,
-        wantToRead = wantToRead,
-        readingProgress = readingProgress
-    )
-
-    val books: StateFlow<List<Book>> = bookDao.getAllBooks()
-        .map { entities -> entities.map { it.toBook() } }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    val continueReadingBooks: StateFlow<List<Book>> = bookDao
-        .getContinueReadingBooks(System.currentTimeMillis() - sevenDaysMs)
-        .map { entities -> entities.map { it.toBook() } }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    val wantToReadBooks: StateFlow<List<Book>> = bookDao.getWantToReadBooks()
-        .map { entities -> entities.map { it.toBook() } }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    val previousBooks: StateFlow<List<Book>> = bookDao
-        .getPreviousBooks(System.currentTimeMillis() - sevenDaysMs)
-        .map { entities -> entities.map { it.toBook() } }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading
-
     private val httpClient = DefaultHttpClient()
     private val assetRetriever = AssetRetriever(getApplication<Application>().contentResolver, httpClient)
     private val publicationOpener = PublicationOpener(
@@ -80,10 +48,43 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         )
     )
 
-    fun updateLastOpened(bookId: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            bookDao.updateLastOpenedAt(bookId, System.currentTimeMillis())
-        }
+    // ── State flows ──────────────────────────────────────────────────────────
+
+    val books: StateFlow<List<Book>> = bookDao.getAllBooks()
+        .map { it.map(BookEntity::toBook) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val continueReadingBooks: StateFlow<List<Book>> = bookDao
+        .getContinueReadingBooks(System.currentTimeMillis() - sevenDaysMs)
+        .map { it.map(BookEntity::toBook) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val wantToReadBooks: StateFlow<List<Book>> = bookDao.getWantToReadBooks()
+        .map { it.map(BookEntity::toBook) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val previousBooks: StateFlow<List<Book>> = bookDao
+        .getPreviousBooks(System.currentTimeMillis() - sevenDaysMs)
+        .map { it.map(BookEntity::toBook) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading
+
+    // ── Actions ──────────────────────────────────────────────────────────────
+
+    /** Opens a book in the reader and records it as last opened. Returns null on failure. */
+    suspend fun openBook(book: Book): Publication? = withContext(Dispatchers.IO) {
+        bookDao.updateLastOpenedAt(book.id, System.currentTimeMillis())
+        try {
+            getApplication<Application>().contentResolver.takePersistableUriPermission(
+                book.fileUri,
+                android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+        } catch (_: Exception) { /* permission already held or not applicable */ }
+        val file = copyToTempFile(book.fileUri)
+        val asset = assetRetriever.retrieve(file.toUrl()).getOrNull() ?: return@withContext null
+        publicationOpener.open(asset, allowUserInteraction = false).getOrNull()
     }
 
     fun toggleWantToRead(bookId: String, currentValue: Boolean) {
@@ -95,37 +96,28 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun loadBooksFromUris(uris: List<Uri>) {
         viewModelScope.launch {
             _isLoading.value = true
-
             withContext(Dispatchers.IO) {
                 uris.forEach { uri ->
-                    try {
-                        getApplication<Application>().contentResolver.takePersistableUriPermission(
-                            uri,
-                            android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
-                        )
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-
-                    val file = DocumentFile.fromSingleUri(getApplication(), uri)
-                    if (file != null) {
-                        val book = parseBook(file)
-                        if (book != null) {
-                            bookDao.insertBook(
-                                BookEntity(
-                                    id = book.id,
-                                    title = book.title,
-                                    author = book.author,
-                                    coverPath = book.coverUri?.path,
-                                    fileUri = book.fileUri.toString()
-                                )
-                            )
-                        }
-                    }
+                    tryTakePersistablePermission(uri)
+                    val file = DocumentFile.fromSingleUri(getApplication(), uri) ?: return@forEach
+                    val book = parseBook(file) ?: return@forEach
+                    bookDao.insertBook(book.toEntity())
                 }
             }
-
             _isLoading.value = false
+        }
+    }
+
+    // ── Private helpers ──────────────────────────────────────────────────────
+
+    private fun tryTakePersistablePermission(uri: Uri) {
+        try {
+            getApplication<Application>().contentResolver.takePersistableUriPermission(
+                uri,
+                android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
@@ -148,33 +140,53 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private suspend fun extractCover(publication: Publication, fileName: String): Uri? {
-        return withContext(Dispatchers.IO) {
+    private suspend fun extractCover(publication: Publication, fileName: String): Uri? =
+        withContext(Dispatchers.IO) {
             val bitmap = publication.cover() ?: return@withContext null
             val coverFile = File(
                 getApplication<Application>().cacheDir,
                 "cover_${fileName}_${System.currentTimeMillis()}.png"
             )
             try {
-                FileOutputStream(coverFile).use { out ->
-                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
-                }
+                FileOutputStream(coverFile).use { it.compress(bitmap) }
                 Uri.fromFile(coverFile)
             } catch (e: Exception) {
                 e.printStackTrace()
                 null
             }
         }
-    }
 
     private fun copyToTempFile(uri: Uri): File {
         val context = getApplication<Application>()
-        val inputStream = context.contentResolver.openInputStream(uri)
         val tempFile = File(context.cacheDir, "temp_${System.currentTimeMillis()}.epub")
-        FileOutputStream(tempFile).use { outputStream ->
-            inputStream?.copyTo(outputStream)
-            inputStream?.close()
+        context.contentResolver.openInputStream(uri)?.use { input ->
+            FileOutputStream(tempFile).use { input.copyTo(it) }
         }
         return tempFile
     }
+
+    // ── Mapping extensions ───────────────────────────────────────────────────
+
+    private fun Book.toEntity() = BookEntity(
+        id = id,
+        title = title,
+        author = author,
+        coverPath = coverUri?.path,
+        fileUri = fileUri.toString()
+    )
+}
+
+private fun BookEntity.toBook() = Book(
+    id = id,
+    title = title,
+    author = author,
+    coverUri = coverPath?.let { Uri.fromFile(File(it)) },
+    fileUri = Uri.parse(fileUri),
+    lastOpenedAt = lastOpenedAt,
+    wantToRead = wantToRead,
+    readingProgress = readingProgress
+)
+
+private fun FileOutputStream.compress(bitmap: Bitmap) {
+    bitmap.compress(Bitmap.CompressFormat.PNG, 100, this)
 }
