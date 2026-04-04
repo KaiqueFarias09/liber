@@ -35,18 +35,35 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val database = AppDatabase.getDatabase(application)
     private val bookDao = database.bookDao()
 
+    private val sevenDaysMs = 7L * 24 * 60 * 60 * 1000
+
+    private fun BookEntity.toBook() = Book(
+        id = id,
+        title = title,
+        author = author,
+        coverUri = coverPath?.let { Uri.fromFile(File(it)) },
+        fileUri = Uri.parse(fileUri),
+        lastOpenedAt = lastOpenedAt,
+        wantToRead = wantToRead,
+        readingProgress = readingProgress
+    )
+
     val books: StateFlow<List<Book>> = bookDao.getAllBooks()
-        .map { entities ->
-            entities.map { entity ->
-                Book(
-                    id = entity.id,
-                    title = entity.title,
-                    author = entity.author,
-                    coverUri = entity.coverPath?.let { Uri.fromFile(File(it)) },
-                    fileUri = Uri.parse(entity.fileUri)
-                )
-            }
-        }
+        .map { entities -> entities.map { it.toBook() } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val continueReadingBooks: StateFlow<List<Book>> = bookDao
+        .getContinueReadingBooks(System.currentTimeMillis() - sevenDaysMs)
+        .map { entities -> entities.map { it.toBook() } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val wantToReadBooks: StateFlow<List<Book>> = bookDao.getWantToReadBooks()
+        .map { entities -> entities.map { it.toBook() } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val previousBooks: StateFlow<List<Book>> = bookDao
+        .getPreviousBooks(System.currentTimeMillis() - sevenDaysMs)
+        .map { entities -> entities.map { it.toBook() } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _isLoading = MutableStateFlow(false)
@@ -63,10 +80,22 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         )
     )
 
+    fun updateLastOpened(bookId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            bookDao.updateLastOpenedAt(bookId, System.currentTimeMillis())
+        }
+    }
+
+    fun toggleWantToRead(bookId: String, currentValue: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            bookDao.updateWantToRead(bookId, !currentValue)
+        }
+    }
+
     fun loadBooksFromUris(uris: List<Uri>) {
         viewModelScope.launch {
             _isLoading.value = true
-            
+
             withContext(Dispatchers.IO) {
                 uris.forEach { uri ->
                     try {
@@ -95,7 +124,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
             }
-            
+
             _isLoading.value = false
         }
     }
@@ -105,9 +134,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             val tempFile = copyToTempFile(file.uri)
             val asset = assetRetriever.retrieve(tempFile.toUrl()).getOrNull() ?: return null
             val publication = publicationOpener.open(asset, allowUserInteraction = false).getOrNull() ?: return null
-            
             val coverUri = extractCover(publication, file.name ?: "cover")
-            
             Book(
                 id = UUID.randomUUID().toString(),
                 title = publication.metadata.title ?: "Unknown Title",
@@ -124,8 +151,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private suspend fun extractCover(publication: Publication, fileName: String): Uri? {
         return withContext(Dispatchers.IO) {
             val bitmap = publication.cover() ?: return@withContext null
-            
-            val coverFile = File(getApplication<Application>().cacheDir, "cover_${fileName}_${System.currentTimeMillis()}.png")
+            val coverFile = File(
+                getApplication<Application>().cacheDir,
+                "cover_${fileName}_${System.currentTimeMillis()}.png"
+            )
             try {
                 FileOutputStream(coverFile).use { out ->
                     bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)

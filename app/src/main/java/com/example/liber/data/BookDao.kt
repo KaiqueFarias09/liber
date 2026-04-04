@@ -8,12 +8,27 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface BookDao {
-    @Query("SELECT * FROM books")
+    @Query("SELECT * FROM books ORDER BY title ASC")
     fun getAllBooks(): Flow<List<BookEntity>>
+
+    @Query("SELECT * FROM books WHERE wantToRead = 0 AND lastOpenedAt IS NOT NULL AND lastOpenedAt >= :threshold ORDER BY lastOpenedAt DESC")
+    fun getContinueReadingBooks(threshold: Long): Flow<List<BookEntity>>
+
+    @Query("SELECT * FROM books WHERE lastOpenedAt IS NOT NULL AND lastOpenedAt < :threshold ORDER BY lastOpenedAt DESC")
+    fun getPreviousBooks(threshold: Long): Flow<List<BookEntity>>
+
+    @Query("SELECT * FROM books WHERE wantToRead = 1 ORDER BY title ASC")
+    fun getWantToReadBooks(): Flow<List<BookEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertBook(book: BookEntity)
 
     @Query("DELETE FROM books WHERE id = :bookId")
     suspend fun deleteBook(bookId: String)
+
+    @Query("UPDATE books SET lastOpenedAt = :timestamp WHERE id = :id")
+    suspend fun updateLastOpenedAt(id: String, timestamp: Long)
+
+    @Query("UPDATE books SET wantToRead = :wantToRead WHERE id = :id")
+    suspend fun updateWantToRead(id: String, wantToRead: Boolean)
 }

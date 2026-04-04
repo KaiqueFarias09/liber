@@ -9,5 +9,8 @@ data class BookEntity(
     val title: String,
     val author: String?,
     val coverPath: String?,
-    val fileUri: String
+    val fileUri: String,
+    val lastOpenedAt: Long? = null,
+    val wantToRead: Boolean = false,
+    val readingProgress: Int = 0
 )

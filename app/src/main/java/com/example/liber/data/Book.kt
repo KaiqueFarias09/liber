@@ -7,5 +7,8 @@ data class Book(
     val title: String,
     val author: String?,
     val coverUri: Uri?,
-    val fileUri: Uri
+    val fileUri: Uri,
+    val lastOpenedAt: Long? = null,
+    val wantToRead: Boolean = false,
+    val readingProgress: Int = 0
 )
