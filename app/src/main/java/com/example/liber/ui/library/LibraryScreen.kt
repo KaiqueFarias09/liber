@@ -20,11 +20,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.outlined.BookmarkBorder
-import androidx.compose.material.icons.automirrored.outlined.LibraryBooks
+import com.adamglin.PhosphorIcons
+import com.adamglin.phosphoricons.Fill
+import com.adamglin.phosphoricons.Regular
+import com.adamglin.phosphoricons.regular.Plus
+import com.adamglin.phosphoricons.fill.Bookmark as BookmarkFill
+import com.adamglin.phosphoricons.regular.Bookmark
+import com.adamglin.phosphoricons.regular.Books
 import com.example.liber.ui.components.BookCover
 import com.example.liber.ui.components.CoverStyle
 import androidx.compose.material3.Button
@@ -117,7 +119,7 @@ private fun LibraryHeader(onAddBooks: () -> Unit) {
         )
         IconButton(onClick = onAddBooks) {
             Icon(
-                imageVector = Icons.Default.Add,
+                imageVector = PhosphorIcons.Regular.Plus,
                 contentDescription = "Add Books",
                 tint = Color(0xFFF2F2F7),
             )
@@ -137,7 +139,7 @@ private fun EmptyState(onAddBooks: () -> Unit) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(
-                imageVector = Icons.AutoMirrored.Outlined.LibraryBooks,
+                imageVector = PhosphorIcons.Regular.Books,
                 contentDescription = null,
                 tint = Color(0xFF3A3A3C),
                 modifier = Modifier.size(64.dp),
@@ -162,7 +164,7 @@ private fun EmptyState(onAddBooks: () -> Unit) {
                     contentColor = Color(0xFFF2F2F7),
                 ),
             ) {
-                Icon(Icons.Default.Add, contentDescription = null)
+                Icon(PhosphorIcons.Regular.Plus, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("Add Books")
             }
@@ -222,7 +224,7 @@ private fun LibraryBookItem(
                     .size(36.dp),
             ) {
                 Icon(
-                    imageVector = if (book.wantToRead) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
+                    imageVector = if (book.wantToRead) PhosphorIcons.Fill.BookmarkFill else PhosphorIcons.Regular.Bookmark,
                     contentDescription = if (book.wantToRead) "Remove from Want to Read" else "Add to Want to Read",
                     tint = if (book.wantToRead) Color(0xFF0A84FF) else Color.White,
                     modifier = Modifier.size(20.dp),

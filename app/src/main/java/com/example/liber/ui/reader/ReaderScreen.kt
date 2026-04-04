@@ -9,10 +9,11 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Search
+import com.adamglin.PhosphorIcons
+import com.adamglin.phosphoricons.Regular
+import com.adamglin.phosphoricons.regular.ArrowLeft
+import com.adamglin.phosphoricons.regular.List
+import com.adamglin.phosphoricons.regular.MagnifyingGlass
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -118,7 +119,7 @@ fun ReaderScreen(
                         .padding(8.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        imageVector = PhosphorIcons.Regular.ArrowLeft,
                         contentDescription = "Back",
                         tint = Color.White,
                     )
@@ -140,7 +141,7 @@ fun ReaderScreen(
                 NavigationBarItem(
                     selected = false,
                     onClick = { showContents = true },
-                    icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Contents") },
+                    icon = { Icon(PhosphorIcons.Regular.List, contentDescription = "Contents") },
                     label = { Text("Contents", color = Color.White) },
                     colors = NavigationBarItemDefaults.colors(
                         unselectedIconColor = Color.White,
@@ -151,7 +152,7 @@ fun ReaderScreen(
                 NavigationBarItem(
                     selected = false,
                     onClick = { showSearch = true },
-                    icon = { Icon(Icons.Default.Search, contentDescription = "Search") },
+                    icon = { Icon(PhosphorIcons.Regular.MagnifyingGlass, contentDescription = "Search") },
                     label = { Text("Search", color = Color.White) },
                     colors = NavigationBarItemDefaults.colors(
                         unselectedIconColor = Color.White,

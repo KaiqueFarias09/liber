@@ -16,9 +16,10 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.outlined.CheckCircle
+import com.adamglin.PhosphorIcons
+import com.adamglin.phosphoricons.Regular
+import com.adamglin.phosphoricons.regular.CaretRight
+import com.adamglin.phosphoricons.regular.CheckCircle
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -183,7 +184,7 @@ private fun SectionTitleWithChevron(text: String, modifier: Modifier = Modifier)
             color = Color(0xFFF2F2F7),
         )
         Icon(
-            imageVector = Icons.Default.ChevronRight,
+            imageVector = PhosphorIcons.Regular.CaretRight,
             contentDescription = null,
             tint = Color(0xFF636366),
             modifier = Modifier
@@ -219,7 +220,7 @@ private fun PreviousStatusContent(progress: Int) {
             modifier = Modifier.padding(top = 4.dp),
         ) {
             Icon(
-                imageVector = Icons.Outlined.CheckCircle,
+                imageVector = PhosphorIcons.Regular.CheckCircle,
                 contentDescription = null,
                 tint = Color(0xFF8E8E93),
                 modifier = Modifier.size(13.dp),

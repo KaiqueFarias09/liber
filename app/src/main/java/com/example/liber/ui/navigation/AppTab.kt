@@ -1,11 +1,13 @@
 package com.example.liber.ui.navigation
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.LibraryBooks
-import androidx.compose.material.icons.automirrored.outlined.LibraryBooks
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.outlined.Home
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.adamglin.PhosphorIcons
+import com.adamglin.phosphoricons.Fill
+import com.adamglin.phosphoricons.Regular
+import com.adamglin.phosphoricons.fill.House
+import com.adamglin.phosphoricons.fill.Books
+import com.adamglin.phosphoricons.regular.House
+import com.adamglin.phosphoricons.regular.Books
 
 enum class AppTab(
     val label: String,
@@ -14,12 +16,12 @@ enum class AppTab(
 ) {
     HOME(
         label = "Home",
-        activeIcon = Icons.Filled.Home,
-        inactiveIcon = Icons.Outlined.Home,
+        activeIcon = PhosphorIcons.Fill.House,
+        inactiveIcon = PhosphorIcons.Regular.House,
     ),
     LIBRARY(
         label = "Library",
-        activeIcon = Icons.AutoMirrored.Filled.LibraryBooks,
-        inactiveIcon = Icons.AutoMirrored.Outlined.LibraryBooks,
+        activeIcon = PhosphorIcons.Fill.Books,
+        inactiveIcon = PhosphorIcons.Regular.Books,
     ),
 }
