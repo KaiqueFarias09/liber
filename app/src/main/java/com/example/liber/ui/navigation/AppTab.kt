@@ -1,10 +1,10 @@
 package com.example.liber.ui.navigation
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.LibraryBooks
+import androidx.compose.material.icons.automirrored.outlined.LibraryBooks
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.LibraryBooks
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.LibraryBooks
 import androidx.compose.ui.graphics.vector.ImageVector
 
 enum class AppTab(
@@ -19,7 +19,7 @@ enum class AppTab(
     ),
     LIBRARY(
         label = "Library",
-        activeIcon = Icons.Filled.LibraryBooks,
-        inactiveIcon = Icons.Outlined.LibraryBooks,
+        activeIcon = Icons.AutoMirrored.Filled.LibraryBooks,
+        inactiveIcon = Icons.AutoMirrored.Outlined.LibraryBooks,
     ),
 }

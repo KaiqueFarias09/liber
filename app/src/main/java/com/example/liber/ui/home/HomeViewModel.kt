@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.core.net.toUri
 import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.shared.publication.Publication
 import org.readium.r2.shared.publication.services.cover
@@ -181,7 +182,7 @@ private fun BookEntity.toBook() = Book(
     title = title,
     author = author,
     coverUri = coverPath?.let { Uri.fromFile(File(it)) },
-    fileUri = Uri.parse(fileUri),
+    fileUri = fileUri.toUri(),
     lastOpenedAt = lastOpenedAt,
     wantToRead = wantToRead,
     readingProgress = readingProgress

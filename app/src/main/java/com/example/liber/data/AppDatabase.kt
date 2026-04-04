@@ -16,10 +16,10 @@ abstract class AppDatabase : RoomDatabase() {
         private var INSTANCE: AppDatabase? = null
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
-            override fun migrate(database: SupportSQLiteDatabase) {
-                database.execSQL("ALTER TABLE books ADD COLUMN lastOpenedAt INTEGER")
-                database.execSQL("ALTER TABLE books ADD COLUMN wantToRead INTEGER NOT NULL DEFAULT 0")
-                database.execSQL("ALTER TABLE books ADD COLUMN readingProgress INTEGER NOT NULL DEFAULT 0")
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE books ADD COLUMN lastOpenedAt INTEGER")
+                db.execSQL("ALTER TABLE books ADD COLUMN wantToRead INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE books ADD COLUMN readingProgress INTEGER NOT NULL DEFAULT 0")
             }
         }
 

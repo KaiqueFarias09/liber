@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -40,6 +41,7 @@ fun BookListCard(
     Card(
         modifier = modifier
             .width(300.dp)
+            .height(104.dp)
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF2C2C2E)),
         shape = RoundedCornerShape(12.dp),
