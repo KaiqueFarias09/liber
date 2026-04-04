@@ -103,6 +103,16 @@ class MainActivity : FragmentActivity() {
                                 viewModel = viewModel,
                                 onBookClick = { book ->
                                     scope.launch {
+                                        // Take persistable URI permission
+                                        try {
+                                            contentResolver.takePersistableUriPermission(
+                                                book.fileUri,
+                                                android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                            )
+                                        } catch (e: Exception) {
+                                            // Already have it or not possible
+                                        }
+
                                         val file = withContext(Dispatchers.IO) { copyUriToTempFile(book.fileUri) }
                                         val asset = assetRetriever.retrieve(file.toUrl()).getOrNull()
                                         if (asset != null) {
