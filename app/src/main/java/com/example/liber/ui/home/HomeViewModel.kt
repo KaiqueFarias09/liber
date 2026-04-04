@@ -1,6 +1,7 @@
 package com.example.liber.ui.home
 
 import android.app.Application
+import android.graphics.Bitmap
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.AndroidViewModel
@@ -32,27 +33,26 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
-    private val context = application.applicationContext
     private val httpClient = DefaultHttpClient()
-    private val assetRetriever = AssetRetriever(context.contentResolver, httpClient)
+    private val assetRetriever = AssetRetriever(getApplication<Application>().contentResolver, httpClient)
     private val publicationOpener = PublicationOpener(
         publicationParser = DefaultPublicationParser(
-            context = context,
+            context = getApplication(),
             httpClient = httpClient,
             assetRetriever = assetRetriever,
             pdfFactory = null
         )
     )
 
-    fun loadBooksFromFolder(folderUri: Uri) {
+    fun loadBooksFromUris(uris: List<Uri>) {
         viewModelScope.launch {
             _isLoading.value = true
             val bookList = mutableListOf<Book>()
             
             withContext(Dispatchers.IO) {
-                val directory = DocumentFile.fromTreeUri(context, folderUri)
-                directory?.listFiles()?.forEach { file ->
-                    if (file.name?.endsWith(".epub", ignoreCase = true) == true) {
+                uris.forEach { uri ->
+                    val file = DocumentFile.fromSingleUri(getApplication(), uri)
+                    if (file != null) {
                         val book = parseBook(file)
                         if (book != null) {
                             bookList.add(book)
@@ -61,7 +61,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
             
-            _books.value = bookList
+            _books.value += bookList
             _isLoading.value = false
         }
     }
@@ -89,15 +89,23 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private suspend fun extractCover(publication: Publication, fileName: String): Uri? {
         return withContext(Dispatchers.IO) {
-            val coverData = publication.cover()?.read()?.getOrNull() ?: return@withContext null
+            val bitmap = publication.cover() ?: return@withContext null
             
-            val coverFile = File(context.cacheDir, "cover_${fileName}.png")
-            FileOutputStream(coverFile).use { it.write(coverData) }
-            Uri.fromFile(coverFile)
+            val coverFile = File(getApplication<Application>().cacheDir, "cover_${fileName}.png")
+            try {
+                FileOutputStream(coverFile).use { out ->
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+                }
+                Uri.fromFile(coverFile)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                null
+            }
         }
     }
 
     private fun copyToTempFile(uri: Uri): File {
+        val context = getApplication<Application>()
         val inputStream = context.contentResolver.openInputStream(uri)
         val tempFile = File(context.cacheDir, "temp_${System.currentTimeMillis()}.epub")
         FileOutputStream(tempFile).use { outputStream ->
