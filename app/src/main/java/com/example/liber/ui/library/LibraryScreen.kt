@@ -48,7 +48,6 @@ import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.fill.Bookmark as BookmarkFill
 import com.adamglin.phosphoricons.regular.Bookmark
 import com.adamglin.phosphoricons.regular.BookOpen
-import com.adamglin.phosphoricons.regular.Books
 import com.adamglin.phosphoricons.regular.CheckCircle
 import com.adamglin.phosphoricons.regular.DotsThree
 import com.adamglin.phosphoricons.regular.ListPlus
@@ -61,8 +60,10 @@ import com.adamglin.phosphoricons.regular.Trash
 import com.example.liber.data.Book
 import com.example.liber.ui.collections.CollectionUiState
 import com.example.liber.ui.collections.CollectionsViewModel
+import com.example.liber.R
 import com.example.liber.ui.components.BookCover
 import com.example.liber.ui.components.CoverStyle
+import com.example.liber.ui.components.EmptyState
 import com.example.liber.ui.home.HomeViewModel
 import com.example.liber.ui.theme.LiberTheme
 
@@ -90,7 +91,16 @@ fun LibraryScreen(
 
         when {
             isLoading -> LoadingState()
-            books.isEmpty() -> EmptyState(onAddBooks = onAddBooks)
+            books.isEmpty() -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                EmptyState(
+                    title = "Your library is empty",
+                    subtitle = "Tap + to add EPUB books",
+                    image = R.drawable.library_empty,
+                    actionLabel = "Add Books",
+                    onAction = onAddBooks,
+                    modifier = Modifier.padding(horizontal = 24.dp),
+                )
+            }
             else -> BookGrid(
                 books = books,
                 onBookClick = onBookClick,
@@ -170,38 +180,6 @@ private fun LibraryHeader(onAddBooks: () -> Unit) {
 private fun LoadingState() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-    }
-}
-
-@Composable
-private fun EmptyState(onAddBooks: () -> Unit) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                imageVector = PhosphorIcons.Regular.Books,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.size(64.dp),
-            )
-            Spacer(Modifier.height(16.dp))
-            Text(
-                text = "Your library is empty",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = "Tap + to add EPUB books",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(24.dp))
-            Button(onClick = onAddBooks) {
-                Icon(PhosphorIcons.Regular.Plus, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("Add Books")
-            }
-        }
     }
 }
 

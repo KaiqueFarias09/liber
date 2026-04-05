@@ -66,6 +66,7 @@ import androidx.activity.compose.BackHandler
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.liber.data.AnnotationEntity
 import com.example.liber.data.BookmarkEntity
+import com.example.liber.ui.components.EmptyState
 import org.readium.r2.navigator.DecorableNavigator
 import org.readium.r2.navigator.Decoration
 import org.readium.r2.navigator.OverflowableNavigator
@@ -963,9 +964,14 @@ fun SearchView(
                 CircularProgressIndicator(color = Color(0xFF0A84FF), modifier = Modifier.size(32.dp))
             }
         } else if (searchResults.isEmpty() && searchQuery.isNotBlank() && !isSearching) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No results found", color = Color(0xFF8E8E93))
-            }
+            EmptyState(
+                title = "No results found",
+                subtitle = "Try a different search term.",
+                image = R.drawable.search_empty,
+                containerColor = Color(0xFF2C2C2E),
+                titleColor = Color(0xFF8E8E93),
+                subtitleColor = Color(0xFF48484A),
+            )
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -1086,6 +1092,7 @@ fun NotebookView(
                         emptyMessage = "No highlights yet.\nSelect text in the reader to add one.",
                         onNoteClick = onNoteClick,
                         onDeleteNote = onDeleteNote,
+                        emptyImage = R.drawable.highlights_empty,
                     )
                 }
                 "notes" -> {
@@ -1095,6 +1102,7 @@ fun NotebookView(
                         emptyMessage = "No notes yet.\nSelect text in the reader to add one.",
                         onNoteClick = onNoteClick,
                         onDeleteNote = onDeleteNote,
+                        emptyImage = R.drawable.notes_empty,
                     )
                 }
             }
@@ -1110,30 +1118,15 @@ fun BookmarksView(
     modifier: Modifier = Modifier,
 ) {
     if (bookmarks.isEmpty()) {
-        Box(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(vertical = 48.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(
-                    PhosphorIcons.Regular.Bookmark,
-                    contentDescription = null,
-                    tint = Color(0xFF48484A),
-                    modifier = Modifier.size(48.dp),
-                )
-                Spacer(Modifier.height(12.dp))
-                Text("No bookmarks", fontWeight = FontWeight.Medium, color = Color(0xFF8E8E93))
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    "Tap the bookmark icon to save your place.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF48484A),
-                    textAlign = TextAlign.Center,
-                )
-            }
-        }
+        EmptyState(
+            title = "No bookmarks",
+            subtitle = "Tap the bookmark icon to save your place.",
+            image = R.drawable.bookmarks_empty,
+            containerColor = Color(0xFF2C2C2E),
+            titleColor = Color(0xFF8E8E93),
+            subtitleColor = Color(0xFF48484A),
+            modifier = modifier,
+        )
     } else {
         LazyColumn(
             modifier = modifier,
@@ -1201,22 +1194,17 @@ fun AnnotationList(
     emptyMessage: String,
     onNoteClick: (AnnotationEntity) -> Unit,
     onDeleteNote: (AnnotationEntity) -> Unit,
+    @androidx.annotation.DrawableRes emptyImage: Int? = null,
     modifier: Modifier = Modifier,
 ) {
     if (annotations.isEmpty()) {
-        Box(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(vertical = 48.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = emptyMessage,
-                style = MaterialTheme.typography.bodySmall,
-                color = Color(0xFF8E8E93),
-                textAlign = TextAlign.Center,
-            )
-        }
+        EmptyState(
+            title = emptyMessage,
+            image = emptyImage,
+            containerColor = Color(0xFF2C2C2E),
+            titleColor = Color(0xFF8E8E93),
+            modifier = modifier,
+        )
     } else {
         LazyColumn(
             modifier = modifier,
