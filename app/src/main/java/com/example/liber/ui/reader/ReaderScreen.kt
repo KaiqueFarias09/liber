@@ -1,12 +1,20 @@
 package com.example.liber.ui.reader
 
+import android.view.ActionMode
+import com.example.liber.R
+import android.view.Menu
+import android.view.MenuItem
+import android.view.View
+import android.view.ViewGroup
+import android.webkit.WebView
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -32,12 +40,18 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentContainerView
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.commit
+import androidx.lifecycle.withStarted
 import androidx.activity.compose.BackHandler
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.liber.data.AnnotationEntity
+import org.readium.r2.navigator.DecorableNavigator
+import org.readium.r2.navigator.Decoration
 import org.readium.r2.navigator.VisualNavigator
 import org.readium.r2.navigator.epub.EpubNavigatorFactory
+import org.readium.r2.navigator.epub.EpubNavigatorFragment
+import org.readium.r2.navigator.html.HtmlDecorationTemplates
 import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.shared.publication.Link
 import org.readium.r2.shared.publication.Locator
@@ -45,6 +59,20 @@ import org.readium.r2.shared.publication.Publication
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+private const val ID_HIGHLIGHT = 9_001
+private const val ID_ADD_NOTE  = 9_002
+
+/** Recursively finds the first [WebView] in the view hierarchy, or null. */
+private fun findWebView(view: View?): WebView? {
+    if (view is WebView) return view
+    if (view is ViewGroup) {
+        for (i in 0 until view.childCount) {
+            findWebView(view.getChildAt(i))?.let { return it }
+        }
+    }
+    return null
+}
 
 // Pastel highlight color options (ARGB Int) — mirrors the extended palette light containers
 private val AnnotationColorOptions = listOf(
@@ -70,6 +98,7 @@ fun ReaderScreen(
     initialLocatorJson: String?,
     annotations: List<AnnotationEntity>,
     pendingAnnotationRequest: AnnotationRequest?,
+    onRequestAnnotation: (AnnotationRequest) -> Unit,
     onSaveLocator: (json: String, progress: Int) -> Unit,
     onSaveAnnotation: (AnnotationEntity) -> Unit,
     onDeleteAnnotation: (Long) -> Unit,
@@ -84,7 +113,7 @@ fun ReaderScreen(
     var showNotes by remember { mutableStateOf(false) }
     val showAnnotationCreator by viewModel.showAnnotationCreator.collectAsState()
 
-    // Bridge: when MainActivity posts a text-selection request, open the annotation creator
+    // Bridge: when the selection callback posts a text-selection request, open the annotation creator
     LaunchedEffect(pendingAnnotationRequest) {
         pendingAnnotationRequest ?: return@LaunchedEffect
         val type = if (pendingAnnotationRequest is AnnotationRequest.Highlight) "highlight" else "note"
@@ -93,6 +122,27 @@ fun ReaderScreen(
     }
 
     var navigator by remember { mutableStateOf<VisualNavigator?>(null) }
+
+    // Render stored annotations as highlights in the EPUB WebView via the Decorator API.
+    // withStarted suspends until the fragment is fully attached (onStart), ensuring
+    // applyDecorations is not called before the fragment's ViewModel is accessible.
+    LaunchedEffect(navigator, annotations) {
+        val dn = navigator as? DecorableNavigator ?: return@LaunchedEffect
+        val fragment = navigator as? Fragment ?: return@LaunchedEffect
+        val decorations = annotations.mapNotNull { annotation ->
+            runCatching {
+                val locator = Locator.fromJSON(org.json.JSONObject(annotation.locator))
+                    ?: return@runCatching null
+                Decoration(
+                    id = annotation.id.toString(),
+                    locator = locator,
+                    style = Decoration.Style.Highlight(tint = annotation.color),
+                )
+            }.getOrNull()
+        }
+        fragment.lifecycle.withStarted { } // suspend until the fragment is STARTED
+        dn.applyDecorations(decorations, "annotations")
+    }
 
     val handleBack = {
         navigator?.currentLocator?.value?.let { locator ->
@@ -119,12 +169,50 @@ fun ReaderScreen(
                         runCatching { Locator.fromJSON(org.json.JSONObject(json)) }.getOrNull()
                     }
 
+                    val selectionCallback = object : ActionMode.Callback {
+                        override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
+                            menu.add(Menu.NONE, ID_HIGHLIGHT, 0, context.getString(R.string.action_highlight))
+                                .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
+                            menu.add(Menu.NONE, ID_ADD_NOTE, 1, context.getString(R.string.action_add_note))
+                                .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
+                            return true
+                        }
+                        override fun onPrepareActionMode(mode: ActionMode, menu: Menu): Boolean {
+                            if (menu.findItem(ID_HIGHLIGHT) == null)
+                                menu.add(Menu.NONE, ID_HIGHLIGHT, 0, context.getString(R.string.action_highlight))
+                                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
+                            if (menu.findItem(ID_ADD_NOTE) == null)
+                                menu.add(Menu.NONE, ID_ADD_NOTE, 1, context.getString(R.string.action_add_note))
+                                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
+                            return true
+                        }
+                        override fun onActionItemClicked(mode: ActionMode, item: MenuItem): Boolean {
+                            if (item.itemId != ID_HIGHLIGHT && item.itemId != ID_ADD_NOTE) return false
+                            val webView = findWebView(fragmentActivity.window.decorView)
+                            webView?.evaluateJavascript("window.getSelection().toString()") { raw ->
+                                val text = raw?.removeSurrounding("\"")?.takeIf { it.isNotBlank() }
+                                val request = if (item.itemId == ID_HIGHLIGHT)
+                                    AnnotationRequest.Highlight(text)
+                                else
+                                    AnnotationRequest.Note(text)
+                                onRequestAnnotation(request)
+                                mode.finish()
+                            } ?: mode.finish()
+                            return true
+                        }
+                        override fun onDestroyActionMode(mode: ActionMode) {}
+                    }
+
                     val navigatorFactory = EpubNavigatorFactory(publication)
                     val fragmentFactory = navigatorFactory.createFragmentFactory(
                         initialLocator = restoredLocator
                             ?: publication.readingOrder
                                 .firstOrNull()
                                 ?.let { publication.locatorFromLink(it) },
+                        configuration = EpubNavigatorFragment.Configuration(
+                            decorationTemplates = HtmlDecorationTemplates.defaultTemplates(),
+                            selectionActionModeCallback = selectionCallback,
+                        ),
                     )
                     fragmentActivity.supportFragmentManager.fragmentFactory = fragmentFactory
 
@@ -144,16 +232,14 @@ fun ReaderScreen(
             },
         )
 
-        // Overlay to detect taps and toggle UI
+        // Overlay to detect taps and toggle UI — uses detectTapGestures so that
+        // long-press (text selection) and swipe (page turn) do NOT trigger the toggle.
         Box(
             modifier = Modifier
                 .fillMaxSize(0.6f)
                 .align(Alignment.Center)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null
-                ) {
-                    viewModel.toggleUI()
+                .pointerInput(Unit) {
+                    detectTapGestures(onTap = { viewModel.toggleUI() })
                 }
         )
 

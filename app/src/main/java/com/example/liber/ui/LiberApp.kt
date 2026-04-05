@@ -73,6 +73,7 @@ fun LiberApp(viewModel: HomeViewModel) {
             initialLocatorJson = activeBook?.lastLocator,
             annotations = annotations,
             pendingAnnotationRequest = pendingAnnotationRequest,
+            onRequestAnnotation = { request -> viewModel.requestAnnotation(request) },
             onSaveLocator = { json, progress -> viewModel.saveLocator(activeBook!!.id, json, progress) },
             onSaveAnnotation = { annotation -> viewModel.saveAnnotation(annotation) },
             onDeleteAnnotation = { annotationId -> viewModel.deleteAnnotation(annotationId) },
