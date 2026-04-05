@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -30,6 +31,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -54,8 +56,11 @@ import com.adamglin.phosphoricons.regular.PencilSimple
 import com.adamglin.phosphoricons.regular.Plus
 import com.adamglin.phosphoricons.regular.PlusCircle
 import com.adamglin.phosphoricons.regular.ShareNetwork
+import com.adamglin.phosphoricons.regular.Stack
 import com.adamglin.phosphoricons.regular.Trash
 import com.example.liber.data.Book
+import com.example.liber.ui.collections.CollectionUiState
+import com.example.liber.ui.collections.CollectionsViewModel
 import com.example.liber.ui.components.BookCover
 import com.example.liber.ui.components.CoverStyle
 import com.example.liber.ui.home.HomeViewModel
@@ -72,6 +77,8 @@ fun LibraryScreen(
     onRenameBook: (Book, String) -> Unit,
     onDeleteBook: (Book) -> Unit,
     onShareBook: (Book) -> Unit,
+    onAddToCollection: (Book, Long) -> Unit = { _, _ -> },
+    collections: List<CollectionUiState> = emptyList(),
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -92,6 +99,8 @@ fun LibraryScreen(
                 onRenameBook = onRenameBook,
                 onDeleteBook = onDeleteBook,
                 onShareBook = onShareBook,
+                onAddToCollection = onAddToCollection,
+                collections = collections,
             )
         }
     }
@@ -105,10 +114,12 @@ fun LibraryScreen(
     onBookClick: (Book) -> Unit,
     onAddBooks: () -> Unit,
     onShareBook: (Book) -> Unit,
+    collectionsViewModel: CollectionsViewModel,
     modifier: Modifier = Modifier,
 ) {
     val books by viewModel.books.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val collections by collectionsViewModel.collections.collectAsState()
 
     LibraryScreen(
         books = books,
@@ -120,6 +131,10 @@ fun LibraryScreen(
         onRenameBook = { book, newTitle -> viewModel.renameBook(book.id, newTitle) },
         onDeleteBook = { book -> viewModel.deleteBook(book.id) },
         onShareBook = onShareBook,
+        onAddToCollection = { book, collectionId ->
+            collectionsViewModel.addBookToCollection(collectionId, book.id)
+        },
+        collections = collections,
         modifier = modifier,
     )
 }
@@ -199,6 +214,8 @@ private fun BookGrid(
     onRenameBook: (Book, String) -> Unit,
     onDeleteBook: (Book) -> Unit,
     onShareBook: (Book) -> Unit,
+    onAddToCollection: (Book, Long) -> Unit = { _, _ -> },
+    collections: List<CollectionUiState> = emptyList(),
 ) {
     val chunkedBooks = remember(books) { books.chunked(2) }
 
@@ -223,6 +240,8 @@ private fun BookGrid(
                             onRenameBook = { onRenameBook(book, it) },
                             onDeleteBook = { onDeleteBook(book) },
                             onShareBook = { onShareBook(book) },
+                            onAddToCollection = { collectionId -> onAddToCollection(book, collectionId) },
+                            collections = collections,
                         )
                     }
                 }
@@ -243,8 +262,11 @@ private fun LibraryBookItem(
     onRenameBook: (String) -> Unit,
     onDeleteBook: () -> Unit,
     onShareBook: () -> Unit,
+    onAddToCollection: (Long) -> Unit = {},
+    collections: List<CollectionUiState> = emptyList(),
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    var showCollectionPicker by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -328,7 +350,7 @@ private fun LibraryBookItem(
                     )
                     DropdownMenuItem(
                         text = { Text("Add to Collection") },
-                        onClick = { showMenu = false },
+                        onClick = { showMenu = false; showCollectionPicker = true },
                         leadingIcon = { Icon(PhosphorIcons.Regular.ListPlus, null) }
                     )
                     DropdownMenuItem(
@@ -363,6 +385,73 @@ private fun LibraryBookItem(
             }
         }
     }
+
+    if (showCollectionPicker) {
+        AddToCollectionDialog(
+            collections = collections,
+            onCollectionSelected = { collectionId ->
+                onAddToCollection(collectionId)
+                showCollectionPicker = false
+            },
+            onDismiss = { showCollectionPicker = false },
+        )
+    }
+}
+
+@Composable
+private fun AddToCollectionDialog(
+    collections: List<CollectionUiState>,
+    onCollectionSelected: (Long) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add to Collection") },
+        text = {
+            if (collections.isEmpty()) {
+                Text(
+                    "You have no collections yet. Create one in the Collections tab.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                    items(collections) { collection ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onCollectionSelected(collection.id) }
+                                .padding(vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                imageVector = PhosphorIcons.Regular.Stack,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp),
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = collection.name,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                Text(
+                                    text = "${collection.books.size} ${if (collection.books.size == 1) "book" else "books"}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
 }
 
 // ── Previews ──────────────────────────────────────────────────────────────────

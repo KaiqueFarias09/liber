@@ -20,6 +20,8 @@ import androidx.compose.ui.platform.LocalContext
 import com.example.liber.data.AnnotationEntity
 import com.example.liber.data.BookmarkEntity
 import com.example.liber.ui.reader.AnnotationRequest
+import com.example.liber.ui.collections.CollectionsScreen
+import com.example.liber.ui.collections.CollectionsViewModel
 import com.example.liber.ui.components.LiberBottomNav
 import com.example.liber.ui.home.HomeScreen
 import com.example.liber.ui.home.HomeViewModel
@@ -36,7 +38,7 @@ import org.readium.r2.shared.publication.Publication
  */
 @OptIn(ExperimentalReadiumApi::class)
 @Composable
-fun LiberApp(viewModel: HomeViewModel) {
+fun LiberApp(viewModel: HomeViewModel, collectionsViewModel: CollectionsViewModel) {
     val context = LocalContext.current
     var activePublication by remember { mutableStateOf<Publication?>(null) }
     var activeBook by remember { mutableStateOf<com.example.liber.data.Book?>(null) }
@@ -104,6 +106,7 @@ fun LiberApp(viewModel: HomeViewModel) {
                     .padding(innerPadding)
                     .fillMaxSize(),
             ) {
+                val books by viewModel.books.collectAsState()
                 when (activeTab) {
                     AppTab.HOME -> HomeScreen(
                         viewModel = viewModel,
@@ -120,7 +123,24 @@ fun LiberApp(viewModel: HomeViewModel) {
                                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                             }
                             context.startActivity(Intent.createChooser(intent, "Share Book"))
-                        }
+                        },
+                        collectionsViewModel = collectionsViewModel,
+                    )
+                    AppTab.COLLECTIONS -> CollectionsScreen(
+                        viewModel = collectionsViewModel,
+                        allBooks = books,
+                        onOpenBook = onOpenBook,
+                        onShareBook = { book ->
+                            val intent = Intent(Intent.ACTION_SEND).apply {
+                                type = "application/epub+zip"
+                                putExtra(Intent.EXTRA_STREAM, book.fileUri)
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            context.startActivity(Intent.createChooser(intent, "Share Book"))
+                        },
+                        onToggleWantToRead = { book -> viewModel.toggleWantToRead(book.id, book.wantToRead) },
+                        onToggleFinished = { book -> viewModel.toggleFinished(book.id, book.readingProgress == 100) },
+                        onRenameBook = { book, newTitle -> viewModel.renameBook(book.id, newTitle) },
                     )
                 }
             }
