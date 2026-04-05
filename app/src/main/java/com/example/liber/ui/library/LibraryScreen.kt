@@ -99,113 +99,117 @@ fun LibraryScreen(
     var selectedCollectionId by remember { mutableStateOf<Long?>(null) }
     val selectedCollection = collections.find { it.id == selectedCollectionId }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize(),
-    ) {
-        LibraryHeader(onAddBooks = onAddBooks)
-
-        SecondaryTabRow(
-            selectedTabIndex = selectedTabIndex,
-            containerColor = Color.Transparent,
-            contentColor = MaterialTheme.colorScheme.onBackground,
-            indicator = {
-                TabRowDefaults.SecondaryIndicator(
-                    modifier = Modifier.tabIndicatorOffset(selectedTabIndex),
-                    color = MaterialTheme.colorScheme.primary
-                )
-            },
-            divider = {},
-            modifier = Modifier.padding(horizontal = 24.dp)
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
         ) {
-            Tab(
-                selected = selectedTabIndex == 0,
-                onClick = { selectedTabIndex = 0; selectedCollectionId = null },
-                text = { Text("Books", style = MaterialTheme.typography.titleMedium) }
-            )
-            Tab(
-                selected = selectedTabIndex == 1,
-                onClick = { selectedTabIndex = 1 },
-                text = { Text("Collections", style = MaterialTheme.typography.titleMedium) }
-            )
-        }
+            LibraryHeader(onAddBooks = onAddBooks)
 
-        Spacer(Modifier.height(8.dp))
+            SecondaryTabRow(
+                selectedTabIndex = selectedTabIndex,
+                containerColor = Color.Transparent,
+                contentColor = MaterialTheme.colorScheme.onBackground,
+                indicator = {
+                    TabRowDefaults.SecondaryIndicator(
+                        modifier = Modifier.tabIndicatorOffset(selectedTabIndex),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                },
+                divider = {},
+                modifier = Modifier.padding(horizontal = 24.dp)
+            ) {
+                Tab(
+                    selected = selectedTabIndex == 0,
+                    onClick = { selectedTabIndex = 0; selectedCollectionId = null },
+                    text = { Text("Books", style = MaterialTheme.typography.titleMedium) }
+                )
+                Tab(
+                    selected = selectedTabIndex == 1,
+                    onClick = { selectedTabIndex = 1 },
+                    text = { Text("Collections", style = MaterialTheme.typography.titleMedium) }
+                )
+            }
 
-        AnimatedContent(
-            targetState = if (selectedTabIndex == 0) "books" else if (selectedCollectionId == null) "collections" else "collection_detail",
-            transitionSpec = {
-                slideInHorizontally { it } togetherWith slideOutHorizontally { -it }
-            },
-            modifier = Modifier.weight(1f),
-            label = "library_content"
-        ) { state ->
-            when (state) {
-                "books" -> {
-                    when {
-                        isLoading -> LoadingState()
-                        books.isEmpty() -> Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            EmptyState(
-                                title = "Your library is empty",
-                                subtitle = "Tap + to add books",
-                                image = R.drawable.library_empty,
-                                actionLabel = "Add Books",
-                                onAction = onAddBooks,
-                                modifier = Modifier.padding(horizontal = 24.dp),
+            Spacer(Modifier.height(8.dp))
+
+            AnimatedContent(
+                targetState = if (selectedTabIndex == 0) "books" else "collections",
+                transitionSpec = {
+                    slideInHorizontally { it } togetherWith slideOutHorizontally { -it }
+                },
+                modifier = Modifier.weight(1f),
+                label = "library_content"
+            ) { state ->
+                when (state) {
+                    "books" -> {
+                        when {
+                            isLoading -> LoadingState()
+                            books.isEmpty() -> Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                EmptyState(
+                                    title = "Your library is empty",
+                                    subtitle = "Tap + to add books",
+                                    image = R.drawable.library_empty,
+                                    actionLabel = "Add Books",
+                                    onAction = onAddBooks,
+                                    modifier = Modifier.padding(horizontal = 24.dp),
+                                )
+                            }
+
+                            else -> BookGrid(
+                                books = books,
+                                onBookClick = onBookClick,
+                                onToggleWantToRead = onToggleWantToRead,
+                                onToggleFinished = onToggleFinished,
+                                onRenameBook = onRenameBook,
+                                onDeleteBook = onDeleteBook,
+                                onShareBook = onShareBook,
+                                onAddToCollection = onAddToCollection,
+                                collections = collections,
                             )
                         }
+                    }
 
-                        else -> BookGrid(
-                            books = books,
-                            onBookClick = onBookClick,
-                            onToggleWantToRead = onToggleWantToRead,
-                            onToggleFinished = onToggleFinished,
-                            onRenameBook = onRenameBook,
-                            onDeleteBook = onDeleteBook,
-                            onShareBook = onShareBook,
-                            onAddToCollection = onAddToCollection,
+                    "collections" -> {
+                        CollectionsListScreen(
                             collections = collections,
+                            onCollectionClick = { selectedCollectionId = it.id },
+                            onCreateCollection = onCreateCollection,
                         )
                     }
                 }
+            }
+        }
 
-                "collections" -> {
-                    CollectionsListScreen(
-                        collections = collections,
-                        onCollectionClick = { selectedCollectionId = it.id },
-                        onCreateCollection = onCreateCollection,
-                    )
-                }
-
-                "collection_detail" -> {
-                    if (selectedCollection != null) {
-                        CollectionDetailScreen(
-                            collection = selectedCollection,
-                            allBooks = books,
-                            onBack = { selectedCollectionId = null },
-                            onRename = { onRenameCollection(selectedCollection.id, it) },
-                            onDelete = {
-                                onDeleteCollection(selectedCollection.id)
-                                selectedCollectionId = null
-                            },
-                            onAddBook = { onAddBookToCollection(selectedCollection.id, it) },
-                            onRemoveBook = {
-                                onRemoveBookFromCollection(
-                                    selectedCollection.id,
-                                    it
-                                )
-                            },
-                            onOpenBook = onBookClick,
-                            onShareBook = onShareBook,
-                            onToggleWantToRead = onToggleWantToRead,
-                            onToggleFinished = onToggleFinished,
-                            onRenameBook = onRenameBook,
+        if (selectedCollectionId != null && selectedCollection != null) {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.background
+            ) {
+                CollectionDetailScreen(
+                    collection = selectedCollection,
+                    allBooks = books,
+                    onBack = { selectedCollectionId = null },
+                    onRename = { onRenameCollection(selectedCollection.id, it) },
+                    onDelete = {
+                        onDeleteCollection(selectedCollection.id)
+                        selectedCollectionId = null
+                    },
+                    onAddBook = { onAddBookToCollection(selectedCollection.id, it) },
+                    onRemoveBook = {
+                        onRemoveBookFromCollection(
+                            selectedCollection.id,
+                            it
                         )
-                    }
-                }
+                    },
+                    onOpenBook = onBookClick,
+                    onShareBook = onShareBook,
+                    onToggleWantToRead = onToggleWantToRead,
+                    onToggleFinished = onToggleFinished,
+                    onRenameBook = onRenameBook,
+                )
             }
         }
     }

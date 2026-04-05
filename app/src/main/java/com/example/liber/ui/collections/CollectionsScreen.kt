@@ -237,16 +237,9 @@ private fun StackedBookCovers(
     if (displayBooks.isEmpty()) {
         Box(
             modifier = modifier
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = "Empty collection",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+                .height(40.dp) // Maintain some height for the card layout
+                .fillMaxWidth(),
+        )
         return
     }
 
