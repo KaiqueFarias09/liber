@@ -43,6 +43,41 @@ The reader is built on the [Readium Kotlin Toolkit](https://readium.org/kotlin-t
 
 Manual — no DI framework. Instances are created directly in Activities/ViewModels. `ReaderViewModel` uses a custom `Factory` that takes a `BookEntity` argument.
 
+## Design System
+
+### Icons
+
+Use **Phosphor Icons** (`com.adamglin:phosphor-icon`). Import from `com.adamglin.phosphoricons.*`. Do not use Material Icons.
+
+### Typography
+
+Two custom font families defined in `Type.kt`:
+- **Gambetta** (serif) — Display, Headline, and `titleLarge` styles
+- **Switzer** (sans-serif) — `titleMedium`/`titleSmall`, Body, and Label styles
+
+Always use `MaterialTheme.typography.*` tokens; do not hardcode font families or sizes.
+
+### Colors
+
+The palette is defined in `Color.kt` and wired into Material 3 via `Theme.kt`. All semantic color tokens (primary, surface, etc.) come from three brand families:
+
+| Family | Role | Key tokens |
+|---|---|---|
+| **Rose** (dusty pink) | Primary | `Rose500` light / `Rose400` dark |
+| **Mauve** (warm taupe) | Secondary | `Mauve500` light / `Mauve300` dark |
+| **Sage** (dusty green) | Tertiary | `Sage500` light / `Sage300` dark |
+| **Neutral** (warm gray) | Backgrounds & surfaces | `Neutral50`→`Neutral950` |
+
+Use `MaterialTheme.colorScheme.*` for standard roles. For tag/badge colors (e.g. genre chips), use the extended palette accessed via `MaterialTheme.extendedColors.*`:
+
+```kotlin
+// Available hues: rose, yellow, orange, blue, red, green, purple, teal
+MaterialTheme.extendedColors.yellowContainer
+MaterialTheme.extendedColors.onYellowContainer
+```
+
+`ExtendedColorScheme` is provided via `LocalExtendedColors` and automatically switches between light/dark variants.
+
 ## Key Dependencies
 
 | Library | Purpose |
