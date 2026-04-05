@@ -65,6 +65,7 @@ import com.example.liber.data.AnnotationEntity
 import com.example.liber.data.BookmarkEntity
 import org.readium.r2.navigator.DecorableNavigator
 import org.readium.r2.navigator.Decoration
+import org.readium.r2.navigator.OverflowableNavigator
 import org.readium.r2.navigator.SelectableNavigator
 import org.readium.r2.navigator.VisualNavigator
 import org.readium.r2.navigator.epub.EpubNavigatorFactory
@@ -72,6 +73,8 @@ import org.readium.r2.navigator.epub.EpubNavigatorFragment
 import org.readium.r2.navigator.epub.EpubPreferences
 import org.readium.r2.navigator.html.HtmlDecorationTemplates
 import org.readium.r2.navigator.preferences.Color as ReadiumColor
+import org.readium.r2.navigator.input.InputListener
+import org.readium.r2.navigator.input.TapEvent
 import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.shared.publication.Link
 import org.readium.r2.shared.publication.Locator
@@ -170,6 +173,32 @@ fun ReaderScreen(
     }
 
     var navigator by remember { mutableStateOf<VisualNavigator?>(null) }
+
+    // Toggle UI on tap using Readium's InputListener
+    LaunchedEffect(navigator) {
+        val nav = navigator ?: return@LaunchedEffect
+        val listener = object : InputListener {
+            override fun onTap(event: TapEvent): Boolean {
+                // Determine if it's a center tap (toggle UI) or edge tap (page turn)
+                val width = navigator?.publicationView?.width ?: 0
+                val x = event.point.x
+                
+                when {
+                    x < width * 0.2f -> {
+                        (nav as? OverflowableNavigator)?.goBackward(animated = true)
+                    }
+                    x > width * 0.8f -> {
+                        (nav as? OverflowableNavigator)?.goForward(animated = true)
+                    }
+                    else -> {
+                        viewModel.toggleUI()
+                    }
+                }
+                return true
+            }
+        }
+        nav.addInputListener(listener)
+    }
 
     // Track current locator for the progress scrubber and bookmark detection
     var currentLocator by remember { mutableStateOf<Locator?>(null) }
@@ -328,16 +357,6 @@ fun ReaderScreen(
                     }
                 }
             },
-        )
-
-        // Tap-zone overlay to toggle chrome visibility
-        Box(
-            modifier = Modifier
-                .fillMaxSize(0.6f)
-                .align(Alignment.Center)
-                .pointerInput(Unit) {
-                    detectTapGestures(onTap = { viewModel.toggleUI() })
-                }
         )
 
         // ── Top Bar ───────────────────────────────────────────────────────────
