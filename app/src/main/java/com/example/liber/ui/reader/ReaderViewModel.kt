@@ -78,13 +78,29 @@ class ReaderViewModel(val publication: Publication) : ViewModel() {
     private val _showAnnotationCreator = MutableStateFlow(false)
     val showAnnotationCreator: StateFlow<Boolean> = _showAnnotationCreator
 
+    /** Text selected in the EPUB before "Highlight" or "Add Note" was tapped. */
+    private val _pendingSelectedText = MutableStateFlow<String?>(null)
+    val pendingSelectedText: StateFlow<String?> = _pendingSelectedText
+
+    /** "note" or "highlight" — controls the sheet title and save behavior. */
+    private val _pendingAnnotationType = MutableStateFlow("note")
+    val pendingAnnotationType: StateFlow<String> = _pendingAnnotationType
+
     private val _annotationNoteText = MutableStateFlow("")
     val annotationNoteText: StateFlow<String> = _annotationNoteText
 
     private val _annotationColorArgb = MutableStateFlow(DEFAULT_ANNOTATION_COLOR)
     val annotationColorArgb: StateFlow<Int> = _annotationColorArgb
 
-    fun startAnnotation() {
+    /**
+     * Opens the annotation creator sheet.
+     *
+     * @param type "note" or "highlight"
+     * @param prefilledText Text already selected in the EPUB (from the system text-selection menu).
+     */
+    fun startAnnotation(type: String = "note", prefilledText: String? = null) {
+        _pendingAnnotationType.value = type
+        _pendingSelectedText.value = prefilledText
         _annotationNoteText.value = ""
         _annotationColorArgb.value = DEFAULT_ANNOTATION_COLOR
         _showAnnotationCreator.value = true
@@ -100,6 +116,8 @@ class ReaderViewModel(val publication: Publication) : ViewModel() {
 
     fun cancelAnnotation() {
         _showAnnotationCreator.value = false
+        _pendingSelectedText.value = null
+        _pendingAnnotationType.value = "note"
         _annotationNoteText.value = ""
         _annotationColorArgb.value = DEFAULT_ANNOTATION_COLOR
     }

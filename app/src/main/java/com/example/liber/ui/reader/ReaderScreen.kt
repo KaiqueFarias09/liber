@@ -69,9 +69,11 @@ fun ReaderScreen(
     bookId: String,
     initialLocatorJson: String?,
     annotations: List<AnnotationEntity>,
+    pendingAnnotationRequest: AnnotationRequest?,
     onSaveLocator: (json: String, progress: Int) -> Unit,
     onSaveAnnotation: (AnnotationEntity) -> Unit,
     onDeleteAnnotation: (Long) -> Unit,
+    onClearPendingAnnotation: () -> Unit,
     onBack: () -> Unit,
     viewModel: ReaderViewModel = viewModel(factory = ReaderViewModel.Factory(publication))
 ) {
@@ -81,6 +83,14 @@ fun ReaderScreen(
     var showSearch by remember { mutableStateOf(false) }
     var showNotes by remember { mutableStateOf(false) }
     val showAnnotationCreator by viewModel.showAnnotationCreator.collectAsState()
+
+    // Bridge: when MainActivity posts a text-selection request, open the annotation creator
+    LaunchedEffect(pendingAnnotationRequest) {
+        pendingAnnotationRequest ?: return@LaunchedEffect
+        val type = if (pendingAnnotationRequest is AnnotationRequest.Highlight) "highlight" else "note"
+        viewModel.startAnnotation(type = type, prefilledText = pendingAnnotationRequest.selectedText)
+        onClearPendingAnnotation()
+    }
 
     var navigator by remember { mutableStateOf<VisualNavigator?>(null) }
 
@@ -266,7 +276,7 @@ fun ReaderScreen(
         ) {
             AnnotationsView(
                 annotations = annotations,
-                onAddNote = { viewModel.startAnnotation() },
+                onAddNote = { viewModel.startAnnotation(type = "note") },
                 onNoteClick = { annotation ->
                     runCatching {
                         val locator = Locator.fromJSON(org.json.JSONObject(annotation.locator))
@@ -280,10 +290,12 @@ fun ReaderScreen(
         }
     }
 
-    // Create Annotation Sheet
+    // Create / Highlight Annotation Sheet
     if (showAnnotationCreator) {
         val noteText by viewModel.annotationNoteText.collectAsState()
         val selectedColor by viewModel.annotationColorArgb.collectAsState()
+        val selectedText by viewModel.pendingSelectedText.collectAsState()
+        val annotationType by viewModel.pendingAnnotationType.collectAsState()
 
         ModalBottomSheet(
             onDismissRequest = { viewModel.cancelAnnotation() },
@@ -291,6 +303,8 @@ fun ReaderScreen(
             contentColor = MaterialTheme.colorScheme.onSurface,
         ) {
             CreateAnnotationSheet(
+                annotationType = annotationType,
+                selectedText = selectedText,
                 noteText = noteText,
                 selectedColorArgb = selectedColor,
                 currentChapter = navigator?.currentLocator?.value?.title
@@ -302,10 +316,10 @@ fun ReaderScreen(
                     onSaveAnnotation(
                         AnnotationEntity(
                             bookId = bookId,
-                            type = "note",
+                            type = annotationType,
                             color = selectedColor,
                             locator = locator.toJSON().toString(),
-                            text = null,
+                            text = selectedText,
                             note = noteText.ifBlank { null },
                         )
                     )
@@ -594,6 +608,8 @@ private fun AnnotationItem(
 
 @Composable
 fun CreateAnnotationSheet(
+    annotationType: String,           // "note" or "highlight"
+    selectedText: String?,            // text the user selected in the EPUB, if any
     noteText: String,
     selectedColorArgb: Int,
     currentChapter: String?,
@@ -602,6 +618,10 @@ fun CreateAnnotationSheet(
     onSave: () -> Unit,
     onCancel: () -> Unit,
 ) {
+    val isHighlight = annotationType == "highlight"
+    val title = if (isHighlight) "Highlight" else "New Note"
+    val saveLabel = if (isHighlight) "Save highlight" else "Save note"
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -609,7 +629,7 @@ fun CreateAnnotationSheet(
         contentPadding = PaddingValues(bottom = 32.dp),
     ) {
         Text(
-            "New Note",
+            title,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(bottom = 4.dp),
@@ -620,9 +640,33 @@ fun CreateAnnotationSheet(
                 text = chapter,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 16.dp),
+                modifier = Modifier.padding(bottom = 12.dp),
             )
-        } ?: Spacer(Modifier.height(16.dp))
+        }
+
+        // Selected text excerpt (shown when the user long-pressed text in the EPUB)
+        if (!selectedText.isNullOrBlank()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
+                    .background(
+                        color = Color(selectedColorArgb.toLong() and 0xFFFFFFFFL),
+                        shape = RoundedCornerShape(8.dp),
+                    )
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+            ) {
+                Text(
+                    text = selectedText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 4,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
+            }
+        } else {
+            Spacer(Modifier.height(8.dp))
+        }
 
         // Color picker
         Text(
@@ -660,7 +704,7 @@ fun CreateAnnotationSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(120.dp),
-            placeholder = { Text("Write your note… (optional)") },
+            placeholder = { Text(if (isHighlight) "Add a note… (optional)" else "Write your note… (optional)") },
             maxLines = 5,
             shape = RoundedCornerShape(12.dp),
         )
@@ -681,7 +725,7 @@ fun CreateAnnotationSheet(
                 onClick = onSave,
                 modifier = Modifier.weight(1f),
             ) {
-                Text("Save note")
+                Text(saveLabel)
             }
         }
     }

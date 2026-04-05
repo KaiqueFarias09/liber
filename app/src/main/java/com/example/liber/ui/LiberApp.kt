@@ -16,6 +16,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.example.liber.data.AnnotationEntity
+import com.example.liber.ui.reader.AnnotationRequest
 import com.example.liber.ui.components.LiberBottomNav
 import com.example.liber.ui.home.HomeScreen
 import com.example.liber.ui.home.HomeViewModel
@@ -62,15 +63,20 @@ fun LiberApp(viewModel: HomeViewModel) {
     }
     val annotations by annotationsFlow.collectAsState(initial = emptyList<AnnotationEntity>())
 
+    // Posted by MainActivity when the user selects text and taps Highlight / Add Note
+    val pendingAnnotationRequest by viewModel.pendingAnnotationRequest.collectAsState()
+
     if (activePublication != null) {
         ReaderScreen(
             publication = activePublication!!,
             bookId = activeBook!!.id,
             initialLocatorJson = activeBook?.lastLocator,
             annotations = annotations,
+            pendingAnnotationRequest = pendingAnnotationRequest,
             onSaveLocator = { json, progress -> viewModel.saveLocator(activeBook!!.id, json, progress) },
             onSaveAnnotation = { annotation -> viewModel.saveAnnotation(annotation) },
             onDeleteAnnotation = { annotationId -> viewModel.deleteAnnotation(annotationId) },
+            onClearPendingAnnotation = { viewModel.clearPendingAnnotation() },
             onBack = {
                 activePublication = null
                 activeBook = null

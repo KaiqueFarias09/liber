@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Liber</string>
+    <string name="action_highlight">Highlight</string>
+    <string name="action_add_note">Add Note</string>
 </resources>
