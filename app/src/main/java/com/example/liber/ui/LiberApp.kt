@@ -27,6 +27,7 @@ import com.example.liber.ui.home.HomeScreen
 import com.example.liber.ui.home.HomeViewModel
 import com.example.liber.ui.library.LibraryScreen
 import com.example.liber.ui.navigation.AppTab
+import com.example.liber.ui.reader.PdfReaderScreen
 import com.example.liber.ui.reader.ReaderScreen
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
@@ -70,7 +71,15 @@ fun LiberApp(viewModel: HomeViewModel, collectionsViewModel: CollectionsViewMode
 
     val pendingAnnotationRequest by viewModel.pendingAnnotationRequest.collectAsState()
 
-    if (activePublication != null) {
+    if (activeBook?.fileUri?.toString()?.endsWith(".pdf", ignoreCase = true) == true) {
+        PdfReaderScreen(
+            uri = activeBook!!.fileUri,
+            title = activeBook!!.title,
+            onBack = {
+                activeBook = null
+            }
+        )
+    } else if (activePublication != null) {
         ReaderScreen(
             publication = activePublication!!,
             bookId = activeBook!!.id,
@@ -115,7 +124,18 @@ fun LiberApp(viewModel: HomeViewModel, collectionsViewModel: CollectionsViewMode
                     AppTab.LIBRARY -> LibraryScreen(
                         viewModel = viewModel,
                         onBookClick = onOpenBook,
-                        onAddBooks = { bookLauncher.launch(arrayOf("application/epub+zip")) },
+                        onAddBooks = {
+                            bookLauncher.launch(
+                                arrayOf(
+                                    "application/epub+zip",
+                                    "application/pdf",
+                                    "application/x-cbz",
+                                    "application/audiobook+zip",
+                                    "application/lpf+zip",
+                                    "application/webpub+json"
+                                )
+                            )
+                        },
                         onShareBook = { book ->
                             val intent = Intent(Intent.ACTION_SEND).apply {
                                 type = "application/epub+zip"

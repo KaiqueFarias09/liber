@@ -1,3 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <color name="rose_500">#E87881</color>
+    <color name="rose_600">#D15D67</color>
+    <color name="mauve_500">#8D6D74</color>
+    <color name="mauve_600">#74585E</color>
 </resources>

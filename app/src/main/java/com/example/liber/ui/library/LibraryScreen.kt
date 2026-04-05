@@ -94,7 +94,7 @@ fun LibraryScreen(
             books.isEmpty() -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 EmptyState(
                     title = "Your library is empty",
-                    subtitle = "Tap + to add EPUB books",
+                    subtitle = "Tap + to add books",
                     image = R.drawable.library_empty,
                     actionLabel = "Add Books",
                     onAction = onAddBooks,

@@ -1,5 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.Liber" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Main theme colors -->
+        <item name="colorPrimary">@color/rose_500</item>
+        <item name="colorOnPrimary">@android:color/white</item>
+        <item name="colorSecondary">@color/mauve_500</item>
+        <item name="colorOnSecondary">@android:color/white</item>
 
-    <style name="Theme.Liber" parent="android:Theme.Material.Light.NoActionBar" />
+        <!-- Material 3 Container Colors -->
+        <item name="colorPrimaryContainer">@color/rose_600</item>
+        <item name="colorOnPrimaryContainer">@android:color/white</item>
+        <item name="colorSecondaryContainer">@color/mauve_600</item>
+        <item name="colorOnSecondaryContainer">@android:color/white</item>
+
+        <!-- Surface Colors -->
+        <item name="android:windowBackground">@android:color/white</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+
+        <!-- Material Components (M2) Compatibility -->
+        <item name="colorPrimaryVariant">@color/rose_600</item>
+        <item name="colorSecondaryVariant">@color/mauve_600</item>
+        <item name="colorAccent">@color/mauve_500</item>
+    </style>
 </resources>

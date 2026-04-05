@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-sdk tools:overrideLibrary="androidx.pdf.viewer.fragment, androidx.pdf.viewer, androidx.pdf.document.service, androidx.pdf"/>
+
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application

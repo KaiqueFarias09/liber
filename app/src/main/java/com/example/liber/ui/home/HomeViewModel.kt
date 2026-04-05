@@ -3,6 +3,8 @@ package com.example.liber.ui.home
 import android.app.Application
 import android.graphics.Bitmap
 import android.net.Uri
+import android.graphics.pdf.PdfRenderer
+import android.os.ParcelFileDescriptor
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -194,6 +196,18 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private suspend fun parseBook(file: DocumentFile): Book? {
+        val extension = file.name?.substringAfterLast('.', "").orEmpty().lowercase()
+        if (extension == "pdf") {
+            val coverUri = extractPdfCover(file.uri, file.name ?: "pdf")
+            return Book(
+                id = UUID.randomUUID().toString(),
+                title = file.name?.substringBeforeLast('.') ?: "Unknown PDF",
+                author = "PDF Document",
+                coverUri = coverUri,
+                fileUri = file.uri
+            )
+        }
+
         return try {
             val tempFile = copyToTempFile(file.uri)
             val asset = assetRetriever.retrieve(tempFile.toUrl()).getOrNull() ?: return null
@@ -215,22 +229,50 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private suspend fun extractCover(publication: Publication, fileName: String): Uri? =
         withContext(Dispatchers.IO) {
             val bitmap = publication.cover() ?: return@withContext null
-            val coverFile = File(
-                getApplication<Application>().cacheDir,
-                "cover_${fileName}_${System.currentTimeMillis()}.png"
-            )
+            saveBitmapToCache(bitmap, fileName)
+        }
+
+    private suspend fun extractPdfCover(uri: Uri, fileName: String): Uri? =
+        withContext(Dispatchers.IO) {
             try {
-                FileOutputStream(coverFile).use { it.compress(bitmap) }
-                Uri.fromFile(coverFile)
+                val context = getApplication<Application>()
+                context.contentResolver.openFileDescriptor(uri, "r")?.use { pfd ->
+                    val renderer = PdfRenderer(pfd)
+                    if (renderer.pageCount > 0) {
+                        renderer.openPage(0).use { page ->
+                            val bitmap = Bitmap.createBitmap(page.width, page.height, Bitmap.Config.ARGB_8888)
+                            page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                            return@withContext saveBitmapToCache(bitmap, fileName)
+                        }
+                    }
+                    renderer.close()
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
-                null
             }
+            null
         }
+
+    private fun saveBitmapToCache(bitmap: Bitmap, fileName: String): Uri? {
+        val coverFile = File(
+            getApplication<Application>().cacheDir,
+            "cover_${fileName}_${System.currentTimeMillis()}.png"
+        )
+        return try {
+            FileOutputStream(coverFile).use { it.compress(bitmap) }
+            Uri.fromFile(coverFile)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
 
     private fun copyToTempFile(uri: Uri): File {
         val context = getApplication<Application>()
-        val tempFile = File(context.cacheDir, "temp_${System.currentTimeMillis()}.epub")
+        val documentFile = DocumentFile.fromSingleUri(context, uri)
+        val name = documentFile?.name ?: "file"
+        val extension = name.substringAfterLast('.', "epub")
+        val tempFile = File(context.cacheDir, "temp_${System.currentTimeMillis()}.$extension")
         context.contentResolver.openInputStream(uri)?.use { input ->
             FileOutputStream(tempFile).use { input.copyTo(it) }
         }

@@ -32,15 +32,12 @@ import com.adamglin.phosphoricons.regular.List
 import com.adamglin.phosphoricons.regular.MagnifyingGlass
 import com.adamglin.phosphoricons.regular.Minus
 import com.adamglin.phosphoricons.regular.NotePencil
-import com.adamglin.phosphoricons.regular.Plus
-import androidx.compose.foundation.text.BasicTextField
 import com.adamglin.phosphoricons.regular.TextAa
 import com.adamglin.phosphoricons.regular.Trash
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -51,7 +48,6 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -967,7 +963,7 @@ fun SearchView(
             EmptyState(
                 title = "No results found",
                 subtitle = "Try a different search term.",
-                image = R.drawable.search_empty,
+                image = R.drawable.want_to_read_empty,
                 showImage = false,
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 titleColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -1121,7 +1117,7 @@ fun BookmarksView(
 ) {
     if (bookmarks.isEmpty()) {
         EmptyState(
-            title = "No bookmarks",
+            title = "No bookmarks.",
             image = R.drawable.bookmarks_empty,
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             titleColor = MaterialTheme.colorScheme.onPrimaryContainer,

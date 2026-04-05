@@ -103,8 +103,8 @@ fun HomeScreen(
                 EmptyState(
                     title = "No books yet",
                     subtitle = "Tap the bookmark icon in Library to add.",
-                    image = R.drawable.bookmarks_empty,
-                    showImage = false,
+                    image = R.drawable.want_to_read_empty,
+                    showImage = true,
                     modifier = Modifier.padding(horizontal = 24.dp)
                 )
             } else {
