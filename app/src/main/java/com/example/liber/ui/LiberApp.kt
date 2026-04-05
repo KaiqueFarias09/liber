@@ -1,5 +1,6 @@
 package com.example.liber.ui
 
+import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
@@ -36,6 +37,7 @@ import org.readium.r2.shared.publication.Publication
 @OptIn(ExperimentalReadiumApi::class)
 @Composable
 fun LiberApp(viewModel: HomeViewModel) {
+    val context = LocalContext.current
     var activePublication by remember { mutableStateOf<Publication?>(null) }
     var activeBook by remember { mutableStateOf<com.example.liber.data.Book?>(null) }
     var activeTab by remember { mutableStateOf(AppTab.HOME) }
@@ -111,6 +113,14 @@ fun LiberApp(viewModel: HomeViewModel) {
                         viewModel = viewModel,
                         onBookClick = onOpenBook,
                         onAddBooks = { bookLauncher.launch(arrayOf("application/epub+zip")) },
+                        onShareBook = { book ->
+                            val intent = Intent(Intent.ACTION_SEND).apply {
+                                type = "application/epub+zip"
+                                putExtra(Intent.EXTRA_STREAM, book.fileUri)
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            context.startActivity(Intent.createChooser(intent, "Share Book"))
+                        }
                     )
                 }
             }

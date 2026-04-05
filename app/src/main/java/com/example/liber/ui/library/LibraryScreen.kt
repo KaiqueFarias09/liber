@@ -1,5 +1,6 @@
 package com.example.liber.ui.library
 
+import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -69,6 +70,7 @@ fun LibraryScreen(
     onMarkAsFinished: (Book) -> Unit,
     onRenameBook: (Book, String) -> Unit,
     onDeleteBook: (Book) -> Unit,
+    onShareBook: (Book) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -88,6 +90,7 @@ fun LibraryScreen(
                 onMarkAsFinished = onMarkAsFinished,
                 onRenameBook = onRenameBook,
                 onDeleteBook = onDeleteBook,
+                onShareBook = onShareBook,
             )
         }
     }
@@ -100,6 +103,7 @@ fun LibraryScreen(
     viewModel: HomeViewModel,
     onBookClick: (Book) -> Unit,
     onAddBooks: () -> Unit,
+    onShareBook: (Book) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val books by viewModel.books.collectAsState()
@@ -114,6 +118,7 @@ fun LibraryScreen(
         onMarkAsFinished = { book -> viewModel.markAsFinished(book.id) },
         onRenameBook = { book, newTitle -> viewModel.renameBook(book.id, newTitle) },
         onDeleteBook = { book -> viewModel.deleteBook(book.id) },
+        onShareBook = onShareBook,
         modifier = modifier,
     )
 }
@@ -192,6 +197,7 @@ private fun BookGrid(
     onMarkAsFinished: (Book) -> Unit,
     onRenameBook: (Book, String) -> Unit,
     onDeleteBook: (Book) -> Unit,
+    onShareBook: (Book) -> Unit,
 ) {
     val chunkedBooks = remember(books) { books.chunked(2) }
 
@@ -215,6 +221,7 @@ private fun BookGrid(
                             onMarkAsFinished = { onMarkAsFinished(book) },
                             onRenameBook = { onRenameBook(book, it) },
                             onDeleteBook = { onDeleteBook(book) },
+                            onShareBook = { onShareBook(book) },
                         )
                     }
                 }
@@ -234,6 +241,7 @@ private fun LibraryBookItem(
     onMarkAsFinished: () -> Unit,
     onRenameBook: (String) -> Unit,
     onDeleteBook: () -> Unit,
+    onShareBook: () -> Unit,
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
@@ -303,7 +311,10 @@ private fun LibraryBookItem(
                 ) {
                     DropdownMenuItem(
                         text = { Text("Share") },
-                        onClick = { showMenu = false },
+                        onClick = { 
+                            onShareBook()
+                            showMenu = false 
+                        },
                         leadingIcon = { Icon(PhosphorIcons.Regular.ShareNetwork, null) }
                     )
                     DropdownMenuItem(
@@ -370,6 +381,7 @@ private fun LibraryScreenPreview() {
             onMarkAsFinished = {},
             onRenameBook = { _, _ -> },
             onDeleteBook = {},
+            onShareBook = {},
         )
     }
 }
@@ -387,6 +399,7 @@ private fun LibraryScreenEmptyPreview() {
             onMarkAsFinished = {},
             onRenameBook = { _, _ -> },
             onDeleteBook = {},
+            onShareBook = {},
         )
     }
 }
