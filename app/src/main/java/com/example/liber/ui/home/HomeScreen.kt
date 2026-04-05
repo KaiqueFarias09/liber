@@ -49,8 +49,7 @@ fun HomeScreen(
 ) {
     LazyColumn(
         modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .fillMaxSize(),
         contentPadding = PaddingValues(bottom = 32.dp),
     ) {
         // ── Header ─────────────────────────────────────────────────────────

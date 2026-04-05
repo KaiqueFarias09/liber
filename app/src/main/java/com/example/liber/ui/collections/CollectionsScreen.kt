@@ -152,7 +152,7 @@ private fun CollectionsListScreen(
     var showCreateDialog by remember { mutableStateOf(false) }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = Color.Transparent,
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showCreateDialog = true },
@@ -429,8 +429,7 @@ private fun CollectionDetailScreen(
 
     Column(
         modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .fillMaxSize(),
     ) {
         // Header
         Row(

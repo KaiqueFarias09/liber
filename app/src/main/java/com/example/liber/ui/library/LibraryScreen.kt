@@ -85,8 +85,7 @@ fun LibraryScreen(
 ) {
     Column(
         modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .fillMaxSize(),
     ) {
         LibraryHeader(onAddBooks = onAddBooks)
 
