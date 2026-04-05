@@ -12,5 +12,6 @@ data class BookEntity(
     val fileUri: String,
     val lastOpenedAt: Long? = null,
     val wantToRead: Boolean = false,
-    val readingProgress: Int = 0
+    val readingProgress: Int = 0,
+    val lastLocator: String? = null
 )

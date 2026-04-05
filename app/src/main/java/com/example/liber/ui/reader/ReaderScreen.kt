@@ -27,6 +27,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentContainerView
 import androidx.fragment.app.commit
+import androidx.activity.compose.BackHandler
 import androidx.lifecycle.viewmodel.compose.viewModel
 import org.readium.r2.navigator.VisualNavigator
 import org.readium.r2.navigator.epub.EpubNavigatorFactory
@@ -43,6 +44,9 @@ import org.readium.r2.shared.publication.Publication
 @Composable
 fun ReaderScreen(
     publication: Publication,
+    bookId: String,
+    initialLocatorJson: String?,
+    onSaveLocator: (json: String, progress: Int) -> Unit,
     onBack: () -> Unit,
     viewModel: ReaderViewModel = viewModel(factory = ReaderViewModel.Factory(publication))
 ) {
@@ -52,6 +56,16 @@ fun ReaderScreen(
     var showSearch by remember { mutableStateOf(false) }
 
     var navigator by remember { mutableStateOf<VisualNavigator?>(null) }
+
+    val handleBack = {
+        navigator?.currentLocator?.value?.let { locator ->
+            val progress = ((locator.locations.totalProgression ?: 0.0) * 100).toInt()
+            onSaveLocator(locator.toJSON().toString(), progress)
+        }
+        onBack()
+    }
+
+    BackHandler(onBack = handleBack)
 
     Box(
         modifier = Modifier
@@ -64,11 +78,16 @@ fun ReaderScreen(
                 FragmentContainerView(context).apply {
                     id = android.view.View.generateViewId()
 
+                    val restoredLocator = initialLocatorJson?.let { json ->
+                        runCatching { Locator.fromJSON(org.json.JSONObject(json)) }.getOrNull()
+                    }
+
                     val navigatorFactory = EpubNavigatorFactory(publication)
                     val fragmentFactory = navigatorFactory.createFragmentFactory(
-                        initialLocator = publication.readingOrder
-                            .firstOrNull()
-                            ?.let { publication.locatorFromLink(it) },
+                        initialLocator = restoredLocator
+                            ?: publication.readingOrder
+                                .firstOrNull()
+                                ?.let { publication.locatorFromLink(it) },
                     )
                     fragmentActivity.supportFragmentManager.fragmentFactory = fragmentFactory
 
@@ -113,7 +132,7 @@ fun ReaderScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 IconButton(
-                    onClick = onBack,
+                    onClick = handleBack,
                     modifier = Modifier
                         .statusBarsPadding()
                         .padding(8.dp),

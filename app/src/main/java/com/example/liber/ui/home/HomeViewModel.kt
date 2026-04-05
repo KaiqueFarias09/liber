@@ -88,6 +88,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         publicationOpener.open(asset, allowUserInteraction = false).getOrNull()
     }
 
+    fun saveLocator(bookId: String, locatorJson: String, progress: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            bookDao.updateLastLocator(bookId, locatorJson, progress)
+        }
+    }
+
     fun toggleWantToRead(bookId: String, currentValue: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             bookDao.updateWantToRead(bookId, !currentValue)
@@ -185,7 +191,8 @@ private fun BookEntity.toBook() = Book(
     fileUri = fileUri.toUri(),
     lastOpenedAt = lastOpenedAt,
     wantToRead = wantToRead,
-    readingProgress = readingProgress
+    readingProgress = readingProgress,
+    lastLocator = lastLocator
 )
 
 private fun FileOutputStream.compress(bitmap: Bitmap) {

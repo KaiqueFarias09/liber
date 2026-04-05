@@ -10,5 +10,6 @@ data class Book(
     val fileUri: Uri,
     val lastOpenedAt: Long? = null,
     val wantToRead: Boolean = false,
-    val readingProgress: Int = 0
+    val readingProgress: Int = 0,
+    val lastLocator: String? = null
 )

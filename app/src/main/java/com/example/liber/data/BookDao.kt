@@ -31,4 +31,7 @@ interface BookDao {
 
     @Query("UPDATE books SET wantToRead = :wantToRead WHERE id = :id")
     suspend fun updateWantToRead(id: String, wantToRead: Boolean)
+
+    @Query("UPDATE books SET lastLocator = :locator, readingProgress = :progress WHERE id = :id")
+    suspend fun updateLastLocator(id: String, locator: String?, progress: Int)
 }

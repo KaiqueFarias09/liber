@@ -36,6 +36,7 @@ import org.readium.r2.shared.publication.Publication
 @Composable
 fun LiberApp(viewModel: HomeViewModel) {
     var activePublication by remember { mutableStateOf<Publication?>(null) }
+    var activeBook by remember { mutableStateOf<com.example.liber.data.Book?>(null) }
     var activeTab by remember { mutableStateOf(AppTab.HOME) }
     val scope = rememberCoroutineScope()
 
@@ -47,6 +48,7 @@ fun LiberApp(viewModel: HomeViewModel) {
 
     val onOpenBook: (com.example.liber.data.Book) -> Unit = { book ->
         scope.launch {
+            activeBook = book
             activePublication = viewModel.openBook(book)
         }
     }
@@ -54,7 +56,13 @@ fun LiberApp(viewModel: HomeViewModel) {
     if (activePublication != null) {
         ReaderScreen(
             publication = activePublication!!,
-            onBack = { activePublication = null },
+            bookId = activeBook!!.id,
+            initialLocatorJson = activeBook?.lastLocator,
+            onSaveLocator = { json, progress -> viewModel.saveLocator(activeBook!!.id, json, progress) },
+            onBack = {
+                activePublication = null
+                activeBook = null
+            },
         )
     } else {
         Scaffold(
