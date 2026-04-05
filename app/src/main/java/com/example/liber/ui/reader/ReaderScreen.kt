@@ -164,6 +164,8 @@ fun ReaderScreen(
     var showBookmarks by remember { mutableStateOf(false) }
     var showThemes    by remember { mutableStateOf(false) }
 
+    val isAnyModalOpen = showContents || showSearch || showNotes || showBookmarks || showThemes || showAnnotationCreator
+
     // Bridge: when the selection callback posts a text-selection request, open the annotation creator
     LaunchedEffect(pendingAnnotationRequest) {
         pendingAnnotationRequest ?: return@LaunchedEffect
@@ -361,7 +363,7 @@ fun ReaderScreen(
 
         // ── Top Bar ───────────────────────────────────────────────────────────
         AnimatedVisibility(
-            visible = showUI,
+            visible = showUI && !isAnyModalOpen,
             enter = slideInVertically { -it },
             exit = slideOutVertically { -it },
             modifier = Modifier.align(Alignment.TopStart),
@@ -477,7 +479,7 @@ fun ReaderScreen(
 
         // ── Bottom Bar ────────────────────────────────────────────────────────
         AnimatedVisibility(
-            visible = showUI,
+            visible = showUI && !isAnyModalOpen,
             enter = slideInVertically { it },
             exit = slideOutVertically { it },
             modifier = Modifier.align(Alignment.BottomCenter),
@@ -598,11 +600,12 @@ fun ReaderScreen(
             onDismissRequest = { showContents = false },
             containerColor = ModalBg,
             contentColor = Color.White,
-            modifier = Modifier.fillMaxHeight(0.85f),
         ) {
             DarkSheetHeader(title = "Contents", onClose = { showContents = false })
             LazyColumn(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
             ) {
                 items(publication.tableOfContents) { link ->
@@ -624,11 +627,11 @@ fun ReaderScreen(
             onDismissRequest = { showSearch = false },
             containerColor = ModalBg,
             contentColor = Color.White,
-            modifier = Modifier.fillMaxHeight(0.85f),
         ) {
             DarkSheetHeader(title = "Search in Book", onClose = { showSearch = false })
             SearchView(
                 viewModel = viewModel,
+                modifier = Modifier.weight(1f),
                 onResultClick = { locator ->
                     navigator?.go(locator, animated = true)
                     showSearch = false
@@ -644,11 +647,11 @@ fun ReaderScreen(
             onDismissRequest = { showBookmarks = false },
             containerColor = ModalBg,
             contentColor = Color.White,
-            modifier = Modifier.fillMaxHeight(0.85f),
         ) {
             DarkSheetHeader(title = "Bookmarks", onClose = { showBookmarks = false })
             BookmarksView(
                 bookmarks = bookmarks,
+                modifier = Modifier.weight(1f),
                 onBookmarkClick = { bm ->
                     runCatching {
                         val locator = Locator.fromJSON(JSONObject(bm.locator))
@@ -668,11 +671,11 @@ fun ReaderScreen(
             onDismissRequest = { showNotes = false },
             containerColor = ModalBg,
             contentColor = Color.White,
-            modifier = Modifier.fillMaxHeight(0.85f),
         ) {
             DarkSheetHeader(title = "Highlights & Notes", onClose = { showNotes = false })
             AnnotationsView(
                 annotations = annotations,
+                modifier = Modifier.weight(1f),
                 onAddNote = { viewModel.startAnnotation(type = "note") },
                 onNoteClick = { annotation ->
                     runCatching {
@@ -937,10 +940,11 @@ fun BookmarksView(
     bookmarks: List<BookmarkEntity>,
     onBookmarkClick: (BookmarkEntity) -> Unit,
     onDeleteBookmark: (BookmarkEntity) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     if (bookmarks.isEmpty()) {
         Box(
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxWidth()
                 .padding(vertical = 48.dp),
             contentAlignment = Alignment.Center,
@@ -964,7 +968,10 @@ fun BookmarksView(
             }
         }
     } else {
-        LazyColumn(contentPadding = PaddingValues(bottom = 32.dp)) {
+        LazyColumn(
+            modifier = modifier,
+            contentPadding = PaddingValues(bottom = 32.dp)
+        ) {
             items(bookmarks, key = { it.id }) { bm ->
                 val dateStr = remember(bm.createdAt) {
                     SimpleDateFormat("MMM d", Locale.getDefault()).format(Date(bm.createdAt))
@@ -1027,14 +1034,15 @@ fun BookmarksView(
 fun SearchView(
     viewModel: ReaderViewModel,
     onResultClick: (Locator) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val query     by viewModel.searchQuery.collectAsState()
     val results   by viewModel.searchResults.collectAsState()
     val searching by viewModel.isSearching.collectAsState()
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = modifier
+            .fillMaxWidth()
             .padding(horizontal = 20.dp),
     ) {
         Spacer(Modifier.height(12.dp))
@@ -1149,6 +1157,7 @@ fun AnnotationsView(
     onAddNote: () -> Unit,
     onNoteClick: (AnnotationEntity) -> Unit,
     onDeleteNote: (AnnotationEntity) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var activeTab by remember { mutableStateOf("all") }
 
@@ -1160,7 +1169,7 @@ fun AnnotationsView(
         }
     }
 
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
+    Column(modifier = modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
         Spacer(Modifier.height(12.dp))
 
         // Filter tabs
@@ -1309,8 +1318,7 @@ private fun ThemesSheet(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp)
-            .navigationBarsPadding(),
+            .padding(horizontal = 20.dp),
     ) {
         // Header
         Row(
@@ -1458,8 +1466,7 @@ fun CreateAnnotationSheet(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp)
-            .navigationBarsPadding(),
+            .padding(horizontal = 20.dp),
     ) {
         Text(
             title,
