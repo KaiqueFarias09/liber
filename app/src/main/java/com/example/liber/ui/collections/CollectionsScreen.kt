@@ -57,25 +57,20 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.adamglin.PhosphorIcons
-import com.adamglin.phosphoricons.Fill
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.ArrowLeft
-import com.adamglin.phosphoricons.regular.BookOpen
 import com.adamglin.phosphoricons.regular.CaretRight
-import com.adamglin.phosphoricons.regular.CheckCircle
 import com.adamglin.phosphoricons.regular.DotsThree
 import com.adamglin.phosphoricons.regular.DotsThreeVertical
 import com.adamglin.phosphoricons.regular.PencilSimple
 import com.adamglin.phosphoricons.regular.Plus
-import com.adamglin.phosphoricons.regular.PlusCircle
-import com.adamglin.phosphoricons.regular.ShareNetwork
 import com.adamglin.phosphoricons.regular.Trash
 import com.example.liber.R
 import com.example.liber.data.Book
+import com.example.liber.ui.components.BookActionMenu
 import com.example.liber.ui.components.BookCover
 import com.example.liber.ui.components.CoverStyle
 import com.example.liber.ui.components.EmptyState
-import com.adamglin.phosphoricons.fill.Bookmark as BookmarkFill
 
 // ── List screen ───────────────────────────────────────────────────────────────
 
@@ -123,7 +118,7 @@ fun CollectionsListScreen(
                     .padding(innerPadding),
                 verticalArrangement = Arrangement.spacedBy(0.dp),
             ) {
-                items(collections) { collection ->
+                items(collections, key = { it.id }) { collection ->
                     CollectionShelfRow(
                         collection = collection,
                         onClick = { onCollectionClick(collection) },
@@ -454,7 +449,7 @@ fun CollectionDetailScreen(
                 verticalArrangement = Arrangement.spacedBy(20.dp),
                 modifier = Modifier.fillMaxSize(),
             ) {
-                items(chunkedBooks) { rowBooks ->
+                items(chunkedBooks, key = { it.first().id }) { rowBooks ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -586,50 +581,18 @@ private fun DetailBookItem(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                DropdownMenu(
+                BookActionMenu(
                     expanded = showMenu,
-                    onDismissRequest = { showMenu = false },
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Share") },
-                        leadingIcon = { Icon(PhosphorIcons.Regular.ShareNetwork, null) },
-                        onClick = { onShare(); showMenu = false },
-                    )
-                    DropdownMenuItem(
-                        text = { Text(if (book.wantToRead) "Remove from Want to Read" else "Add to Want to Read") },
-                        leadingIcon = {
-                            Icon(
-                                if (book.wantToRead) PhosphorIcons.Fill.BookmarkFill
-                                else PhosphorIcons.Regular.PlusCircle,
-                                null,
-                            )
-                        },
-                        onClick = { onToggleWantToRead(); showMenu = false },
-                    )
-                    DropdownMenuItem(
-                        text = { Text(if (book.readingProgress == 100) "Mark as still reading" else "Mark as Finished") },
-                        leadingIcon = {
-                            Icon(
-                                if (book.readingProgress == 100) PhosphorIcons.Regular.BookOpen
-                                else PhosphorIcons.Regular.CheckCircle,
-                                null,
-                            )
-                        },
-                        onClick = { onToggleFinished(); showMenu = false },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Rename…") },
-                        leadingIcon = { Icon(PhosphorIcons.Regular.PencilSimple, null) },
-                        onClick = { showMenu = false },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Remove from collection", color = MaterialTheme.colorScheme.error) },
-                        leadingIcon = {
-                            Icon(PhosphorIcons.Regular.Trash, null, tint = MaterialTheme.colorScheme.error)
-                        },
-                        onClick = { onRemoveFromCollection(); showMenu = false },
-                    )
-                }
+                    book = book,
+                    onDismiss = { showMenu = false },
+                    onShare = onShare,
+                    onToggleWantToRead = onToggleWantToRead,
+                    onToggleFinished = onToggleFinished,
+                    onRename = { showMenu = false },
+                    onDelete = onRemoveFromCollection,
+                    deleteLabel = "Remove from collection",
+                    showAddToCollection = false,
+                )
             }
         }
     }
@@ -727,7 +690,7 @@ private fun AddBooksDialog(
                 )
             } else {
                 LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                    items(availableBooks) { book ->
+                    items(availableBooks, key = { it.id }) { book ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()

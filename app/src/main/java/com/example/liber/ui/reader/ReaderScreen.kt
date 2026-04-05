@@ -2,12 +2,13 @@ package com.example.liber.ui.reader
 
 import android.app.Application
 import android.view.ActionMode
-import com.example.liber.R
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebView
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -17,13 +18,72 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
+import androidx.fragment.app.FragmentContainerView
+import androidx.fragment.app.commit
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.withStarted
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.ArrowLeft
@@ -34,35 +94,12 @@ import com.adamglin.phosphoricons.regular.Minus
 import com.adamglin.phosphoricons.regular.NotePencil
 import com.adamglin.phosphoricons.regular.TextAa
 import com.adamglin.phosphoricons.regular.Trash
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
-import androidx.activity.compose.LocalActivity
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.fragment.app.FragmentActivity
-import androidx.fragment.app.FragmentContainerView
-import androidx.fragment.app.Fragment
-import androidx.fragment.app.commit
-import androidx.lifecycle.withStarted
-import androidx.activity.compose.BackHandler
-import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.liber.R
 import com.example.liber.data.AnnotationEntity
 import com.example.liber.data.BookmarkEntity
 import com.example.liber.ui.components.EmptyState
+import kotlinx.coroutines.launch
+import org.json.JSONObject
 import org.readium.r2.navigator.DecorableNavigator
 import org.readium.r2.navigator.Decoration
 import org.readium.r2.navigator.OverflowableNavigator
@@ -72,30 +109,24 @@ import org.readium.r2.navigator.epub.EpubNavigatorFactory
 import org.readium.r2.navigator.epub.EpubNavigatorFragment
 import org.readium.r2.navigator.epub.EpubPreferences
 import org.readium.r2.navigator.html.HtmlDecorationTemplates
-import org.readium.r2.navigator.preferences.Color as ReadiumColor
 import org.readium.r2.navigator.input.InputListener
 import org.readium.r2.navigator.input.TapEvent
 import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.shared.publication.Link
 import org.readium.r2.shared.publication.Locator
 import org.readium.r2.shared.publication.Publication
-import androidx.compose.ui.graphics.toArgb
-import kotlinx.coroutines.launch
-import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
+import org.readium.r2.navigator.preferences.Color as ReadiumColor
 
 private const val ID_HIGHLIGHT = 9_001
 private const val ID_ADD_NOTE  = 9_002
 
 // Design constants
-private val ModalBg     = Color(0xFF1C1C1E)
-private val ModalItemBg = Color(0xFF2C2C2E)
 private val GreenAccent = Color(0xFF32D74B)
 private val RedAccent   = Color(0xFFFF3B30)
-private val CyanAccent  = Color(0xFF64D2FF)
 
 /** Recursively finds the first [WebView] in the view hierarchy, or null. */
 private fun findWebView(view: View?): WebView? {
@@ -267,13 +298,13 @@ fun ReaderScreen(
 
     BackHandler(onBack = handleBack)
 
-    // UI chrome colors derived from theme
-    val chromeBg     = if (theme.isDark) Color(0xFF111111).copy(alpha = 0.95f)
-                       else Color(0xFFF4F4F0).copy(alpha = 0.95f)
-    val chromeIcon   = if (theme.isDark) Color(0xFF8E8E93) else Color(0xFF6E6E73)
-    val chromeOnIcon = if (theme.isDark) Color.White else Color.Black
-    val chromeDivider = if (theme.isDark) Color(0xFF2C2C2E) else Color(0xFFD1D1D6)
-    val chromeLabel  = if (theme.isDark) Color(0xFF8E8E93) else Color(0xFF6E6E73)
+    // UI chrome colors derived from the Material theme
+    val colorScheme = MaterialTheme.colorScheme
+    val chromeBg = colorScheme.surfaceContainerHighest.copy(alpha = 0.95f)
+    val chromeIcon = colorScheme.onSurfaceVariant
+    val chromeOnIcon = colorScheme.onSurface
+    val chromeDivider = colorScheme.outlineVariant
+    val chromeLabel = colorScheme.onSurfaceVariant
 
     Box(
         modifier = Modifier
@@ -516,7 +547,6 @@ fun ReaderScreen(
                         )
                         ProgressScrubber(
                             progress = progress,
-                            isDark = theme.isDark,
                             onProgressChange = { newProg ->
                                 viewModel.locatorAtProgress(newProg.toDouble())?.let { locator ->
                                     navigator?.go(locator, animated = false)
@@ -584,8 +614,8 @@ fun ReaderScreen(
         ModalBottomSheet(
             onDismissRequest = { showContents = false },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = ModalBg,
-            contentColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface,
         ) {
             DarkSheetHeader(title = "Contents", onClose = { showContents = false })
             LazyColumn(
@@ -612,8 +642,8 @@ fun ReaderScreen(
         ModalBottomSheet(
             onDismissRequest = { showSearch = false },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = ModalBg,
-            contentColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface,
         ) {
             DarkSheetHeader(title = "Search in Book", onClose = { showSearch = false })
             SearchView(
@@ -633,8 +663,8 @@ fun ReaderScreen(
         ModalBottomSheet(
             onDismissRequest = { showNotebook = false },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = ModalBg,
-            contentColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface,
         ) {
             DarkSheetHeader(title = "Notebook", onClose = { showNotebook = false })
             NotebookView(
@@ -668,8 +698,8 @@ fun ReaderScreen(
         ModalBottomSheet(
             onDismissRequest = { showThemes = false },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = ModalBg,
-            contentColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface,
         ) {
             ThemesSheet(
                 currentThemeId = themeId,
@@ -691,8 +721,8 @@ fun ReaderScreen(
         ModalBottomSheet(
             onDismissRequest = { viewModel.cancelAnnotation() },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = ModalBg,
-            contentColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface,
         ) {
             CreateAnnotationSheet(
                 annotationType = annotationType,
@@ -734,12 +764,11 @@ fun ReaderScreen(
 @Composable
 private fun ProgressScrubber(
     progress: Float,
-    isDark: Boolean,
     onProgressChange: (Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val trackColor    = if (isDark) Color(0xFF3A3A3C) else Color(0xFFD1D1D6)
-    val progressColor = if (isDark) Color(0xFF8E8E93) else Color(0xFF6E6E73)
+    val trackColor = MaterialTheme.colorScheme.outlineVariant
+    val progressColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     // Local state to track the drag position for immediate UI feedback
     var draggingProgress by remember { mutableStateOf<Float?>(null) }
@@ -857,19 +886,29 @@ private fun DarkSheetHeader(title: String, onClose: () -> Unit) {
             text = title,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onSurface,
         )
         Box(
             modifier = Modifier
                 .size(28.dp)
-                .background(ModalItemBg, CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceContainer, CircleShape)
                 .clickable(onClick = onClose),
             contentAlignment = Alignment.Center,
         ) {
-            Text("✕", color = Color(0xFF8E8E93), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Text(
+                "✕",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
-    Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(Color(0xFF3A3A3C)))
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(0.5.dp)
+            .background(MaterialTheme.colorScheme.outlineVariant)
+    )
 }
 
 // ── ContentsView ──────────────────────────────────────────────────────────────
@@ -897,11 +936,16 @@ private fun ContentsRow(
             text = link.title ?: "Untitled",
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = if (depth == 0) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (depth == 0) Color.White else Color(0xFFAAAAAA),
+            color = if (depth == 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f),
         )
     }
-    Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(Color(0xFF2C2C2E).copy(alpha = 0.5f)))
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(0.5.dp)
+            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+    )
 
     link.children.forEach { child ->
         ContentsRow(link = child, depth = depth + 1, onLinkClick = onLinkClick)
@@ -927,37 +971,50 @@ fun SearchView(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 8.dp),
-            placeholder = { Text("Search in book...", color = Color(0xFF8E8E93)) },
+            placeholder = {
+                Text(
+                    "Search in book...",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
             leadingIcon = {
                 Icon(
                     PhosphorIcons.Regular.MagnifyingGlass,
                     contentDescription = null,
-                    tint = Color(0xFF8E8E93),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
             },
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {
                     IconButton(onClick = { viewModel.search("") }) {
-                        Text("✕", color = Color(0xFF8E8E93), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            "✕",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             },
             singleLine = true,
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-                focusedBorderColor = Color(0xFF0A84FF),
-                unfocusedBorderColor = Color(0xFF3A3A3C),
-                focusedContainerColor = ModalItemBg,
-                unfocusedContainerColor = ModalItemBg,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
             ),
         )
 
         if (isSearching && searchResults.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Color(0xFF0A84FF), modifier = Modifier.size(32.dp))
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(32.dp)
+                )
             }
         } else if (searchResults.isEmpty() && searchQuery.isNotBlank() && !isSearching) {
             EmptyState(
@@ -1004,7 +1061,7 @@ private fun SearchResultRow(
             Text(
                 text = title,
                 style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF0A84FF),
+                color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 4.dp)
             )
@@ -1013,18 +1070,24 @@ private fun SearchResultRow(
         Text(
             text = buildAnnotatedString {
                 append(locator.text.before ?: "")
-                withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = Color.White)) {
+                withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = Color.Unspecified)) {
                     append(locator.text.highlight ?: "")
                 }
                 append(locator.text.after ?: "")
             },
             style = MaterialTheme.typography.bodyMedium,
-            color = Color(0xFFCCCCCC),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 3,
             overflow = TextOverflow.Ellipsis
         )
     }
-    Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).padding(horizontal = 20.dp).background(Color(0xFF3A3A3C)))
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(0.5.dp)
+            .padding(horizontal = 20.dp)
+            .background(MaterialTheme.colorScheme.outlineVariant)
+    )
 }
 
 // ── NotebookView ─────────────────────────────────────────────────────────────
@@ -1047,7 +1110,7 @@ fun NotebookView(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
-                .background(ModalItemBg, RoundedCornerShape(10.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(10.dp))
                 .padding(4.dp),
         ) {
             listOf("bookmarks" to "Bookmarks", "highlights" to "Highlights", "notes" to "Notes").forEach { (id, label) ->
@@ -1055,7 +1118,7 @@ fun NotebookView(
                     modifier = Modifier
                         .weight(1f)
                         .background(
-                            if (activeTab == id) ModalBg else Color.Transparent,
+                            if (activeTab == id) MaterialTheme.colorScheme.surface else Color.Transparent,
                             RoundedCornerShape(8.dp)
                         )
                         .clickable { activeTab = id }
@@ -1066,7 +1129,7 @@ fun NotebookView(
                         text = label,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Medium,
-                        color = if (activeTab == id) Color.White else Color(0xFF8E8E93),
+                        color = if (activeTab == id) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -1146,13 +1209,13 @@ fun BookmarksView(
                             text = bm.chapter ?: "Unknown chapter",
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                         Spacer(Modifier.height(2.dp))
                         Text(
                             text = dateStr,
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFF8E8E93),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     Row(
@@ -1162,7 +1225,7 @@ fun BookmarksView(
                         Icon(
                             PhosphorIcons.Regular.Bookmark,
                             contentDescription = null,
-                            tint = Color(0xFF48484A),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(18.dp),
                         )
                         IconButton(
@@ -1172,14 +1235,18 @@ fun BookmarksView(
                             Icon(
                                 PhosphorIcons.Regular.Trash,
                                 contentDescription = "Delete bookmark",
-                                tint = Color(0xFF48484A),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(18.dp),
                             )
                         }
                     }
                 }
-                Box(modifier = Modifier.fillMaxWidth().height(0.5.dp)
-                    .padding(horizontal = 20.dp).background(Color(0xFF2C2C2E).copy(alpha = 0.5f)))
+                Box(modifier = Modifier
+                    .fillMaxWidth()
+                    .height(0.5.dp)
+                    .padding(horizontal = 20.dp)
+                    .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                )
             }
         }
     }
@@ -1241,14 +1308,19 @@ private fun DarkAnnotationItem(
             modifier = Modifier
                 .width(3.dp)
                 .height(IntrinsicSize.Min)
-                .background(Color(annotation.color.toLong() and 0xFFFFFFFFL), RoundedCornerShape(2.dp))
+                .background(
+                    Color(annotation.color.toLong() and 0xFFFFFFFFL),
+                    RoundedCornerShape(2.dp)
+                )
         )
         Spacer(Modifier.width(5.dp))
-        Column(modifier = Modifier.weight(1f).padding(top = 2.dp, bottom = 4.dp)) {
+        Column(modifier = Modifier
+            .weight(1f)
+            .padding(top = 2.dp, bottom = 4.dp)) {
             Text(
                 text = "Chapter • $dateStr",
                 style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF8E8E93),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 letterSpacing = 0.5.sp,
             )
             Spacer(Modifier.height(6.dp))
@@ -1256,7 +1328,7 @@ private fun DarkAnnotationItem(
                 Text(
                     text = "\"${annotation.text}\"",
                     style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic),
-                    color = Color(0xFFE0E0E0),
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Spacer(Modifier.height(8.dp))
             }
@@ -1264,21 +1336,30 @@ private fun DarkAnnotationItem(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(ModalItemBg.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
-                        .border(0.5.dp, Color(0xFF3A3A3C), RoundedCornerShape(8.dp))
+                        .background(
+                            MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.6f),
+                            RoundedCornerShape(8.dp)
+                        )
+                        .border(
+                            0.5.dp,
+                            MaterialTheme.colorScheme.outlineVariant,
+                            RoundedCornerShape(8.dp)
+                        )
                         .padding(12.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Icon(
                         PhosphorIcons.Regular.NotePencil,
                         contentDescription = null,
-                        tint = CyanAccent,
-                        modifier = Modifier.size(14.dp).padding(top = 1.dp),
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier
+                            .size(14.dp)
+                            .padding(top = 1.dp),
                     )
                     Text(
                         text = annotation.note,
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFFCCCCCC),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -1287,7 +1368,7 @@ private fun DarkAnnotationItem(
             Icon(
                 PhosphorIcons.Regular.Trash,
                 contentDescription = "Delete",
-                tint = Color(0xFF48484A),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(16.dp),
             )
         }
@@ -1311,7 +1392,9 @@ private fun ThemesSheet(
     ) {
         // Header
         Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -1319,16 +1402,21 @@ private fun ThemesSheet(
                 "Themes & Settings",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
             )
             Box(
                 modifier = Modifier
                     .size(28.dp)
-                    .background(ModalItemBg, CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceContainer, CircleShape)
                     .clickable(onClick = onClose),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("✕", color = Color(0xFF8E8E93), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    "✕",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
 
@@ -1338,7 +1426,7 @@ private fun ThemesSheet(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(ModalItemBg, RoundedCornerShape(12.dp)),
+                .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp)),
         ) {
             // Decrease
             Box(
@@ -1349,13 +1437,14 @@ private fun ThemesSheet(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(PhosphorIcons.Regular.Minus, contentDescription = "Decrease font",
-                    tint = Color(0xFFE0E0E0), modifier = Modifier.size(20.dp))
+                    tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp)
+                )
             }
             Box(
                 modifier = Modifier
                     .width(0.5.dp)
                     .height(48.dp)
-                    .background(Color(0xFF3A3A3C))
+                    .background(MaterialTheme.colorScheme.outlineVariant)
                     .align(Alignment.CenterVertically)
             )
             // Increase
@@ -1367,7 +1456,8 @@ private fun ThemesSheet(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(PhosphorIcons.Regular.TextAa, contentDescription = "Increase font",
-                    tint = Color(0xFFE0E0E0), modifier = Modifier.size(24.dp))
+                    tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(24.dp)
+                )
             }
         }
 
@@ -1410,9 +1500,17 @@ private fun ThemePreviewTile(
             .background(theme.background, RoundedCornerShape(16.dp))
             .then(
                 if (isSelected)
-                    Modifier.border(3.dp, Color(0xFF0A84FF), RoundedCornerShape(16.dp))
+                    Modifier.border(
+                        3.dp,
+                        MaterialTheme.colorScheme.primary,
+                        RoundedCornerShape(16.dp)
+                    )
                 else
-                    Modifier.border(1.5.dp, Color(0xFF3A3A3C), RoundedCornerShape(16.dp))
+                    Modifier.border(
+                        1.5.dp,
+                        MaterialTheme.colorScheme.outlineVariant,
+                        RoundedCornerShape(16.dp)
+                    )
             )
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
@@ -1461,7 +1559,7 @@ fun CreateAnnotationSheet(
             title,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(bottom = 4.dp),
         )
 
@@ -1469,7 +1567,7 @@ fun CreateAnnotationSheet(
             Text(
                 text = chapter,
                 style = MaterialTheme.typography.labelMedium,
-                color = Color(0xFF8E8E93),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 12.dp),
             )
         }
@@ -1500,7 +1598,7 @@ fun CreateAnnotationSheet(
         Text(
             "Color",
             style = MaterialTheme.typography.labelMedium,
-            color = Color(0xFF8E8E93),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 8.dp),
         )
         LazyRow(
@@ -1516,7 +1614,7 @@ fun CreateAnnotationSheet(
                         .background(color, CircleShape)
                         .border(
                             width = if (isSelected) 2.dp else 1.dp,
-                            color = if (isSelected) Color(0xFF0A84FF) else Color(0xFF3A3A3C),
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
                             shape = CircleShape,
                         )
                         .clickable { onColorChange(colorArgb) }
@@ -1527,18 +1625,22 @@ fun CreateAnnotationSheet(
         OutlinedTextField(
             value = noteText,
             onValueChange = onNoteTextChange,
-            modifier = Modifier.fillMaxWidth().height(120.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp),
             placeholder = { Text(if (isHighlight) "Add a note… (optional)" else "Write your note…",
-                color = Color(0xFF8E8E93)) },
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            },
             maxLines = 5,
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-                focusedBorderColor = Color(0xFF0A84FF),
-                unfocusedBorderColor = Color(0xFF3A3A3C),
-                focusedContainerColor = ModalItemBg,
-                unfocusedContainerColor = ModalItemBg,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
             ),
         )
 
@@ -1551,17 +1653,20 @@ fun CreateAnnotationSheet(
             OutlinedButton(
                 onClick = onCancel,
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF8E8E93)),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF3A3A3C)),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.outlineVariant
+                ),
             ) {
                 Text("Cancel")
             }
             Button(
                 onClick = onSave,
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0A84FF)),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
             ) {
-                Text(saveLabel, color = Color.White)
+                Text(saveLabel)
             }
         }
 

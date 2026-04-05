@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import com.example.liber.ui.LiberApp
+import com.example.liber.ui.LiberAppViewModel
 import com.example.liber.ui.collections.CollectionsViewModel
 import com.example.liber.ui.home.HomeViewModel
 import com.example.liber.ui.theme.LiberTheme
@@ -16,6 +17,7 @@ class MainActivity : AppCompatActivity() {
 
     private val viewModel: HomeViewModel by viewModels()
     private val collectionsViewModel: CollectionsViewModel by viewModels()
+    private val liberAppViewModel: LiberAppViewModel by viewModels()
 
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -27,6 +29,7 @@ class MainActivity : AppCompatActivity() {
                 LiberApp(
                     viewModel = viewModel,
                     collectionsViewModel = collectionsViewModel,
+                    liberAppViewModel = liberAppViewModel,
                     windowSizeClass = windowSizeClass
                 )
             }

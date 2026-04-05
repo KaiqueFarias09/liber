@@ -26,8 +26,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -50,30 +48,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.adamglin.PhosphorIcons
-import com.adamglin.phosphoricons.Fill
 import com.adamglin.phosphoricons.Regular
-import com.adamglin.phosphoricons.regular.BookOpen
-import com.adamglin.phosphoricons.regular.CheckCircle
 import com.adamglin.phosphoricons.regular.DotsThree
-import com.adamglin.phosphoricons.regular.ListPlus
-import com.adamglin.phosphoricons.regular.PencilSimple
 import com.adamglin.phosphoricons.regular.Plus
-import com.adamglin.phosphoricons.regular.PlusCircle
-import com.adamglin.phosphoricons.regular.ShareNetwork
 import com.adamglin.phosphoricons.regular.Stack
-import com.adamglin.phosphoricons.regular.Trash
 import com.example.liber.R
 import com.example.liber.data.Book
 import com.example.liber.ui.collections.CollectionDetailScreen
 import com.example.liber.ui.collections.CollectionUiState
 import com.example.liber.ui.collections.CollectionsListScreen
 import com.example.liber.ui.collections.CollectionsViewModel
+import com.example.liber.ui.components.BookActionMenu
 import com.example.liber.ui.components.BookCover
 import com.example.liber.ui.components.CoverStyle
 import com.example.liber.ui.components.EmptyState
 import com.example.liber.ui.home.HomeViewModel
 import com.example.liber.ui.theme.LiberTheme
-import com.adamglin.phosphoricons.fill.Bookmark as BookmarkFill
 
 @Composable
 fun LibraryScreen(
@@ -316,7 +306,7 @@ private fun BookGrid(
         verticalArrangement = Arrangement.spacedBy(24.dp),
         modifier = Modifier.fillMaxSize()
     ) {
-        items(chunkedBooks) { rowBooks ->
+        items(chunkedBooks, key = { it.first().id }) { rowBooks ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -361,6 +351,7 @@ private fun LibraryBookItem(
     collections: List<CollectionUiState> = emptyList(),
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    var showRenameDialog by remember { mutableStateOf(false) }
     var showCollectionPicker by remember { mutableStateOf(false) }
 
     Column(
@@ -422,61 +413,20 @@ private fun LibraryBookItem(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                
-                DropdownMenu(
+
+                BookActionMenu(
                     expanded = showMenu,
-                    onDismissRequest = { showMenu = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Share") },
-                        onClick = { 
-                            onShareBook()
-                            showMenu = false 
-                        },
-                        leadingIcon = { Icon(PhosphorIcons.Regular.ShareNetwork, null) }
-                    )
-                    DropdownMenuItem(
-                        text = { Text(if (book.wantToRead) "Remove from Want to Read" else "Add to Want to Read") },
-                        onClick = { 
-                            onToggleWantToRead()
-                            showMenu = false 
-                        },
-                        leadingIcon = { Icon(if (book.wantToRead) PhosphorIcons.Fill.BookmarkFill else PhosphorIcons.Regular.PlusCircle, null) }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Add to Collection") },
-                        onClick = { showMenu = false; showCollectionPicker = true },
-                        leadingIcon = { Icon(PhosphorIcons.Regular.ListPlus, null) }
-                    )
-                    DropdownMenuItem(
-                        text = { Text(if (book.readingProgress == 100) "Mark as still reading" else "Mark as Finished") },
-                        onClick = { 
-                            onToggleFinished()
-                            showMenu = false 
-                        },
-                        leadingIcon = { 
-                            Icon(
-                                imageVector = if (book.readingProgress == 100) PhosphorIcons.Regular.BookOpen else PhosphorIcons.Regular.CheckCircle, 
-                                contentDescription = null
-                            ) 
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Rename...") },
-                        onClick = { 
-                            showMenu = false 
-                        },
-                        leadingIcon = { Icon(PhosphorIcons.Regular.PencilSimple, null) }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Remove...") },
-                        onClick = { 
-                            onDeleteBook()
-                            showMenu = false 
-                        },
-                        leadingIcon = { Icon(PhosphorIcons.Regular.Trash, null, tint = MaterialTheme.colorScheme.error) }
-                    )
-                }
+                    book = book,
+                    onDismiss = { showMenu = false },
+                    onShare = onShareBook,
+                    onToggleWantToRead = onToggleWantToRead,
+                    onToggleFinished = onToggleFinished,
+                    onRename = { showRenameDialog = true },
+                    onDelete = onDeleteBook,
+                    deleteLabel = "Remove…",
+                    showAddToCollection = true,
+                    onAddToCollection = { showCollectionPicker = true },
+                )
             }
         }
     }
@@ -489,6 +439,17 @@ private fun LibraryBookItem(
                 showCollectionPicker = false
             },
             onDismiss = { showCollectionPicker = false },
+        )
+    }
+
+    if (showRenameDialog) {
+        RenameBookDialog(
+            currentTitle = book.title,
+            onConfirm = { newTitle ->
+                onRenameBook(newTitle)
+                showRenameDialog = false
+            },
+            onDismiss = { showRenameDialog = false },
         )
     }
 }
@@ -511,7 +472,7 @@ private fun AddToCollectionDialog(
                 )
             } else {
                 LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                    items(collections) { collection ->
+                    items(collections, key = { it.id }) { collection ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -544,6 +505,36 @@ private fun AddToCollectionDialog(
             }
         },
         confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
+}
+
+@Composable
+private fun RenameBookDialog(
+    currentTitle: String,
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var title by remember { mutableStateOf(currentTitle) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Rename book") },
+        text = {
+            androidx.compose.material3.OutlinedTextField(
+                value = title,
+                onValueChange = { title = it },
+                label = { Text("Title") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(title) }, enabled = title.isNotBlank()) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }
         },
     )

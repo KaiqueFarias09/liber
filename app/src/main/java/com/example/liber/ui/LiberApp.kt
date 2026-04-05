@@ -17,10 +17,8 @@ import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -39,25 +37,25 @@ import com.example.liber.ui.reader.ReaderScreen
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import org.readium.r2.shared.ExperimentalReadiumApi
-import org.readium.r2.shared.publication.Publication
 
 /**
- * Root composable that owns app-level navigation state.
+ * Root composable for app-level navigation.
  */
 @OptIn(ExperimentalReadiumApi::class, ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 fun LiberApp(
     viewModel: HomeViewModel,
     collectionsViewModel: CollectionsViewModel,
+    liberAppViewModel: LiberAppViewModel,
     windowSizeClass: androidx.compose.material3.windowsizeclass.WindowSizeClass
 ) {
     val context = LocalContext.current
     val showNavRail = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
-
-    var activePublication by remember { mutableStateOf<Publication?>(null) }
-    var activeBook by remember { mutableStateOf<com.example.liber.data.Book?>(null) }
-    var activeTab by remember { mutableStateOf(AppTab.HOME) }
     val scope = rememberCoroutineScope()
+
+    val activeBook by liberAppViewModel.activeBook.collectAsState()
+    val activePublication by liberAppViewModel.activePublication.collectAsState()
+    val activeTab by liberAppViewModel.activeTab.collectAsState()
 
     val bookLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments(),
@@ -67,8 +65,12 @@ fun LiberApp(
 
     val onOpenBook: (com.example.liber.data.Book) -> Unit = { book ->
         scope.launch {
-            activeBook = book
-            activePublication = viewModel.openBook(book)
+            val publication = viewModel.openBook(book)
+            if (publication != null) {
+                liberAppViewModel.openEpub(book, publication)
+            } else {
+                liberAppViewModel.openPdf(book)
+            }
         }
     }
 
@@ -84,33 +86,31 @@ fun LiberApp(
 
     val pendingAnnotationRequest by viewModel.pendingAnnotationRequest.collectAsState()
 
-    if (activeBook?.fileUri?.toString()?.endsWith(".pdf", ignoreCase = true) == true) {
+    val book = activeBook
+    val publication = activePublication
+
+    if (book != null && book.fileUri.toString().endsWith(".pdf", ignoreCase = true)) {
         PdfReaderScreen(
-            uri = activeBook!!.fileUri,
-            title = activeBook!!.title,
-            onBack = {
-                activeBook = null
-            }
+            uri = book.fileUri,
+            title = book.title,
+            onBack = { liberAppViewModel.closeReader() }
         )
-    } else if (activePublication != null) {
+    } else if (publication != null && book != null) {
         ReaderScreen(
-            publication = activePublication!!,
-            bookId = activeBook!!.id,
-            initialLocatorJson = activeBook?.lastLocator,
+            publication = publication,
+            bookId = book.id,
+            initialLocatorJson = book.lastLocator,
             annotations = annotations,
             bookmarks = bookmarks,
             pendingAnnotationRequest = pendingAnnotationRequest,
             onRequestAnnotation = { request -> viewModel.requestAnnotation(request) },
-            onSaveLocator = { json, progress -> viewModel.saveLocator(activeBook!!.id, json, progress) },
+            onSaveLocator = { json, progress -> viewModel.saveLocator(book.id, json, progress) },
             onSaveAnnotation = { annotation -> viewModel.saveAnnotation(annotation) },
             onDeleteAnnotation = { annotationId -> viewModel.deleteAnnotation(annotationId) },
             onSaveBookmark = { bookmark -> viewModel.saveBookmark(bookmark) },
             onDeleteBookmark = { bookmarkId -> viewModel.deleteBookmark(bookmarkId) },
             onClearPendingAnnotation = { viewModel.clearPendingAnnotation() },
-            onBack = {
-                activePublication = null
-                activeBook = null
-            },
+            onBack = { liberAppViewModel.closeReader() },
         )
     } else {
         Scaffold(
@@ -120,7 +120,7 @@ fun LiberApp(
                 if (!showNavRail) {
                     LiberBottomNav(
                         activeTab = activeTab,
-                        onTabChange = { activeTab = it },
+                        onTabChange = { liberAppViewModel.setActiveTab(it) },
                     )
                 }
             },
@@ -133,7 +133,7 @@ fun LiberApp(
                 if (showNavRail) {
                     LiberNavRail(
                         activeTab = activeTab,
-                        onTabChange = { activeTab = it },
+                        onTabChange = { liberAppViewModel.setActiveTab(it) },
                     )
                 }
 

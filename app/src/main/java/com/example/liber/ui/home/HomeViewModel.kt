@@ -2,28 +2,26 @@ package com.example.liber.ui.home
 
 import android.app.Application
 import android.graphics.Bitmap
-import android.net.Uri
 import android.graphics.pdf.PdfRenderer
-import android.os.ParcelFileDescriptor
+import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.liber.data.AnnotationEntity
-import com.example.liber.data.BookmarkEntity
 import com.example.liber.data.AppDatabase
 import com.example.liber.data.Book
 import com.example.liber.data.BookEntity
+import com.example.liber.data.BookRepository
+import com.example.liber.data.BookmarkEntity
 import com.example.liber.ui.reader.AnnotationRequest
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import androidx.core.net.toUri
 import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.shared.publication.Publication
 import org.readium.r2.shared.publication.services.cover
@@ -34,13 +32,12 @@ import org.readium.r2.streamer.PublicationOpener
 import org.readium.r2.streamer.parser.DefaultPublicationParser
 import java.io.File
 import java.io.FileOutputStream
-import java.util.*
+import java.util.UUID
 
 @OptIn(ExperimentalReadiumApi::class)
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val database = AppDatabase.getDatabase(application)
-    private val bookDao = database.bookDao()
+    private val bookRepository = BookRepository(AppDatabase.getDatabase(application).bookDao())
 
     private val sevenDaysMs = 7L * 24 * 60 * 60 * 1000
 
@@ -57,22 +54,18 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     // ── State flows ──────────────────────────────────────────────────────────
 
-    val books: StateFlow<List<Book>> = bookDao.getAllBooks()
-        .map { it.map(BookEntity::toBook) }
+    val books: StateFlow<List<Book>> = bookRepository.getAllBooks()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val continueReadingBooks: StateFlow<List<Book>> = bookDao
+    val continueReadingBooks: StateFlow<List<Book>> = bookRepository
         .getContinueReadingBooks(System.currentTimeMillis() - sevenDaysMs)
-        .map { it.map(BookEntity::toBook) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val wantToReadBooks: StateFlow<List<Book>> = bookDao.getWantToReadBooks()
-        .map { it.map(BookEntity::toBook) }
+    val wantToReadBooks: StateFlow<List<Book>> = bookRepository.getWantToReadBooks()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val previousBooks: StateFlow<List<Book>> = bookDao
+    val previousBooks: StateFlow<List<Book>> = bookRepository
         .getPreviousBooks(System.currentTimeMillis() - sevenDaysMs)
-        .map { it.map(BookEntity::toBook) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _isLoading = MutableStateFlow(false)
@@ -94,7 +87,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     /** Opens a book in the reader and records it as last opened. Returns null on failure. */
     suspend fun openBook(book: Book): Publication? = withContext(Dispatchers.IO) {
-        bookDao.updateLastOpenedAt(book.id, System.currentTimeMillis())
+        bookRepository.updateLastOpenedAt(book.id, System.currentTimeMillis())
         try {
             getApplication<Application>().contentResolver.takePersistableUriPermission(
                 book.fileUri,
@@ -108,61 +101,61 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun saveLocator(bookId: String, locatorJson: String, progress: Int) {
         viewModelScope.launch(Dispatchers.IO) {
-            bookDao.updateLastLocator(bookId, locatorJson, progress)
+            bookRepository.updateLastLocator(bookId, locatorJson, progress)
         }
     }
 
     fun toggleWantToRead(bookId: String, currentValue: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
-            bookDao.updateWantToRead(bookId, !currentValue)
+            bookRepository.updateWantToRead(bookId, !currentValue)
         }
     }
 
     fun toggleFinished(bookId: String, isFinished: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             val progress = if (isFinished) 0 else 100
-            bookDao.updateLastLocator(bookId, null, progress)
+            bookRepository.updateLastLocator(bookId, null, progress)
         }
     }
 
     fun markAsFinished(bookId: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            bookDao.updateLastLocator(bookId, null, 100)
+            bookRepository.updateLastLocator(bookId, null, 100)
         }
     }
 
     fun renameBook(bookId: String, newTitle: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            bookDao.renameBook(bookId, newTitle)
+            bookRepository.renameBook(bookId, newTitle)
         }
     }
 
     fun deleteBook(bookId: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            bookDao.deleteBook(bookId)
+            bookRepository.deleteBook(bookId)
         }
     }
 
     fun getAnnotationsForBook(bookId: String): Flow<List<AnnotationEntity>> =
-        bookDao.getAnnotationsForBook(bookId)
+        bookRepository.getAnnotationsForBook(bookId)
 
     fun saveAnnotation(annotation: AnnotationEntity) {
-        viewModelScope.launch(Dispatchers.IO) { bookDao.insertAnnotation(annotation) }
+        viewModelScope.launch(Dispatchers.IO) { bookRepository.insertAnnotation(annotation) }
     }
 
     fun deleteAnnotation(annotationId: Long) {
-        viewModelScope.launch(Dispatchers.IO) { bookDao.deleteAnnotation(annotationId) }
+        viewModelScope.launch(Dispatchers.IO) { bookRepository.deleteAnnotation(annotationId) }
     }
 
     fun getBookmarksForBook(bookId: String): Flow<List<BookmarkEntity>> =
-        bookDao.getBookmarksForBook(bookId)
+        bookRepository.getBookmarksForBook(bookId)
 
     fun saveBookmark(bookmark: BookmarkEntity) {
-        viewModelScope.launch(Dispatchers.IO) { bookDao.insertBookmark(bookmark) }
+        viewModelScope.launch(Dispatchers.IO) { bookRepository.insertBookmark(bookmark) }
     }
 
     fun deleteBookmark(bookmarkId: Long) {
-        viewModelScope.launch(Dispatchers.IO) { bookDao.deleteBookmark(bookmarkId) }
+        viewModelScope.launch(Dispatchers.IO) { bookRepository.deleteBookmark(bookmarkId) }
     }
 
     fun loadBooksFromUris(uris: List<Uri>) {
@@ -171,10 +164,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             withContext(Dispatchers.IO) {
                 uris.forEach { uri ->
                     tryTakePersistablePermission(uri)
-                    if (bookDao.getBookByFileUri(uri.toString()) == null) {
+                    if (bookRepository.getBookByFileUri(uri.toString()) == null) {
                         val file = DocumentFile.fromSingleUri(getApplication(), uri) ?: return@forEach
                         val book = parseBook(file) ?: return@forEach
-                        bookDao.insertBook(book.toEntity())
+                        bookRepository.insertBook(book.toEntity())
                     }
                 }
             }
@@ -289,18 +282,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         fileUri = fileUri.toString()
     )
 }
-
-private fun BookEntity.toBook() = Book(
-    id = id,
-    title = title,
-    author = author,
-    coverUri = coverPath?.let { Uri.fromFile(File(it)) },
-    fileUri = fileUri.toUri(),
-    lastOpenedAt = lastOpenedAt,
-    wantToRead = wantToRead,
-    readingProgress = readingProgress,
-    lastLocator = lastLocator
-)
 
 private fun FileOutputStream.compress(bitmap: Bitmap) {
     bitmap.compress(Bitmap.CompressFormat.PNG, 100, this)
