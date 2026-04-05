@@ -31,7 +31,7 @@ private val LiberLightColorScheme = lightColorScheme(
     onSurface              = Neutral950,
     surfaceVariant         = Neutral150,
     onSurfaceVariant       = Neutral600,
-    surfaceTint            = Rose500,
+    surfaceTint            = Color.Transparent,
 
     outline                = Neutral400,
     outlineVariant         = Neutral200,
@@ -71,7 +71,7 @@ private val LiberDarkColorScheme = darkColorScheme(
     onSurface              = Neutral150,
     surfaceVariant         = Neutral700,
     onSurfaceVariant       = Neutral300,
-    surfaceTint            = Rose400,
+    surfaceTint            = Color.Transparent,
 
     outline                = Neutral400,
     outlineVariant         = Neutral700,

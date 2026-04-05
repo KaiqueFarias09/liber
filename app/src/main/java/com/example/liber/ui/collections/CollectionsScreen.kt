@@ -251,7 +251,7 @@ private fun CollectionShelfRow(
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            containerColor = MaterialTheme.colorScheme.surface,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
@@ -511,9 +511,14 @@ private fun CollectionDetailScreen(
                         PhosphorIcons.Regular.Plus,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary
                     )
                     Spacer(Modifier.width(4.dp))
-                    Text("Add books", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        text = "Add books",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
         }
@@ -645,14 +650,14 @@ private fun DetailBookItem(
             }
             if (progressText == "NEW") {
                 Surface(
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
                     shape = RoundedCornerShape(4.dp),
                 ) {
                     Text(
                         text = progressText,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                     )
                 }
             } else {
