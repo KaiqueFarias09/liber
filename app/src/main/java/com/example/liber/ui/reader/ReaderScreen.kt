@@ -47,9 +47,12 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.activity.compose.LocalActivity
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -160,11 +163,10 @@ fun ReaderScreen(
     // Modal visibility state
     var showContents  by remember { mutableStateOf(false) }
     var showSearch    by remember { mutableStateOf(false) }
-    var showNotes     by remember { mutableStateOf(false) }
-    var showBookmarks by remember { mutableStateOf(false) }
+    var showNotebook  by remember { mutableStateOf(false) }
     var showThemes    by remember { mutableStateOf(false) }
 
-    val isAnyModalOpen = showContents || showSearch || showNotes || showBookmarks || showThemes || showAnnotationCreator
+    val isAnyModalOpen = showContents || showSearch || showNotebook || showThemes || showAnnotationCreator
 
     // Bridge: when the selection callback posts a text-selection request, open the annotation creator
     LaunchedEffect(pendingAnnotationRequest) {
@@ -555,26 +557,12 @@ fun ReaderScreen(
                         ReaderNavItem(
                             icon = {
                                 Box {
-                                    Icon(PhosphorIcons.Regular.Bookmark, contentDescription = null, tint = chromeIcon)
-                                    if (bookmarks.isNotEmpty()) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(8.dp)
-                                                .align(Alignment.TopEnd)
-                                                .background(RedAccent, CircleShape)
-                                        )
-                                    }
-                                }
-                            },
-                            label = "Bookmarks",
-                            labelColor = chromeLabel,
-                            onClick = { showBookmarks = true },
-                        )
-                        ReaderNavItem(
-                            icon = {
-                                Box {
-                                    Icon(PhosphorIcons.Regular.NotePencil, contentDescription = null, tint = chromeIcon)
-                                    if (annotations.isNotEmpty()) {
+                                    Icon(
+                                        PhosphorIcons.Regular.NotePencil,
+                                        contentDescription = null,
+                                        tint = chromeIcon
+                                    )
+                                    if (bookmarks.isNotEmpty() || annotations.isNotEmpty()) {
                                         Box(
                                             modifier = Modifier
                                                 .size(8.dp)
@@ -584,9 +572,9 @@ fun ReaderScreen(
                                     }
                                 }
                             },
-                            label = "Notes",
+                            label = "Notebook",
                             labelColor = chromeLabel,
-                            onClick = { showNotes = true },
+                            onClick = { showNotebook = true },
                         )
                     }
                 }
@@ -643,50 +631,34 @@ fun ReaderScreen(
         }
     }
 
-    // ── Bookmarks ─────────────────────────────────────────────────────────────
-    if (showBookmarks) {
+    // ── Notebook (Bookmarks, Highlights & Notes) ─────────────────────────────
+    if (showNotebook) {
         ModalBottomSheet(
-            onDismissRequest = { showBookmarks = false },
+            onDismissRequest = { showNotebook = false },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = ModalBg,
             contentColor = Color.White,
         ) {
-            DarkSheetHeader(title = "Bookmarks", onClose = { showBookmarks = false })
-            BookmarksView(
+            DarkSheetHeader(title = "Notebook", onClose = { showNotebook = false })
+            NotebookView(
                 bookmarks = bookmarks,
+                annotations = annotations,
                 modifier = Modifier.weight(1f),
                 onBookmarkClick = { bm ->
                     runCatching {
                         val locator = Locator.fromJSON(JSONObject(bm.locator))
                         if (locator != null) navigator?.go(locator, animated = true)
                     }
-                    showBookmarks = false
+                    showNotebook = false
                     viewModel.toggleUI()
                 },
                 onDeleteBookmark = { bm -> onDeleteBookmark(bm.id) },
-            )
-        }
-    }
-
-    // ── Notes & Highlights ────────────────────────────────────────────────────
-    if (showNotes) {
-        ModalBottomSheet(
-            onDismissRequest = { showNotes = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = ModalBg,
-            contentColor = Color.White,
-        ) {
-            DarkSheetHeader(title = "Highlights & Notes", onClose = { showNotes = false })
-            AnnotationsView(
-                annotations = annotations,
-                modifier = Modifier.weight(1f),
-                onAddNote = { viewModel.startAnnotation(type = "note") },
                 onNoteClick = { annotation ->
                     runCatching {
                         val locator = Locator.fromJSON(JSONObject(annotation.locator))
                         if (locator != null) navigator?.go(locator, animated = true)
                     }
-                    showNotes = false
+                    showNotebook = false
                     viewModel.toggleUI()
                 },
                 onDeleteNote = { annotation -> onDeleteAnnotation(annotation.id) },
@@ -939,7 +911,196 @@ private fun ContentsRow(
     }
 }
 
-// ── BookmarksView ─────────────────────────────────────────────────────────────
+// ── SearchView ────────────────────────────────────────────────────────────────
+
+@Composable
+fun SearchView(
+    viewModel: ReaderViewModel,
+    modifier: Modifier = Modifier,
+    onResultClick: (Locator) -> Unit,
+) {
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val searchResults by viewModel.searchResults.collectAsState()
+    val isSearching by viewModel.isSearching.collectAsState()
+
+    Column(modifier = modifier.fillMaxSize()) {
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { viewModel.search(it) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 8.dp),
+            placeholder = { Text("Search in book...", color = Color(0xFF8E8E93)) },
+            leadingIcon = {
+                Icon(
+                    PhosphorIcons.Regular.MagnifyingGlass,
+                    contentDescription = null,
+                    tint = Color(0xFF8E8E93),
+                    modifier = Modifier.size(20.dp)
+                )
+            },
+            trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                    IconButton(onClick = { viewModel.search("") }) {
+                        Text("✕", color = Color(0xFF8E8E93), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            },
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White,
+                focusedBorderColor = Color(0xFF0A84FF),
+                unfocusedBorderColor = Color(0xFF3A3A3C),
+                focusedContainerColor = ModalItemBg,
+                unfocusedContainerColor = ModalItemBg,
+            ),
+        )
+
+        if (isSearching && searchResults.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = Color(0xFF0A84FF), modifier = Modifier.size(32.dp))
+            }
+        } else if (searchResults.isEmpty() && searchQuery.isNotBlank() && !isSearching) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("No results found", color = Color(0xFF8E8E93))
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 32.dp)
+            ) {
+                items(searchResults) { locator ->
+                    SearchResultRow(locator = locator, onClick = { onResultClick(locator) })
+                }
+                
+                item {
+                    LaunchedEffect(Unit) {
+                        viewModel.loadNextResults()
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchResultRow(
+    locator: Locator,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 12.dp)
+    ) {
+        locator.title?.let { title ->
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelSmall,
+                color = Color(0xFF0A84FF),
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+        }
+        
+        Text(
+            text = buildAnnotatedString {
+                append(locator.text.before ?: "")
+                withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = Color.White)) {
+                    append(locator.text.highlight ?: "")
+                }
+                append(locator.text.after ?: "")
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color(0xFFCCCCCC),
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+    Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).padding(horizontal = 20.dp).background(Color(0xFF3A3A3C)))
+}
+
+// ── NotebookView ─────────────────────────────────────────────────────────────
+
+@Composable
+fun NotebookView(
+    bookmarks: List<BookmarkEntity>,
+    annotations: List<AnnotationEntity>,
+    onBookmarkClick: (BookmarkEntity) -> Unit,
+    onDeleteBookmark: (BookmarkEntity) -> Unit,
+    onNoteClick: (AnnotationEntity) -> Unit,
+    onDeleteNote: (AnnotationEntity) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var activeTab by remember { mutableStateOf("bookmarks") }
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        // Filter tabs: Bookmarks, Highlights, Notes
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .background(ModalItemBg, RoundedCornerShape(10.dp))
+                .padding(4.dp),
+        ) {
+            listOf("bookmarks" to "Bookmarks", "highlights" to "Highlights", "notes" to "Notes").forEach { (id, label) ->
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(
+                            if (activeTab == id) ModalBg else Color.Transparent,
+                            RoundedCornerShape(8.dp)
+                        )
+                        .clickable { activeTab = id }
+                        .padding(vertical = 8.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = if (activeTab == id) Color.White else Color(0xFF8E8E93),
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        Box(modifier = Modifier.weight(1f)) {
+            when (activeTab) {
+                "bookmarks" -> {
+                    BookmarksView(
+                        bookmarks = bookmarks,
+                        onBookmarkClick = onBookmarkClick,
+                        onDeleteBookmark = onDeleteBookmark,
+                    )
+                }
+                "highlights" -> {
+                    val highlights = remember(annotations) { annotations.filter { it.type == "highlight" } }
+                    AnnotationList(
+                        annotations = highlights,
+                        emptyMessage = "No highlights yet.\nSelect text in the reader to add one.",
+                        onNoteClick = onNoteClick,
+                        onDeleteNote = onDeleteNote,
+                    )
+                }
+                "notes" -> {
+                    val notes = remember(annotations) { annotations.filter { it.type == "note" } }
+                    AnnotationList(
+                        annotations = notes,
+                        emptyMessage = "No notes yet.\nSelect text in the reader to add one.",
+                        onNoteClick = onNoteClick,
+                        onDeleteNote = onDeleteNote,
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
 fun BookmarksView(
@@ -1034,205 +1195,40 @@ fun BookmarksView(
     }
 }
 
-// ── SearchView ────────────────────────────────────────────────────────────────
-
 @Composable
-fun SearchView(
-    viewModel: ReaderViewModel,
-    onResultClick: (Locator) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val query     by viewModel.searchQuery.collectAsState()
-    val results   by viewModel.searchResults.collectAsState()
-    val searching by viewModel.isSearching.collectAsState()
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp),
-    ) {
-        Spacer(Modifier.height(12.dp))
-
-        // Search input
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(ModalItemBg, RoundedCornerShape(12.dp))
-                .padding(horizontal = 14.dp, vertical = 14.dp),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    PhosphorIcons.Regular.MagnifyingGlass,
-                    contentDescription = null,
-                    tint = Color(0xFF8E8E93),
-                    modifier = Modifier.size(20.dp),
-                )
-                Spacer(Modifier.width(10.dp))
-                BasicTextField(
-                    value = query,
-                    onValueChange = { viewModel.search(it) },
-                    singleLine = true,
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(color = Color.White),
-                    decorationBox = { inner ->
-                        if (query.isEmpty()) {
-                            Text("Search in book…", color = Color(0xFF8E8E93),
-                                style = MaterialTheme.typography.bodyMedium)
-                        }
-                        inner()
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        }
-
-        Spacer(Modifier.height(16.dp))
-
-        if (searching && results.isEmpty()) {
-            Box(Modifier.fillMaxWidth().padding(top = 24.dp), Alignment.Center) {
-                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(32.dp))
-            }
-        } else if (query.isEmpty()) {
-            Text(
-                "RECENT SEARCHES",
-                style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF8E8E93),
-                letterSpacing = 0.8.sp,
-            )
-        } else {
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(bottom = 32.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(results) { locator ->
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(ModalItemBg.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
-                            .clickable { onResultClick(locator) }
-                            .padding(16.dp),
-                    ) {
-                        Column {
-                            Text(
-                                text = locator.title ?: locator.href.toString()
-                                    .substringAfterLast('/').substringBefore('.'),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = CyanAccent,
-                                letterSpacing = 0.5.sp,
-                            )
-                            Spacer(Modifier.height(6.dp))
-                            val snippet = buildString {
-                                locator.text.before?.let { append(it.takeLast(40)) }
-                                locator.text.highlight?.let { append(it) }
-                                locator.text.after?.let { append(it.take(40)) }
-                            }
-                            Text(
-                                text = snippet,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFFAAAAAA),
-                                maxLines = 3,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-                }
-                item {
-                    if (searching) {
-                        Box(Modifier.fillMaxWidth(), Alignment.Center) {
-                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                        }
-                    } else if (results.isNotEmpty()) {
-                        TextButton(
-                            onClick = { viewModel.loadNextResults() },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text("Load more", color = CyanAccent)
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-// ── AnnotationsView ───────────────────────────────────────────────────────────
-
-@Composable
-fun AnnotationsView(
+fun AnnotationList(
     annotations: List<AnnotationEntity>,
-    onAddNote: () -> Unit,
+    emptyMessage: String,
     onNoteClick: (AnnotationEntity) -> Unit,
     onDeleteNote: (AnnotationEntity) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var activeTab by remember { mutableStateOf("all") }
-
-    val filtered = remember(annotations, activeTab) {
-        when (activeTab) {
-            "highlight" -> annotations.filter { it.type == "highlight" }
-            "note"      -> annotations.filter { it.type == "note" }
-            else        -> annotations
-        }
-    }
-
-    Column(modifier = modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
-        Spacer(Modifier.height(12.dp))
-
-        // Filter tabs
-        Row(
-            modifier = Modifier
+    if (annotations.isEmpty()) {
+        Box(
+            modifier = modifier
                 .fillMaxWidth()
-                .background(ModalItemBg, RoundedCornerShape(10.dp))
-                .padding(4.dp),
+                .padding(vertical = 48.dp),
+            contentAlignment = Alignment.Center,
         ) {
-            listOf("all" to "All", "highlight" to "Highlights", "note" to "Notes").forEach { (id, label) ->
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .background(
-                            if (activeTab == id) ModalBg else Color.Transparent,
-                            RoundedCornerShape(8.dp)
-                        )
-                        .clickable { activeTab = id }
-                        .padding(vertical = 8.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = if (activeTab == id) Color.White else Color(0xFF8E8E93),
-                    )
-                }
-            }
+            Text(
+                text = emptyMessage,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF8E8E93),
+                textAlign = TextAlign.Center,
+            )
         }
-
-        Spacer(Modifier.height(16.dp))
-
-        if (filtered.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxWidth().height(160.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "No ${if (activeTab == "all") "notes" else activeTab}s yet.\nSelect text in the reader to add one.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF8E8E93),
-                    textAlign = TextAlign.Center,
+    } else {
+        LazyColumn(
+            modifier = modifier.padding(horizontal = 20.dp),
+            contentPadding = PaddingValues(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            items(annotations, key = { it.id }) { annotation ->
+                DarkAnnotationItem(
+                    annotation = annotation,
+                    onClick = { onNoteClick(annotation) },
+                    onDelete = { onDeleteNote(annotation) },
                 )
-            }
-        } else {
-            LazyColumn(
-                contentPadding = PaddingValues(bottom = 32.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp),
-            ) {
-                items(filtered, key = { it.id }) { annotation ->
-                    DarkAnnotationItem(
-                        annotation = annotation,
-                        onClick = { onNoteClick(annotation) },
-                        onDelete = { onDeleteNote(annotation) },
-                    )
-                }
             }
         }
     }
@@ -1253,12 +1249,12 @@ private fun DarkAnnotationItem(
             .fillMaxWidth()
             .clickable(onClick = onClick),
     ) {
-        // Green left accent border
+        // Highlight color left accent border
         Box(
             modifier = Modifier
                 .width(3.dp)
                 .height(IntrinsicSize.Min)
-                .background(GreenAccent, RoundedCornerShape(2.dp))
+                .background(Color(annotation.color.toLong() and 0xFFFFFFFFL), RoundedCornerShape(2.dp))
         )
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f).padding(top = 2.dp, bottom = 4.dp)) {
