@@ -15,6 +15,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.*
@@ -496,6 +497,11 @@ fun ReaderScreen(
                         ProgressScrubber(
                             progress = progress,
                             isDark = theme.isDark,
+                            onProgressChange = { newProg ->
+                                viewModel.locatorAtProgress(newProg.toDouble())?.let { locator ->
+                                    navigator?.go(locator, animated = false)
+                                }
+                            },
                             modifier = Modifier.weight(1f),
                         )
                         Text(
@@ -732,15 +738,47 @@ fun ReaderScreen(
 private fun ProgressScrubber(
     progress: Float,
     isDark: Boolean,
+    onProgressChange: (Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val trackColor    = if (isDark) Color(0xFF3A3A3C) else Color(0xFFD1D1D6)
     val progressColor = if (isDark) Color(0xFF8E8E93) else Color(0xFF6E6E73)
 
-    Canvas(modifier = modifier.height(24.dp)) {
-        val trackH = 6.dp.toPx()
+    // Local state to track the drag position for immediate UI feedback
+    var draggingProgress by remember { mutableStateOf<Float?>(null) }
+    val displayProgress = draggingProgress ?: progress
+
+    Canvas(
+        modifier = modifier
+            .height(32.dp)
+            .pointerInput(Unit) {
+                detectTapGestures { offset ->
+                    val newProgress = (offset.x / size.width).coerceIn(0f, 1f)
+                    onProgressChange(newProgress)
+                }
+            }
+            .pointerInput(Unit) {
+                detectDragGestures(
+                    onDragStart = { offset ->
+                        draggingProgress = (offset.x / size.width).coerceIn(0f, 1f)
+                    },
+                    onDragEnd = {
+                        draggingProgress?.let { onProgressChange(it) }
+                        draggingProgress = null
+                    },
+                    onDragCancel = {
+                        draggingProgress = null
+                    },
+                    onDrag = { change, _ ->
+                        val newProgress = (change.position.x / size.width).coerceIn(0f, 1f)
+                        draggingProgress = newProgress
+                    }
+                )
+            }
+    ) {
+        val trackH = 4.dp.toPx()
         val trackY = (size.height - trackH) / 2f
-        val clampedProgress = progress.coerceIn(0f, 1f)
+        val clampedProgress = displayProgress.coerceIn(0f, 1f)
 
         // Background track
         drawRoundRect(
@@ -762,11 +800,22 @@ private fun ProgressScrubber(
         }
 
         // Thumb
-        val thumbR = 8.dp.toPx()
+        val thumbR = 10.dp.toPx()
         val thumbX = fillW.coerceIn(thumbR, size.width - thumbR)
-        drawCircle(color = Color.Black.copy(alpha = 0.15f), radius = thumbR + 1.dp.toPx(),
-            center = Offset(thumbX, size.height / 2f + 1.dp.toPx()))
-        drawCircle(color = Color.White, radius = thumbR, center = Offset(thumbX, size.height / 2f))
+        
+        // Shadow
+        drawCircle(
+            color = Color.Black.copy(alpha = 0.15f),
+            radius = thumbR + 1.dp.toPx(),
+            center = Offset(thumbX, size.height / 2f + 1.dp.toPx())
+        )
+        
+        // Body
+        drawCircle(
+            color = Color.White,
+            radius = thumbR,
+            center = Offset(thumbX, size.height / 2f)
+        )
     }
 }
 

@@ -11,6 +11,8 @@ import kotlinx.coroutines.launch
 import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.shared.publication.Locator
 import org.readium.r2.shared.publication.Publication
+import org.readium.r2.shared.publication.services.PositionsService
+import org.readium.r2.shared.publication.services.positions
 import org.readium.r2.shared.publication.services.search.SearchIterator
 import org.readium.r2.shared.publication.services.search.search
 
@@ -67,6 +69,25 @@ class ReaderViewModel(
 
     private val _isSearching = MutableStateFlow(false)
     val isSearching: StateFlow<Boolean> = _isSearching
+
+    private val _positions = MutableStateFlow<List<Locator>>(emptyList())
+    val positions: StateFlow<List<Locator>> = _positions
+
+    init {
+        viewModelScope.launch {
+            _positions.value = publication.positions()
+        }
+    }
+
+    fun locatorAtProgress(progress: Double): Locator? {
+        val posList = _positions.value
+        if (posList.isEmpty()) return null
+
+        // Find the locator with the closest totalProgression
+        return posList.minByOrNull { locator ->
+            kotlin.math.abs((locator.locations.totalProgression ?: 0.0) - progress)
+        }
+    }
 
     private var searchIterator: SearchIterator? = null
 
