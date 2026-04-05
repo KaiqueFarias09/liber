@@ -116,6 +116,24 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun markAsFinished(bookId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            bookDao.updateLastLocator(bookId, null, 100)
+        }
+    }
+
+    fun renameBook(bookId: String, newTitle: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            bookDao.renameBook(bookId, newTitle)
+        }
+    }
+
+    fun deleteBook(bookId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            bookDao.deleteBook(bookId)
+        }
+    }
+
     fun getAnnotationsForBook(bookId: String): Flow<List<AnnotationEntity>> =
         bookDao.getAnnotationsForBook(bookId)
 
