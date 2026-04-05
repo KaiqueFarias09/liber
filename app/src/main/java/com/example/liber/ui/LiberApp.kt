@@ -3,11 +3,16 @@ package com.example.liber.ui
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -23,6 +28,7 @@ import com.example.liber.ui.reader.AnnotationRequest
 import com.example.liber.ui.collections.CollectionsScreen
 import com.example.liber.ui.collections.CollectionsViewModel
 import com.example.liber.ui.components.LiberBottomNav
+import com.example.liber.ui.components.LiberNavRail
 import com.example.liber.ui.home.HomeScreen
 import com.example.liber.ui.home.HomeViewModel
 import com.example.liber.ui.library.LibraryScreen
@@ -37,10 +43,16 @@ import org.readium.r2.shared.publication.Publication
 /**
  * Root composable that owns app-level navigation state.
  */
-@OptIn(ExperimentalReadiumApi::class)
+@OptIn(ExperimentalReadiumApi::class, ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
-fun LiberApp(viewModel: HomeViewModel, collectionsViewModel: CollectionsViewModel) {
+fun LiberApp(
+    viewModel: HomeViewModel,
+    collectionsViewModel: CollectionsViewModel,
+    windowSizeClass: androidx.compose.material3.windowsizeclass.WindowSizeClass
+) {
     val context = LocalContext.current
+    val showNavRail = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
+
     var activePublication by remember { mutableStateOf<Publication?>(null) }
     var activeBook by remember { mutableStateOf<com.example.liber.data.Book?>(null) }
     var activeTab by remember { mutableStateOf(AppTab.HOME) }
@@ -104,64 +116,79 @@ fun LiberApp(viewModel: HomeViewModel, collectionsViewModel: CollectionsViewMode
             containerColor = MaterialTheme.colorScheme.background,
             contentColor = MaterialTheme.colorScheme.onBackground,
             bottomBar = {
-                LiberBottomNav(
-                    activeTab = activeTab,
-                    onTabChange = { activeTab = it },
-                )
+                if (!showNavRail) {
+                    LiberBottomNav(
+                        activeTab = activeTab,
+                        onTabChange = { activeTab = it },
+                    )
+                }
             },
         ) { innerPadding ->
-            Box(
+            Row(
                 modifier = Modifier
                     .padding(innerPadding)
-                    .fillMaxSize(),
+                    .fillMaxSize()
             ) {
-                val books by viewModel.books.collectAsState()
-                when (activeTab) {
-                    AppTab.HOME -> HomeScreen(
-                        viewModel = viewModel,
-                        onBookClick = onOpenBook,
+                if (showNavRail) {
+                    LiberNavRail(
+                        activeTab = activeTab,
+                        onTabChange = { activeTab = it },
                     )
-                    AppTab.LIBRARY -> LibraryScreen(
-                        viewModel = viewModel,
-                        onBookClick = onOpenBook,
-                        onAddBooks = {
-                            bookLauncher.launch(
-                                arrayOf(
-                                    "application/epub+zip",
-                                    "application/pdf",
-                                    "application/x-cbz",
-                                    "application/audiobook+zip",
-                                    "application/lpf+zip",
-                                    "application/webpub+json"
+                }
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                ) {
+                    val books by viewModel.books.collectAsState()
+                    when (activeTab) {
+                        AppTab.HOME -> HomeScreen(
+                            viewModel = viewModel,
+                            onBookClick = onOpenBook,
+                        )
+                        AppTab.LIBRARY -> LibraryScreen(
+                            viewModel = viewModel,
+                            onBookClick = onOpenBook,
+                            onAddBooks = {
+                                bookLauncher.launch(
+                                    arrayOf(
+                                        "application/epub+zip",
+                                        "application/pdf",
+                                        "application/x-cbz",
+                                        "application/audiobook+zip",
+                                        "application/lpf+zip",
+                                        "application/webpub+json"
+                                    )
                                 )
-                            )
-                        },
-                        onShareBook = { book ->
-                            val intent = Intent(Intent.ACTION_SEND).apply {
-                                type = "application/epub+zip"
-                                putExtra(Intent.EXTRA_STREAM, book.fileUri)
-                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                            }
-                            context.startActivity(Intent.createChooser(intent, "Share Book"))
-                        },
-                        collectionsViewModel = collectionsViewModel,
-                    )
-                    AppTab.COLLECTIONS -> CollectionsScreen(
-                        viewModel = collectionsViewModel,
-                        allBooks = books,
-                        onOpenBook = onOpenBook,
-                        onShareBook = { book ->
-                            val intent = Intent(Intent.ACTION_SEND).apply {
-                                type = "application/epub+zip"
-                                putExtra(Intent.EXTRA_STREAM, book.fileUri)
-                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                            }
-                            context.startActivity(Intent.createChooser(intent, "Share Book"))
-                        },
-                        onToggleWantToRead = { book -> viewModel.toggleWantToRead(book.id, book.wantToRead) },
-                        onToggleFinished = { book -> viewModel.toggleFinished(book.id, book.readingProgress == 100) },
-                        onRenameBook = { book, newTitle -> viewModel.renameBook(book.id, newTitle) },
-                    )
+                            },
+                            onShareBook = { book ->
+                                val intent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "application/epub+zip"
+                                    putExtra(Intent.EXTRA_STREAM, book.fileUri)
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
+                                context.startActivity(Intent.createChooser(intent, "Share Book"))
+                            },
+                            collectionsViewModel = collectionsViewModel,
+                        )
+                        AppTab.COLLECTIONS -> CollectionsScreen(
+                            viewModel = collectionsViewModel,
+                            allBooks = books,
+                            onOpenBook = onOpenBook,
+                            onShareBook = { book ->
+                                val intent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "application/epub+zip"
+                                    putExtra(Intent.EXTRA_STREAM, book.fileUri)
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
+                                context.startActivity(Intent.createChooser(intent, "Share Book"))
+                            },
+                            onToggleWantToRead = { book -> viewModel.toggleWantToRead(book.id, book.wantToRead) },
+                            onToggleFinished = { book -> viewModel.toggleFinished(book.id, book.readingProgress == 100) },
+                            onRenameBook = { book, newTitle -> viewModel.renameBook(book.id, newTitle) },
+                        )
+                    }
                 }
             }
         }
