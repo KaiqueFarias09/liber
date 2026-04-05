@@ -116,6 +116,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun toggleFinished(bookId: String, isFinished: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val progress = if (isFinished) 0 else 100
+            bookDao.updateLastLocator(bookId, null, progress)
+        }
+    }
+
     fun markAsFinished(bookId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             bookDao.updateLastLocator(bookId, null, 100)

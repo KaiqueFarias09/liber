@@ -45,6 +45,7 @@ import com.adamglin.phosphoricons.Fill
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.fill.Bookmark as BookmarkFill
 import com.adamglin.phosphoricons.regular.Bookmark
+import com.adamglin.phosphoricons.regular.BookOpen
 import com.adamglin.phosphoricons.regular.Books
 import com.adamglin.phosphoricons.regular.CheckCircle
 import com.adamglin.phosphoricons.regular.DotsThree
@@ -67,7 +68,7 @@ fun LibraryScreen(
     onBookClick: (Book) -> Unit,
     onAddBooks: () -> Unit,
     onToggleWantToRead: (Book) -> Unit,
-    onMarkAsFinished: (Book) -> Unit,
+    onToggleFinished: (Book) -> Unit,
     onRenameBook: (Book, String) -> Unit,
     onDeleteBook: (Book) -> Unit,
     onShareBook: (Book) -> Unit,
@@ -87,7 +88,7 @@ fun LibraryScreen(
                 books = books,
                 onBookClick = onBookClick,
                 onToggleWantToRead = onToggleWantToRead,
-                onMarkAsFinished = onMarkAsFinished,
+                onToggleFinished = onToggleFinished,
                 onRenameBook = onRenameBook,
                 onDeleteBook = onDeleteBook,
                 onShareBook = onShareBook,
@@ -115,7 +116,7 @@ fun LibraryScreen(
         onBookClick = onBookClick,
         onAddBooks = onAddBooks,
         onToggleWantToRead = { book -> viewModel.toggleWantToRead(book.id, book.wantToRead) },
-        onMarkAsFinished = { book -> viewModel.markAsFinished(book.id) },
+        onToggleFinished = { book -> viewModel.toggleFinished(book.id, book.readingProgress == 100) },
         onRenameBook = { book, newTitle -> viewModel.renameBook(book.id, newTitle) },
         onDeleteBook = { book -> viewModel.deleteBook(book.id) },
         onShareBook = onShareBook,
@@ -194,7 +195,7 @@ private fun BookGrid(
     books: List<Book>,
     onBookClick: (Book) -> Unit,
     onToggleWantToRead: (Book) -> Unit,
-    onMarkAsFinished: (Book) -> Unit,
+    onToggleFinished: (Book) -> Unit,
     onRenameBook: (Book, String) -> Unit,
     onDeleteBook: (Book) -> Unit,
     onShareBook: (Book) -> Unit,
@@ -218,7 +219,7 @@ private fun BookGrid(
                             book = book,
                             onClick = { onBookClick(book) },
                             onToggleWantToRead = { onToggleWantToRead(book) },
-                            onMarkAsFinished = { onMarkAsFinished(book) },
+                            onToggleFinished = { onToggleFinished(book) },
                             onRenameBook = { onRenameBook(book, it) },
                             onDeleteBook = { onDeleteBook(book) },
                             onShareBook = { onShareBook(book) },
@@ -238,7 +239,7 @@ private fun LibraryBookItem(
     book: Book,
     onClick: () -> Unit,
     onToggleWantToRead: () -> Unit,
-    onMarkAsFinished: () -> Unit,
+    onToggleFinished: () -> Unit,
     onRenameBook: (String) -> Unit,
     onDeleteBook: () -> Unit,
     onShareBook: () -> Unit,
@@ -331,12 +332,17 @@ private fun LibraryBookItem(
                         leadingIcon = { Icon(PhosphorIcons.Regular.ListPlus, null) }
                     )
                     DropdownMenuItem(
-                        text = { Text("Mark as Finished") },
+                        text = { Text(if (book.readingProgress == 100) "Mark as still reading" else "Mark as Finished") },
                         onClick = { 
-                            onMarkAsFinished()
+                            onToggleFinished()
                             showMenu = false 
                         },
-                        leadingIcon = { Icon(PhosphorIcons.Regular.CheckCircle, null) }
+                        leadingIcon = { 
+                            Icon(
+                                imageVector = if (book.readingProgress == 100) PhosphorIcons.Regular.BookOpen else PhosphorIcons.Regular.CheckCircle, 
+                                contentDescription = null
+                            ) 
+                        }
                     )
                     DropdownMenuItem(
                         text = { Text("Rename...") },
@@ -378,7 +384,7 @@ private fun LibraryScreenPreview() {
             onBookClick = {},
             onAddBooks = {},
             onToggleWantToRead = {},
-            onMarkAsFinished = {},
+            onToggleFinished = {},
             onRenameBook = { _, _ -> },
             onDeleteBook = {},
             onShareBook = {},
@@ -396,7 +402,7 @@ private fun LibraryScreenEmptyPreview() {
             onBookClick = {},
             onAddBooks = {},
             onToggleWantToRead = {},
-            onMarkAsFinished = {},
+            onToggleFinished = {},
             onRenameBook = { _, _ -> },
             onDeleteBook = {},
             onShareBook = {},
