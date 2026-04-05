@@ -15,7 +15,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import com.example.liber.data.AnnotationEntity
+import com.example.liber.data.BookmarkEntity
 import com.example.liber.ui.reader.AnnotationRequest
 import com.example.liber.ui.components.LiberBottomNav
 import com.example.liber.ui.home.HomeScreen
@@ -29,12 +31,7 @@ import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.shared.publication.Publication
 
 /**
- * Root composable that owns app-level navigation state:
- * - which [AppTab] is active
- * - whether a [Publication] is currently open in the reader
- *
- * All data fetching and mutations are delegated to [HomeViewModel];
- * screens receive only plain data and callbacks.
+ * Root composable that owns app-level navigation state.
  */
 @OptIn(ExperimentalReadiumApi::class)
 @Composable
@@ -57,13 +54,16 @@ fun LiberApp(viewModel: HomeViewModel) {
         }
     }
 
-    // Collect annotations for the currently open book
     val annotationsFlow = remember(activeBook?.id) {
         activeBook?.id?.let { viewModel.getAnnotationsForBook(it) } ?: emptyFlow()
     }
     val annotations by annotationsFlow.collectAsState(initial = emptyList<AnnotationEntity>())
 
-    // Posted by MainActivity when the user selects text and taps Highlight / Add Note
+    val bookmarksFlow = remember(activeBook?.id) {
+        activeBook?.id?.let { viewModel.getBookmarksForBook(it) } ?: emptyFlow()
+    }
+    val bookmarks by bookmarksFlow.collectAsState(initial = emptyList<BookmarkEntity>())
+
     val pendingAnnotationRequest by viewModel.pendingAnnotationRequest.collectAsState()
 
     if (activePublication != null) {
@@ -72,11 +72,14 @@ fun LiberApp(viewModel: HomeViewModel) {
             bookId = activeBook!!.id,
             initialLocatorJson = activeBook?.lastLocator,
             annotations = annotations,
+            bookmarks = bookmarks,
             pendingAnnotationRequest = pendingAnnotationRequest,
             onRequestAnnotation = { request -> viewModel.requestAnnotation(request) },
             onSaveLocator = { json, progress -> viewModel.saveLocator(activeBook!!.id, json, progress) },
             onSaveAnnotation = { annotation -> viewModel.saveAnnotation(annotation) },
             onDeleteAnnotation = { annotationId -> viewModel.deleteAnnotation(annotationId) },
+            onSaveBookmark = { bookmark -> viewModel.saveBookmark(bookmark) },
+            onDeleteBookmark = { bookmarkId -> viewModel.deleteBookmark(bookmarkId) },
             onClearPendingAnnotation = { viewModel.clearPendingAnnotation() },
             onBack = {
                 activePublication = null

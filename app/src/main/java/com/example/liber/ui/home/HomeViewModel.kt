@@ -7,6 +7,7 @@ import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.liber.data.AnnotationEntity
+import com.example.liber.data.BookmarkEntity
 import com.example.liber.data.AppDatabase
 import com.example.liber.data.Book
 import com.example.liber.data.BookEntity
@@ -124,6 +125,17 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun deleteAnnotation(annotationId: Long) {
         viewModelScope.launch(Dispatchers.IO) { bookDao.deleteAnnotation(annotationId) }
+    }
+
+    fun getBookmarksForBook(bookId: String): Flow<List<BookmarkEntity>> =
+        bookDao.getBookmarksForBook(bookId)
+
+    fun saveBookmark(bookmark: BookmarkEntity) {
+        viewModelScope.launch(Dispatchers.IO) { bookDao.insertBookmark(bookmark) }
+    }
+
+    fun deleteBookmark(bookmarkId: Long) {
+        viewModelScope.launch(Dispatchers.IO) { bookDao.deleteBookmark(bookmarkId) }
     }
 
     fun loadBooksFromUris(uris: List<Uri>) {

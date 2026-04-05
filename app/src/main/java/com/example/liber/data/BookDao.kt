@@ -46,4 +46,13 @@ interface BookDao {
 
     @Query("DELETE FROM annotations WHERE id = :annotationId")
     suspend fun deleteAnnotation(annotationId: Long)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertBookmark(bookmark: BookmarkEntity)
+
+    @Query("SELECT * FROM bookmarks WHERE bookId = :bookId ORDER BY createdAt DESC")
+    fun getBookmarksForBook(bookId: String): Flow<List<BookmarkEntity>>
+
+    @Query("DELETE FROM bookmarks WHERE id = :bookmarkId")
+    suspend fun deleteBookmark(bookmarkId: Long)
 }

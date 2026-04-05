@@ -1,6 +1,8 @@
 package com.example.liber.ui.reader
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import android.content.Context
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,8 +17,17 @@ import org.readium.r2.shared.publication.services.search.search
 // Default annotation color — pastel yellow (matches PastelYellow100)
 private const val DEFAULT_ANNOTATION_COLOR = 0xFFFFF8DC.toInt()
 
+private const val PREFS_NAME  = "reader_prefs"
+private const val KEY_THEME   = "theme_id"
+private const val KEY_FONT    = "font_size"
+
 @OptIn(ExperimentalReadiumApi::class)
-class ReaderViewModel(val publication: Publication) : ViewModel() {
+class ReaderViewModel(
+    application: Application,
+    val publication: Publication,
+) : AndroidViewModel(application) {
+
+    private val prefs = application.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     // ── Reader UI state ──────────────────────────────────────────────────────
 
@@ -25,6 +36,25 @@ class ReaderViewModel(val publication: Publication) : ViewModel() {
 
     fun toggleUI() {
         _showUI.value = !_showUI.value
+    }
+
+    // ── Theme & font size (persisted) ────────────────────────────────────────
+
+    private val _themeId = MutableStateFlow(prefs.getString(KEY_THEME, "original") ?: "original")
+    val themeId: StateFlow<String> = _themeId
+
+    private val _fontSize = MutableStateFlow(prefs.getFloat(KEY_FONT, 1.0f).toDouble())
+    val fontSize: StateFlow<Double> = _fontSize
+
+    fun setTheme(id: String) {
+        _themeId.value = id
+        prefs.edit().putString(KEY_THEME, id).apply()
+    }
+
+    fun adjustFontSize(delta: Double) {
+        val next = (_fontSize.value + delta).coerceIn(0.5, 2.0)
+        _fontSize.value = next
+        prefs.edit().putFloat(KEY_FONT, next.toFloat()).apply()
     }
 
     // ── Search ───────────────────────────────────────────────────────────────
@@ -67,9 +97,6 @@ class ReaderViewModel(val publication: Publication) : ViewModel() {
                     val newLocators = result?.locators ?: emptyList()
                     _searchResults.value = _searchResults.value + newLocators
                 }
-                .onFailure {
-                    // Handle error
-                }
         }
     }
 
@@ -78,11 +105,9 @@ class ReaderViewModel(val publication: Publication) : ViewModel() {
     private val _showAnnotationCreator = MutableStateFlow(false)
     val showAnnotationCreator: StateFlow<Boolean> = _showAnnotationCreator
 
-    /** Text selected in the EPUB before "Highlight" or "Add Note" was tapped. */
     private val _pendingSelectedText = MutableStateFlow<String?>(null)
     val pendingSelectedText: StateFlow<String?> = _pendingSelectedText
 
-    /** "note" or "highlight" — controls the sheet title and save behavior. */
     private val _pendingAnnotationType = MutableStateFlow("note")
     val pendingAnnotationType: StateFlow<String> = _pendingAnnotationType
 
@@ -92,12 +117,6 @@ class ReaderViewModel(val publication: Publication) : ViewModel() {
     private val _annotationColorArgb = MutableStateFlow(DEFAULT_ANNOTATION_COLOR)
     val annotationColorArgb: StateFlow<Int> = _annotationColorArgb
 
-    /**
-     * Opens the annotation creator sheet.
-     *
-     * @param type "note" or "highlight"
-     * @param prefilledText Text already selected in the EPUB (from the system text-selection menu).
-     */
     fun startAnnotation(type: String = "note", prefilledText: String? = null) {
         _pendingAnnotationType.value = type
         _pendingSelectedText.value = prefilledText
@@ -106,13 +125,8 @@ class ReaderViewModel(val publication: Publication) : ViewModel() {
         _showAnnotationCreator.value = true
     }
 
-    fun setAnnotationNote(text: String) {
-        _annotationNoteText.value = text
-    }
-
-    fun setAnnotationColor(argb: Int) {
-        _annotationColorArgb.value = argb
-    }
+    fun setAnnotationNote(text: String) { _annotationNoteText.value = text }
+    fun setAnnotationColor(argb: Int)   { _annotationColorArgb.value = argb }
 
     fun cancelAnnotation() {
         _showAnnotationCreator.value = false
@@ -129,11 +143,14 @@ class ReaderViewModel(val publication: Publication) : ViewModel() {
         searchIterator?.close()
     }
 
-    class Factory(private val publication: Publication) : ViewModelProvider.Factory {
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+    class Factory(
+        private val application: Application,
+        private val publication: Publication,
+    ) : ViewModelProvider.Factory {
+        override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(ReaderViewModel::class.java)) {
                 @Suppress("UNCHECKED_CAST")
-                return ReaderViewModel(publication) as T
+                return ReaderViewModel(application, publication) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class")
         }
