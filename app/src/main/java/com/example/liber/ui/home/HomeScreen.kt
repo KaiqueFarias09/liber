@@ -29,7 +29,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -49,7 +48,7 @@ fun HomeScreen(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF111111)),
+            .background(MaterialTheme.colorScheme.background),
         contentPadding = PaddingValues(bottom = 32.dp),
     ) {
         // ── Header ─────────────────────────────────────────────────────────
@@ -57,7 +56,7 @@ fun HomeScreen(
             Text(
                 text = "Home",
                 style = MaterialTheme.typography.headlineLarge,
-                color = Color(0xFFF2F2F7),
+                color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier
                     .statusBarsPadding()
                     .padding(horizontal = 24.dp, vertical = 20.dp),
@@ -92,7 +91,7 @@ fun HomeScreen(
                 Text(
                     text = "Books you would like to read next.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF636366),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
                 )
             }
@@ -167,7 +166,7 @@ private fun SectionTitle(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
         style = MaterialTheme.typography.titleLarge,
-        color = Color(0xFFF2F2F7),
+        color = MaterialTheme.colorScheme.onBackground,
         modifier = modifier.padding(start = 24.dp, bottom = 12.dp),
     )
 }
@@ -181,12 +180,12 @@ private fun SectionTitleWithChevron(text: String, modifier: Modifier = Modifier)
         Text(
             text = text,
             style = MaterialTheme.typography.titleLarge,
-            color = Color(0xFFF2F2F7),
+            color = MaterialTheme.colorScheme.onBackground,
         )
         Icon(
             imageVector = PhosphorIcons.Regular.CaretRight,
             contentDescription = null,
-            tint = Color(0xFF636366),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier
                 .padding(start = 2.dp)
                 .size(20.dp),
@@ -197,7 +196,7 @@ private fun SectionTitleWithChevron(text: String, modifier: Modifier = Modifier)
 @Composable
 private fun SectionDivider() {
     HorizontalDivider(
-        color = Color(0xFF2C2C2E),
+        color = MaterialTheme.colorScheme.outlineVariant,
         modifier = Modifier.padding(vertical = 16.dp),
     )
 }
@@ -207,7 +206,7 @@ private fun ProgressText(progress: Int) {
     Text(
         text = "Book \u2022 $progress%",
         style = MaterialTheme.typography.labelSmall,
-        color = Color(0xFF8E8E93),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(top = 4.dp),
     )
 }
@@ -222,13 +221,13 @@ private fun PreviousStatusContent(progress: Int) {
             Icon(
                 imageVector = PhosphorIcons.Regular.CheckCircle,
                 contentDescription = null,
-                tint = Color(0xFF8E8E93),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(13.dp),
             )
             Text(
                 text = " Finished",
                 style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF8E8E93),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     } else {
@@ -247,7 +246,7 @@ private fun WantToReadEmptyState() {
         Text(
             text = "No books yet.\nTap the bookmark icon in Library to add.",
             style = MaterialTheme.typography.bodySmall,
-            color = Color(0xFF636366),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
     }
@@ -260,7 +259,7 @@ private val previewBooks = listOf(
     Book("2", "100 Things Every Designer Needs to Know", "Susan Weinschenk", null, Uri.EMPTY, readingProgress = 19),
 )
 
-@Preview(showBackground = true, backgroundColor = 0xFF111111, heightDp = 900)
+@Preview(showBackground = true, heightDp = 900)
 @Composable
 private fun HomeScreenPreview() {
     LiberTheme {
@@ -273,7 +272,7 @@ private fun HomeScreenPreview() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF111111, heightDp = 600)
+@Preview(showBackground = true, heightDp = 600)
 @Composable
 private fun HomeScreenEmptyPreview() {
     LiberTheme {

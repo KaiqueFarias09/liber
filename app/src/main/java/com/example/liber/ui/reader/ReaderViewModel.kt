@@ -11,13 +11,23 @@ import org.readium.r2.shared.publication.Locator
 import org.readium.r2.shared.publication.Publication
 import org.readium.r2.shared.publication.services.search.SearchIterator
 import org.readium.r2.shared.publication.services.search.search
-import org.readium.r2.shared.util.Try
+
+// Default annotation color — pastel yellow (matches PastelYellow100)
+private const val DEFAULT_ANNOTATION_COLOR = 0xFFFFF8DC.toInt()
 
 @OptIn(ExperimentalReadiumApi::class)
 class ReaderViewModel(val publication: Publication) : ViewModel() {
 
+    // ── Reader UI state ──────────────────────────────────────────────────────
+
     private val _showUI = MutableStateFlow(true)
     val showUI: StateFlow<Boolean> = _showUI
+
+    fun toggleUI() {
+        _showUI.value = !_showUI.value
+    }
+
+    // ── Search ───────────────────────────────────────────────────────────────
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery
@@ -29,10 +39,6 @@ class ReaderViewModel(val publication: Publication) : ViewModel() {
     val isSearching: StateFlow<Boolean> = _isSearching
 
     private var searchIterator: SearchIterator? = null
-
-    fun toggleUI() {
-        _showUI.value = !_showUI.value
-    }
 
     fun search(query: String) {
         _searchQuery.value = query
@@ -66,6 +72,39 @@ class ReaderViewModel(val publication: Publication) : ViewModel() {
                 }
         }
     }
+
+    // ── Annotation creation state ────────────────────────────────────────────
+
+    private val _showAnnotationCreator = MutableStateFlow(false)
+    val showAnnotationCreator: StateFlow<Boolean> = _showAnnotationCreator
+
+    private val _annotationNoteText = MutableStateFlow("")
+    val annotationNoteText: StateFlow<String> = _annotationNoteText
+
+    private val _annotationColorArgb = MutableStateFlow(DEFAULT_ANNOTATION_COLOR)
+    val annotationColorArgb: StateFlow<Int> = _annotationColorArgb
+
+    fun startAnnotation() {
+        _annotationNoteText.value = ""
+        _annotationColorArgb.value = DEFAULT_ANNOTATION_COLOR
+        _showAnnotationCreator.value = true
+    }
+
+    fun setAnnotationNote(text: String) {
+        _annotationNoteText.value = text
+    }
+
+    fun setAnnotationColor(argb: Int) {
+        _annotationColorArgb.value = argb
+    }
+
+    fun cancelAnnotation() {
+        _showAnnotationCreator.value = false
+        _annotationNoteText.value = ""
+        _annotationColorArgb.value = DEFAULT_ANNOTATION_COLOR
+    }
+
+    // ── Lifecycle ────────────────────────────────────────────────────────────
 
     override fun onCleared() {
         super.onCleared()

@@ -17,7 +17,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -42,7 +41,7 @@ fun BookListCard(
             .width(300.dp)
             .height(104.dp)
             .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF2C2C2E)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
@@ -61,7 +60,7 @@ fun BookListCard(
                 Text(
                     text = book.title,
                     style = MaterialTheme.typography.titleSmall,
-                    color = Color(0xFFF2F2F7),
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -69,7 +68,7 @@ fun BookListCard(
                     Text(
                         text = author,
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF8E8E93),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(top = 2.dp),
@@ -83,7 +82,7 @@ fun BookListCard(
 
 // ── Previews ──────────────────────────────────────────────────────────────────
 
-@Preview(showBackground = true, backgroundColor = 0xFF111111)
+@Preview(showBackground = true)
 @Composable
 private fun BookListCardPreview() {
     LiberTheme {
@@ -101,7 +100,7 @@ private fun BookListCardPreview() {
             Text(
                 text = "Book \u2022 42%",
                 style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF8E8E93),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp),
             )
         }

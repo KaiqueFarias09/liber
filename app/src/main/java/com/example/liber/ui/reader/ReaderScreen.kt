@@ -4,16 +4,22 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.ArrowLeft
 import com.adamglin.phosphoricons.regular.List
 import com.adamglin.phosphoricons.regular.MagnifyingGlass
+import com.adamglin.phosphoricons.regular.NotePencil
+import com.adamglin.phosphoricons.regular.Trash
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,16 +35,32 @@ import androidx.fragment.app.FragmentContainerView
 import androidx.fragment.app.commit
 import androidx.activity.compose.BackHandler
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.liber.data.AnnotationEntity
 import org.readium.r2.navigator.VisualNavigator
 import org.readium.r2.navigator.epub.EpubNavigatorFactory
 import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.shared.publication.Link
 import org.readium.r2.shared.publication.Locator
 import org.readium.r2.shared.publication.Publication
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+// Pastel highlight color options (ARGB Int) — mirrors the extended palette light containers
+private val AnnotationColorOptions = listOf(
+    0xFFFFF8DC.toInt(), // Yellow
+    0xFFFFEDD8.toInt(), // Orange
+    0xFFFFE4E8.toInt(), // Rose
+    0xFFDCE8FF.toInt(), // Blue
+    0xFFDCF2E0.toInt(), // Green
+    0xFFEEDFFF.toInt(), // Purple
+    0xFFCEF5F0.toInt(), // Teal
+    0xFFFFDEDE.toInt(), // Red
+)
 
 /**
- * Full-screen EPUB reader with a toggleable bottom navigation bar for
- * Table of Contents and Search functionality.
+ * Full-screen EPUB reader with toggleable top/bottom bars for
+ * Table of Contents, Search, and Notes (annotations).
  */
 @OptIn(ExperimentalReadiumApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -46,7 +68,10 @@ fun ReaderScreen(
     publication: Publication,
     bookId: String,
     initialLocatorJson: String?,
+    annotations: List<AnnotationEntity>,
     onSaveLocator: (json: String, progress: Int) -> Unit,
+    onSaveAnnotation: (AnnotationEntity) -> Unit,
+    onDeleteAnnotation: (Long) -> Unit,
     onBack: () -> Unit,
     viewModel: ReaderViewModel = viewModel(factory = ReaderViewModel.Factory(publication))
 ) {
@@ -54,6 +79,8 @@ fun ReaderScreen(
     val showUI by viewModel.showUI.collectAsState()
     var showContents by remember { mutableStateOf(false) }
     var showSearch by remember { mutableStateOf(false) }
+    var showNotes by remember { mutableStateOf(false) }
+    val showAnnotationCreator by viewModel.showAnnotationCreator.collectAsState()
 
     var navigator by remember { mutableStateOf<VisualNavigator?>(null) }
 
@@ -128,7 +155,7 @@ fun ReaderScreen(
             modifier = Modifier.align(Alignment.TopStart)
         ) {
             Surface(
-                color = Color.Black.copy(alpha = 0.7f),
+                color = Color.Black.copy(alpha = 0.75f),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 IconButton(
@@ -154,30 +181,36 @@ fun ReaderScreen(
             modifier = Modifier.align(Alignment.BottomCenter)
         ) {
             NavigationBar(
-                containerColor = Color.Black.copy(alpha = 0.7f),
+                containerColor = Color.Black.copy(alpha = 0.75f),
                 contentColor = Color.White,
             ) {
+                val navItemColors = NavigationBarItemDefaults.colors(
+                    unselectedIconColor = Color.White,
+                    unselectedTextColor = Color.White,
+                    selectedIconColor = Color.White,
+                    selectedTextColor = Color.White,
+                    indicatorColor = Color.White.copy(alpha = 0.15f),
+                )
                 NavigationBarItem(
                     selected = false,
                     onClick = { showContents = true },
                     icon = { Icon(PhosphorIcons.Regular.List, contentDescription = "Contents") },
-                    label = { Text("Contents", color = Color.White) },
-                    colors = NavigationBarItemDefaults.colors(
-                        unselectedIconColor = Color.White,
-                        unselectedTextColor = Color.White,
-                        indicatorColor = Color.DarkGray
-                    )
+                    label = { Text("Contents") },
+                    colors = navItemColors,
                 )
                 NavigationBarItem(
                     selected = false,
                     onClick = { showSearch = true },
                     icon = { Icon(PhosphorIcons.Regular.MagnifyingGlass, contentDescription = "Search") },
-                    label = { Text("Search", color = Color.White) },
-                    colors = NavigationBarItemDefaults.colors(
-                        unselectedIconColor = Color.White,
-                        unselectedTextColor = Color.White,
-                        indicatorColor = Color.DarkGray
-                    )
+                    label = { Text("Search") },
+                    colors = navItemColors,
+                )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = { showNotes = true },
+                    icon = { Icon(PhosphorIcons.Regular.NotePencil, contentDescription = "Notes") },
+                    label = { Text("Notes") },
+                    colors = navItemColors,
                 )
             }
         }
@@ -187,8 +220,8 @@ fun ReaderScreen(
     if (showContents) {
         ModalBottomSheet(
             onDismissRequest = { showContents = false },
-            containerColor = Color(0xFF1C1C1E),
-            contentColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface,
         ) {
             ContentsView(
                 links = publication.tableOfContents,
@@ -208,9 +241,9 @@ fun ReaderScreen(
     if (showSearch) {
         ModalBottomSheet(
             onDismissRequest = { showSearch = false },
-            containerColor = Color(0xFF1C1C1E),
-            contentColor = Color.White,
-            modifier = Modifier.fillMaxHeight(0.9f)
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.fillMaxHeight(0.9f),
         ) {
             SearchView(
                 viewModel = viewModel,
@@ -222,7 +255,69 @@ fun ReaderScreen(
             )
         }
     }
+
+    // Notes Bottom Sheet
+    if (showNotes) {
+        ModalBottomSheet(
+            onDismissRequest = { showNotes = false },
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.fillMaxHeight(0.9f),
+        ) {
+            AnnotationsView(
+                annotations = annotations,
+                onAddNote = { viewModel.startAnnotation() },
+                onNoteClick = { annotation ->
+                    runCatching {
+                        val locator = Locator.fromJSON(org.json.JSONObject(annotation.locator))
+                        if (locator != null) navigator?.go(locator, animated = true)
+                    }
+                    showNotes = false
+                    viewModel.toggleUI()
+                },
+                onDeleteNote = { annotation -> onDeleteAnnotation(annotation.id) },
+            )
+        }
+    }
+
+    // Create Annotation Sheet
+    if (showAnnotationCreator) {
+        val noteText by viewModel.annotationNoteText.collectAsState()
+        val selectedColor by viewModel.annotationColorArgb.collectAsState()
+
+        ModalBottomSheet(
+            onDismissRequest = { viewModel.cancelAnnotation() },
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+        ) {
+            CreateAnnotationSheet(
+                noteText = noteText,
+                selectedColorArgb = selectedColor,
+                currentChapter = navigator?.currentLocator?.value?.title
+                    ?: navigator?.currentLocator?.value?.href?.toString(),
+                onNoteTextChange = { viewModel.setAnnotationNote(it) },
+                onColorChange = { viewModel.setAnnotationColor(it) },
+                onSave = {
+                    val locator = navigator?.currentLocator?.value ?: return@CreateAnnotationSheet
+                    onSaveAnnotation(
+                        AnnotationEntity(
+                            bookId = bookId,
+                            type = "note",
+                            color = selectedColor,
+                            locator = locator.toJSON().toString(),
+                            text = null,
+                            note = noteText.ifBlank { null },
+                        )
+                    )
+                    viewModel.cancelAnnotation()
+                },
+                onCancel = { viewModel.cancelAnnotation() },
+            )
+        }
+    }
 }
+
+// ── ContentsView ──────────────────────────────────────────────────────────────
 
 @Composable
 fun ContentsView(
@@ -232,14 +327,15 @@ fun ContentsView(
     LazyColumn(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp)
+            .padding(horizontal = 16.dp),
+        contentPadding = PaddingValues(bottom = 32.dp),
     ) {
         item {
             Text(
                 "Table of Contents",
-                fontSize = 20.sp,
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 16.dp)
+                modifier = Modifier.padding(bottom = 16.dp),
             )
         }
         items(links) { link ->
@@ -249,7 +345,7 @@ fun ContentsView(
                     .fillMaxWidth()
                     .clickable { onLinkClick(link) }
                     .padding(vertical = 12.dp),
-                fontSize = 16.sp
+                style = MaterialTheme.typography.bodyLarge,
             )
             link.children.forEach { child ->
                 Text(
@@ -258,13 +354,15 @@ fun ContentsView(
                         .fillMaxWidth()
                         .clickable { onLinkClick(child) }
                         .padding(start = 24.dp, top = 8.dp, bottom = 8.dp),
-                    fontSize = 14.sp,
-                    color = Color.LightGray
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
     }
 }
+
+// ── SearchView ────────────────────────────────────────────────────────────────
 
 @Composable
 fun SearchView(
@@ -286,12 +384,12 @@ fun SearchView(
             modifier = Modifier.fillMaxWidth(),
             placeholder = { Text("Search in book...") },
             colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color.DarkGray,
-                unfocusedContainerColor = Color.DarkGray,
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
             ),
-            singleLine = true
+            singleLine = true,
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -310,23 +408,33 @@ fun SearchView(
                         Text(
                             text = locator.title ?: "Unknown Chapter",
                             fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
+                            style = MaterialTheme.typography.bodyMedium,
                         )
                         locator.text.before?.let {
-                            Text(it, fontSize = 12.sp, color = Color.Gray, maxLines = 1)
+                            Text(
+                                it,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                            )
                         }
                         Text(
                             locator.text.highlight ?: "",
-                            fontSize = 14.sp,
-                            color = Color.Yellow
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
                         )
                         locator.text.after?.let {
-                            Text(it, fontSize = 12.sp, color = Color.Gray, maxLines = 1)
+                            Text(
+                                it,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                            )
                         }
                     }
-                    HorizontalDivider(color = Color.DarkGray)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 }
-                
+
                 item {
                     if (isSearching) {
                         CircularProgressIndicator(
@@ -338,7 +446,7 @@ fun SearchView(
                     } else if (results.isNotEmpty()) {
                         Button(
                             onClick = { viewModel.loadNextResults() },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
                             Text("Load more")
                         }
@@ -347,4 +455,255 @@ fun SearchView(
             }
         }
     }
+}
+
+// ── AnnotationsView ───────────────────────────────────────────────────────────
+
+@Composable
+fun AnnotationsView(
+    annotations: List<AnnotationEntity>,
+    onAddNote: () -> Unit,
+    onNoteClick: (AnnotationEntity) -> Unit,
+    onDeleteNote: (AnnotationEntity) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        contentPadding = PaddingValues(bottom = 32.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                "Notes",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+            FilledTonalButton(onClick = onAddNote) {
+                Icon(
+                    PhosphorIcons.Regular.NotePencil,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(Modifier.width(6.dp))
+                Text("Add note")
+            }
+        }
+
+        if (annotations.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "No notes yet.\nTap \"Add note\" to mark your current position.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                )
+            }
+        } else {
+            LazyColumn(contentPadding = PaddingValues(bottom = 16.dp)) {
+                items(annotations, key = { it.id }) { annotation ->
+                    AnnotationItem(
+                        annotation = annotation,
+                        onClick = { onNoteClick(annotation) },
+                        onDelete = { onDeleteNote(annotation) },
+                    )
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                        modifier = Modifier.padding(vertical = 4.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AnnotationItem(
+    annotation: AnnotationEntity,
+    onClick: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    val annotationColor = Color(annotation.color.toLong() and 0xFFFFFFFFL)
+    val dateStr = remember(annotation.createdAt) {
+        SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date(annotation.createdAt))
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Box(
+            modifier = Modifier
+                .padding(top = 4.dp)
+                .size(12.dp)
+                .background(annotationColor, CircleShape)
+                .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+        )
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            annotation.note?.let { note ->
+                Text(
+                    text = note,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Spacer(Modifier.height(4.dp))
+            }
+            if (annotation.note == null) {
+                Text(
+                    text = "No note — tap to navigate",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(4.dp))
+            }
+            Text(
+                text = dateStr,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        IconButton(
+            onClick = onDelete,
+            modifier = Modifier.size(36.dp),
+        ) {
+            Icon(
+                PhosphorIcons.Regular.Trash,
+                contentDescription = "Delete note",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+}
+
+// ── CreateAnnotationSheet ─────────────────────────────────────────────────────
+
+@Composable
+fun CreateAnnotationSheet(
+    noteText: String,
+    selectedColorArgb: Int,
+    currentChapter: String?,
+    onNoteTextChange: (String) -> Unit,
+    onColorChange: (Int) -> Unit,
+    onSave: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        contentPadding = PaddingValues(bottom = 32.dp),
+    ) {
+        Text(
+            "New Note",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 4.dp),
+        )
+
+        currentChapter?.let { chapter ->
+            Text(
+                text = chapter,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 16.dp),
+            )
+        } ?: Spacer(Modifier.height(16.dp))
+
+        // Color picker
+        Text(
+            "Color",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 8.dp),
+        )
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(bottom = 16.dp),
+        ) {
+            items(AnnotationColorOptions) { colorArgb ->
+                val isSelected = colorArgb == selectedColorArgb
+                val color = Color(colorArgb.toLong() and 0xFFFFFFFFL)
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .background(color, CircleShape)
+                        .border(
+                            width = if (isSelected) 2.dp else 1.dp,
+                            color = if (isSelected) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.outline,
+                            shape = CircleShape,
+                        )
+                        .clickable { onColorChange(colorArgb) }
+                )
+            }
+        }
+
+        // Note text field
+        OutlinedTextField(
+            value = noteText,
+            onValueChange = onNoteTextChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp),
+            placeholder = { Text("Write your note… (optional)") },
+            maxLines = 5,
+            shape = RoundedCornerShape(12.dp),
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            OutlinedButton(
+                onClick = onCancel,
+                modifier = Modifier.weight(1f),
+            ) {
+                Text("Cancel")
+            }
+            Button(
+                onClick = onSave,
+                modifier = Modifier.weight(1f),
+            ) {
+                Text("Save note")
+            }
+        }
+    }
+}
+
+// ── Column with content padding extension ─────────────────────────────────────
+
+@Composable
+private fun Column(
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    verticalArrangement: Arrangement.Vertical = Arrangement.Top,
+    horizontalAlignment: Alignment.Horizontal = Alignment.Start,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    androidx.compose.foundation.layout.Column(
+        modifier = modifier.padding(
+            top = contentPadding.calculateTopPadding(),
+            bottom = contentPadding.calculateBottomPadding(),
+        ),
+        verticalArrangement = verticalArrangement,
+        horizontalAlignment = horizontalAlignment,
+        content = content,
+    )
 }

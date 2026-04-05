@@ -34,4 +34,13 @@ interface BookDao {
 
     @Query("UPDATE books SET lastLocator = :locator, readingProgress = :progress WHERE id = :id")
     suspend fun updateLastLocator(id: String, locator: String?, progress: Int)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAnnotation(annotation: AnnotationEntity)
+
+    @Query("SELECT * FROM annotations WHERE bookId = :bookId ORDER BY createdAt DESC")
+    fun getAnnotationsForBook(bookId: String): Flow<List<AnnotationEntity>>
+
+    @Query("DELETE FROM annotations WHERE id = :annotationId")
+    suspend fun deleteAnnotation(annotationId: Long)
 }

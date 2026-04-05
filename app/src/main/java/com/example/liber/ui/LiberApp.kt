@@ -5,21 +5,24 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import com.example.liber.data.AnnotationEntity
 import com.example.liber.ui.components.LiberBottomNav
 import com.example.liber.ui.home.HomeScreen
 import com.example.liber.ui.home.HomeViewModel
 import com.example.liber.ui.library.LibraryScreen
 import com.example.liber.ui.navigation.AppTab
 import com.example.liber.ui.reader.ReaderScreen
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.shared.publication.Publication
@@ -53,12 +56,21 @@ fun LiberApp(viewModel: HomeViewModel) {
         }
     }
 
+    // Collect annotations for the currently open book
+    val annotationsFlow = remember(activeBook?.id) {
+        activeBook?.id?.let { viewModel.getAnnotationsForBook(it) } ?: emptyFlow()
+    }
+    val annotations by annotationsFlow.collectAsState(initial = emptyList<AnnotationEntity>())
+
     if (activePublication != null) {
         ReaderScreen(
             publication = activePublication!!,
             bookId = activeBook!!.id,
             initialLocatorJson = activeBook?.lastLocator,
+            annotations = annotations,
             onSaveLocator = { json, progress -> viewModel.saveLocator(activeBook!!.id, json, progress) },
+            onSaveAnnotation = { annotation -> viewModel.saveAnnotation(annotation) },
+            onDeleteAnnotation = { annotationId -> viewModel.deleteAnnotation(annotationId) },
             onBack = {
                 activePublication = null
                 activeBook = null
@@ -66,8 +78,8 @@ fun LiberApp(viewModel: HomeViewModel) {
         )
     } else {
         Scaffold(
-            containerColor = Color(0xFF111111),
-            contentColor = Color(0xFFF2F2F7),
+            containerColor = MaterialTheme.colorScheme.background,
+            contentColor = MaterialTheme.colorScheme.onBackground,
             bottomBar = {
                 LiberBottomNav(
                     activeTab = activeTab,

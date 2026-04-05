@@ -6,9 +6,11 @@ import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.liber.data.AnnotationEntity
 import com.example.liber.data.AppDatabase
 import com.example.liber.data.Book
 import com.example.liber.data.BookEntity
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -98,6 +100,17 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             bookDao.updateWantToRead(bookId, !currentValue)
         }
+    }
+
+    fun getAnnotationsForBook(bookId: String): Flow<List<AnnotationEntity>> =
+        bookDao.getAnnotationsForBook(bookId)
+
+    fun saveAnnotation(annotation: AnnotationEntity) {
+        viewModelScope.launch(Dispatchers.IO) { bookDao.insertAnnotation(annotation) }
+    }
+
+    fun deleteAnnotation(annotationId: Long) {
+        viewModelScope.launch(Dispatchers.IO) { bookDao.deleteAnnotation(annotationId) }
     }
 
     fun loadBooksFromUris(uris: List<Uri>) {

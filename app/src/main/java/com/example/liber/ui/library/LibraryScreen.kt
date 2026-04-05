@@ -30,7 +30,6 @@ import com.adamglin.phosphoricons.regular.Books
 import com.example.liber.ui.components.BookCover
 import com.example.liber.ui.components.CoverStyle
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -62,7 +61,7 @@ fun LibraryScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF111111)),
+            .background(MaterialTheme.colorScheme.background),
     ) {
         LibraryHeader(onAddBooks = onAddBooks)
 
@@ -115,13 +114,13 @@ private fun LibraryHeader(onAddBooks: () -> Unit) {
         Text(
             text = "Library",
             style = MaterialTheme.typography.headlineLarge,
-            color = Color(0xFFF2F2F7),
+            color = MaterialTheme.colorScheme.onBackground,
         )
         IconButton(onClick = onAddBooks) {
             Icon(
                 imageVector = PhosphorIcons.Regular.Plus,
                 contentDescription = "Add Books",
-                tint = Color(0xFFF2F2F7),
+                tint = MaterialTheme.colorScheme.onBackground,
             )
         }
     }
@@ -130,7 +129,7 @@ private fun LibraryHeader(onAddBooks: () -> Unit) {
 @Composable
 private fun LoadingState() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator(color = Color(0xFFF2F2F7))
+        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
     }
 }
 
@@ -141,29 +140,23 @@ private fun EmptyState(onAddBooks: () -> Unit) {
             Icon(
                 imageVector = PhosphorIcons.Regular.Books,
                 contentDescription = null,
-                tint = Color(0xFF3A3A3C),
+                tint = MaterialTheme.colorScheme.surfaceVariant,
                 modifier = Modifier.size(64.dp),
             )
             Spacer(Modifier.height(16.dp))
             Text(
                 text = "Your library is empty",
                 style = MaterialTheme.typography.titleMedium,
-                color = Color(0xFF8E8E93),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(8.dp))
             Text(
                 text = "Tap + to add EPUB books",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFF636366),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(24.dp))
-            Button(
-                onClick = onAddBooks,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF2C2C2E),
-                    contentColor = Color(0xFFF2F2F7),
-                ),
-            ) {
+            Button(onClick = onAddBooks) {
                 Icon(PhosphorIcons.Regular.Plus, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("Add Books")
@@ -226,7 +219,7 @@ private fun LibraryBookItem(
                 Icon(
                     imageVector = if (book.wantToRead) PhosphorIcons.Fill.BookmarkFill else PhosphorIcons.Regular.Bookmark,
                     contentDescription = if (book.wantToRead) "Remove from Want to Read" else "Add to Want to Read",
-                    tint = if (book.wantToRead) Color(0xFF0A84FF) else Color.White,
+                    tint = if (book.wantToRead) MaterialTheme.colorScheme.primary else Color.White,
                     modifier = Modifier.size(20.dp),
                 )
             }
@@ -235,7 +228,7 @@ private fun LibraryBookItem(
         Text(
             text = book.title,
             style = MaterialTheme.typography.titleSmall,
-            color = Color(0xFFF2F2F7),
+            color = MaterialTheme.colorScheme.onBackground,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
@@ -243,7 +236,7 @@ private fun LibraryBookItem(
             Text(
                 text = author,
                 style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF8E8E93),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = 2.dp),
@@ -261,7 +254,7 @@ private val previewBooks = listOf(
     Book("4", "The Design of Everyday Things", "Don Norman", null, Uri.EMPTY),
 )
 
-@Preview(showBackground = true, backgroundColor = 0xFF111111, heightDp = 800)
+@Preview(showBackground = true, heightDp = 800)
 @Composable
 private fun LibraryScreenPreview() {
     LiberTheme {
@@ -275,7 +268,7 @@ private fun LibraryScreenPreview() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF111111, heightDp = 600)
+@Preview(showBackground = true, heightDp = 600)
 @Composable
 private fun LibraryScreenEmptyPreview() {
     LiberTheme {
