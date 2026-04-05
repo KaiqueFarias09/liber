@@ -598,6 +598,7 @@ fun ReaderScreen(
     if (showContents) {
         ModalBottomSheet(
             onDismissRequest = { showContents = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = ModalBg,
             contentColor = Color.White,
         ) {
@@ -625,6 +626,7 @@ fun ReaderScreen(
     if (showSearch) {
         ModalBottomSheet(
             onDismissRequest = { showSearch = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = ModalBg,
             contentColor = Color.White,
         ) {
@@ -645,6 +647,7 @@ fun ReaderScreen(
     if (showBookmarks) {
         ModalBottomSheet(
             onDismissRequest = { showBookmarks = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = ModalBg,
             contentColor = Color.White,
         ) {
@@ -669,6 +672,7 @@ fun ReaderScreen(
     if (showNotes) {
         ModalBottomSheet(
             onDismissRequest = { showNotes = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = ModalBg,
             contentColor = Color.White,
         ) {
@@ -694,6 +698,7 @@ fun ReaderScreen(
     if (showThemes) {
         ModalBottomSheet(
             onDismissRequest = { showThemes = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = ModalBg,
             contentColor = Color.White,
         ) {
@@ -716,6 +721,7 @@ fun ReaderScreen(
 
         ModalBottomSheet(
             onDismissRequest = { viewModel.cancelAnnotation() },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = ModalBg,
             contentColor = Color.White,
         ) {
