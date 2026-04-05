@@ -48,6 +48,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.liber.data.AnnotationEntity
 import org.readium.r2.navigator.DecorableNavigator
 import org.readium.r2.navigator.Decoration
+import org.readium.r2.navigator.SelectableNavigator
 import org.readium.r2.navigator.VisualNavigator
 import org.readium.r2.navigator.epub.EpubNavigatorFactory
 import org.readium.r2.navigator.epub.EpubNavigatorFragment
@@ -56,6 +57,7 @@ import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.shared.publication.Link
 import org.readium.r2.shared.publication.Locator
 import org.readium.r2.shared.publication.Publication
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -107,6 +109,7 @@ fun ReaderScreen(
     viewModel: ReaderViewModel = viewModel(factory = ReaderViewModel.Factory(publication))
 ) {
     val fragmentActivity = LocalActivity.current as FragmentActivity
+    val coroutineScope = rememberCoroutineScope()
     val showUI by viewModel.showUI.collectAsState()
     var showContents by remember { mutableStateOf(false) }
     var showSearch by remember { mutableStateOf(false) }
@@ -398,18 +401,26 @@ fun ReaderScreen(
                 onNoteTextChange = { viewModel.setAnnotationNote(it) },
                 onColorChange = { viewModel.setAnnotationColor(it) },
                 onSave = {
-                    val locator = navigator?.currentLocator?.value ?: return@CreateAnnotationSheet
-                    onSaveAnnotation(
-                        AnnotationEntity(
-                            bookId = bookId,
-                            type = annotationType,
-                            color = selectedColor,
-                            locator = locator.toJSON().toString(),
-                            text = selectedText,
-                            note = noteText.ifBlank { null },
+                    coroutineScope.launch {
+                        val selectable = navigator as? SelectableNavigator
+                        // Use the selection locator (contains text boundaries for decoration rendering)
+                        // and fall back to the current page locator for plain notes without text selection.
+                        val locator = selectable?.currentSelection()?.locator
+                            ?: navigator?.currentLocator?.value
+                            ?: return@launch
+                        onSaveAnnotation(
+                            AnnotationEntity(
+                                bookId = bookId,
+                                type = annotationType,
+                                color = selectedColor,
+                                locator = locator.toJSON().toString(),
+                                text = selectedText,
+                                note = noteText.ifBlank { null },
+                            )
                         )
-                    )
-                    viewModel.cancelAnnotation()
+                        selectable?.clearSelection()
+                        viewModel.cancelAnnotation()
+                    }
                 },
                 onCancel = { viewModel.cancelAnnotation() },
             )
