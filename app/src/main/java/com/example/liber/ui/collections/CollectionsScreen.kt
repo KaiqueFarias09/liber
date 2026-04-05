@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -557,7 +558,10 @@ private fun CollectionDetailScreen(
                         verticalAlignment = Alignment.Bottom,
                     ) {
                         rowBooks.forEach { book ->
-                            Box(modifier = Modifier.weight(1f)) {
+                            Box(
+                                modifier = Modifier.weight(1f),
+                                contentAlignment = Alignment.BottomStart
+                            ) {
                                 DetailBookItem(
                                     book = book,
                                     onClick = { onOpenBook(book) },
@@ -624,7 +628,7 @@ private fun DetailBookItem(
 
     Column(
         modifier = Modifier
-            .fillMaxWidth()
+            .widthIn(max = 180.dp)
             .clickable(onClick = onClick),
     ) {
         BookCover(

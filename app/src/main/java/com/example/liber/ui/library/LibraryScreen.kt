@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -198,7 +199,7 @@ private fun BookGrid(
     val chunkedBooks = remember(books) { books.chunked(2) }
 
     LazyColumn(
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
         modifier = Modifier.fillMaxSize()
     ) {
@@ -209,7 +210,10 @@ private fun BookGrid(
                 verticalAlignment = Alignment.Bottom
             ) {
                 rowBooks.forEach { book ->
-                    Box(modifier = Modifier.weight(1f)) {
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.BottomStart
+                    ) {
                         LibraryBookItem(
                             book = book,
                             onClick = { onBookClick(book) },
@@ -248,7 +252,7 @@ private fun LibraryBookItem(
 
     Column(
         modifier = Modifier
-            .fillMaxWidth()
+            .widthIn(max = 180.dp)
             .clickable(onClick = onClick),
     ) {
         BookCover(
