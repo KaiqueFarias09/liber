@@ -4,16 +4,16 @@ import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -21,15 +21,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import com.example.liber.data.AnnotationEntity
 import com.example.liber.data.BookmarkEntity
-import com.example.liber.ui.reader.AnnotationRequest
-import com.example.liber.ui.collections.CollectionsScreen
 import com.example.liber.ui.collections.CollectionsViewModel
 import com.example.liber.ui.components.LiberBottomNav
 import com.example.liber.ui.components.LiberNavRail
@@ -147,7 +144,6 @@ fun LiberApp(
                         .background(MaterialTheme.colorScheme.background),
                     contentAlignment = Alignment.TopCenter
                 ) {
-                    val books by viewModel.books.collectAsState()
                     Box(
                         modifier = Modifier
                             .widthIn(max = 840.dp)
@@ -183,23 +179,6 @@ fun LiberApp(
                                     context.startActivity(Intent.createChooser(intent, "Share Book"))
                                 },
                                 collectionsViewModel = collectionsViewModel,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                            AppTab.COLLECTIONS -> CollectionsScreen(
-                                viewModel = collectionsViewModel,
-                                allBooks = books,
-                                onOpenBook = onOpenBook,
-                                onShareBook = { book ->
-                                    val intent = Intent(Intent.ACTION_SEND).apply {
-                                        type = "application/epub+zip"
-                                        putExtra(Intent.EXTRA_STREAM, book.fileUri)
-                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                    }
-                                    context.startActivity(Intent.createChooser(intent, "Share Book"))
-                                },
-                                onToggleWantToRead = { book -> viewModel.toggleWantToRead(book.id, book.wantToRead) },
-                                onToggleFinished = { book -> viewModel.toggleFinished(book.id, book.readingProgress == 100) },
-                                onRenameBook = { book, newTitle -> viewModel.renameBook(book.id, newTitle) },
                                 modifier = Modifier.fillMaxSize()
                             )
                         }

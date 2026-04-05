@@ -1,9 +1,6 @@
 package com.example.liber.ui.collections
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,7 +8,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import android.net.Uri
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,10 +18,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import coil.compose.AsyncImage
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -47,7 +39,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,16 +49,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Fill
 import com.adamglin.phosphoricons.Regular
-import com.adamglin.phosphoricons.fill.Bookmark as BookmarkFill
 import com.adamglin.phosphoricons.regular.ArrowLeft
 import com.adamglin.phosphoricons.regular.BookOpen
-import com.adamglin.phosphoricons.regular.Bookmark
 import com.adamglin.phosphoricons.regular.CaretRight
 import com.adamglin.phosphoricons.regular.CheckCircle
 import com.adamglin.phosphoricons.regular.DotsThree
@@ -76,75 +69,18 @@ import com.adamglin.phosphoricons.regular.PencilSimple
 import com.adamglin.phosphoricons.regular.Plus
 import com.adamglin.phosphoricons.regular.PlusCircle
 import com.adamglin.phosphoricons.regular.ShareNetwork
-import com.adamglin.phosphoricons.regular.Stack
 import com.adamglin.phosphoricons.regular.Trash
 import com.example.liber.R
 import com.example.liber.data.Book
 import com.example.liber.ui.components.BookCover
 import com.example.liber.ui.components.CoverStyle
 import com.example.liber.ui.components.EmptyState
-
-// ── Entry point ───────────────────────────────────────────────────────────────
-
-@Composable
-fun CollectionsScreen(
-    viewModel: CollectionsViewModel,
-    allBooks: List<Book>,
-    onOpenBook: (Book) -> Unit,
-    onShareBook: (Book) -> Unit,
-    onToggleWantToRead: (Book) -> Unit,
-    onToggleFinished: (Book) -> Unit,
-    onRenameBook: (Book, String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val collections by viewModel.collections.collectAsState()
-    var selectedCollectionId by remember { mutableStateOf<Long?>(null) }
-    val selectedCollection = collections.find { it.id == selectedCollectionId }
-
-    AnimatedContent(
-        targetState = selectedCollectionId,
-        transitionSpec = {
-            if (targetState != null) {
-                slideInHorizontally { it } togetherWith slideOutHorizontally { -it }
-            } else {
-                slideInHorizontally { -it } togetherWith slideOutHorizontally { it }
-            }
-        },
-        modifier = modifier.fillMaxSize(),
-        label = "collections_nav",
-    ) { collectionId ->
-        if (collectionId == null) {
-            CollectionsListScreen(
-                collections = collections,
-                onCollectionClick = { selectedCollectionId = it.id },
-                onCreateCollection = { name -> viewModel.createCollection(name) },
-            )
-        } else if (selectedCollection != null) {
-            CollectionDetailScreen(
-                collection = selectedCollection,
-                allBooks = allBooks,
-                onBack = { selectedCollectionId = null },
-                onRename = { name -> viewModel.renameCollection(selectedCollection.id, name) },
-                onDelete = {
-                    viewModel.deleteCollection(selectedCollection.id)
-                    selectedCollectionId = null
-                },
-                onAddBook = { bookId -> viewModel.addBookToCollection(selectedCollection.id, bookId) },
-                onRemoveBook = { bookId -> viewModel.removeBookFromCollection(selectedCollection.id, bookId) },
-                onOpenBook = onOpenBook,
-                onShareBook = onShareBook,
-                onToggleWantToRead = onToggleWantToRead,
-                onToggleFinished = onToggleFinished,
-                onRenameBook = onRenameBook,
-            )
-        }
-    }
-}
+import com.adamglin.phosphoricons.fill.Bookmark as BookmarkFill
 
 // ── List screen ───────────────────────────────────────────────────────────────
 
 @Composable
-private fun CollectionsListScreen(
+fun CollectionsListScreen(
     collections: List<CollectionUiState>,
     onCollectionClick: (CollectionUiState) -> Unit,
     onCreateCollection: (String) -> Unit,
@@ -174,7 +110,7 @@ private fun CollectionsListScreen(
                 EmptyState(
                     title = "No collections yet",
                     subtitle = "Curate your reading by grouping books into collections.",
-                    image = R.drawable.library_empty,
+                    image = R.drawable.collections_empty,
                     actionLabel = "Create Collection",
                     onAction = { showCreateDialog = true },
                     modifier = Modifier.padding(horizontal = 24.dp)
@@ -187,9 +123,6 @@ private fun CollectionsListScreen(
                     .padding(innerPadding),
                 verticalArrangement = Arrangement.spacedBy(0.dp),
             ) {
-                item {
-                    CollectionsHeader()
-                }
                 items(collections) { collection ->
                     CollectionShelfRow(
                         collection = collection,
@@ -215,28 +148,6 @@ private fun CollectionsListScreen(
     }
 }
 
-@Composable
-private fun CollectionsHeader() {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .statusBarsPadding()
-            .padding(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 8.dp),
-    ) {
-        Text(
-            text = "Collections",
-            style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
-        Spacer(Modifier.height(4.dp))
-        Text(
-            text = "Curated lists to organise your reading.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.height(16.dp))
-    }
-}
 
 // ── Collection shelf card ─────────────────────────────────────────────────────
 
@@ -406,7 +317,7 @@ private fun ShelfCoverItem(
 // ── Detail screen ─────────────────────────────────────────────────────────────
 
 @Composable
-private fun CollectionDetailScreen(
+fun CollectionDetailScreen(
     collection: CollectionUiState,
     allBooks: List<Book>,
     onBack: () -> Unit,
@@ -536,7 +447,7 @@ private fun CollectionDetailScreen(
                 EmptyState(
                     title = "This collection is empty",
                     subtitle = "Add books from your library to this collection.",
-                    image = R.drawable.library_empty,
+                    image = R.drawable.collections_empty,
                     actionLabel = "Add books",
                     onAction = { showAddBooksSheet = true },
                 )

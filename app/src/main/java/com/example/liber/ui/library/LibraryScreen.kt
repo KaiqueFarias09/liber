@@ -1,8 +1,10 @@
 package com.example.liber.ui.library
 
-import android.content.Intent
 import android.net.Uri
-import androidx.compose.foundation.background
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,31 +25,33 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Fill
 import com.adamglin.phosphoricons.Regular
-import com.adamglin.phosphoricons.fill.Bookmark as BookmarkFill
-import com.adamglin.phosphoricons.regular.Bookmark
 import com.adamglin.phosphoricons.regular.BookOpen
 import com.adamglin.phosphoricons.regular.CheckCircle
 import com.adamglin.phosphoricons.regular.DotsThree
@@ -58,15 +62,18 @@ import com.adamglin.phosphoricons.regular.PlusCircle
 import com.adamglin.phosphoricons.regular.ShareNetwork
 import com.adamglin.phosphoricons.regular.Stack
 import com.adamglin.phosphoricons.regular.Trash
-import com.example.liber.data.Book
-import com.example.liber.ui.collections.CollectionUiState
-import com.example.liber.ui.collections.CollectionsViewModel
 import com.example.liber.R
+import com.example.liber.data.Book
+import com.example.liber.ui.collections.CollectionDetailScreen
+import com.example.liber.ui.collections.CollectionUiState
+import com.example.liber.ui.collections.CollectionsListScreen
+import com.example.liber.ui.collections.CollectionsViewModel
 import com.example.liber.ui.components.BookCover
 import com.example.liber.ui.components.CoverStyle
 import com.example.liber.ui.components.EmptyState
 import com.example.liber.ui.home.HomeViewModel
 import com.example.liber.ui.theme.LiberTheme
+import com.adamglin.phosphoricons.fill.Bookmark as BookmarkFill
 
 @Composable
 fun LibraryScreen(
@@ -81,37 +88,125 @@ fun LibraryScreen(
     onShareBook: (Book) -> Unit,
     onAddToCollection: (Book, Long) -> Unit = { _, _ -> },
     collections: List<CollectionUiState> = emptyList(),
+    onCreateCollection: (String) -> Unit = {},
+    onRenameCollection: (Long, String) -> Unit = { _, _ -> },
+    onDeleteCollection: (Long) -> Unit = {},
+    onAddBookToCollection: (Long, String) -> Unit = { _, _ -> },
+    onRemoveBookFromCollection: (Long, String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
 ) {
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var selectedCollectionId by remember { mutableStateOf<Long?>(null) }
+    val selectedCollection = collections.find { it.id == selectedCollectionId }
+
     Column(
         modifier = modifier
             .fillMaxSize(),
     ) {
         LibraryHeader(onAddBooks = onAddBooks)
 
-        when {
-            isLoading -> LoadingState()
-            books.isEmpty() -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                EmptyState(
-                    title = "Your library is empty",
-                    subtitle = "Tap + to add books",
-                    image = R.drawable.library_empty,
-                    actionLabel = "Add Books",
-                    onAction = onAddBooks,
-                    modifier = Modifier.padding(horizontal = 24.dp),
+        SecondaryTabRow(
+            selectedTabIndex = selectedTabIndex,
+            containerColor = Color.Transparent,
+            contentColor = MaterialTheme.colorScheme.onBackground,
+            indicator = {
+                TabRowDefaults.SecondaryIndicator(
+                    modifier = Modifier.tabIndicatorOffset(selectedTabIndex),
+                    color = MaterialTheme.colorScheme.primary
                 )
-            }
-            else -> BookGrid(
-                books = books,
-                onBookClick = onBookClick,
-                onToggleWantToRead = onToggleWantToRead,
-                onToggleFinished = onToggleFinished,
-                onRenameBook = onRenameBook,
-                onDeleteBook = onDeleteBook,
-                onShareBook = onShareBook,
-                onAddToCollection = onAddToCollection,
-                collections = collections,
+            },
+            divider = {},
+            modifier = Modifier.padding(horizontal = 24.dp)
+        ) {
+            Tab(
+                selected = selectedTabIndex == 0,
+                onClick = { selectedTabIndex = 0; selectedCollectionId = null },
+                text = { Text("Books", style = MaterialTheme.typography.titleMedium) }
             )
+            Tab(
+                selected = selectedTabIndex == 1,
+                onClick = { selectedTabIndex = 1 },
+                text = { Text("Collections", style = MaterialTheme.typography.titleMedium) }
+            )
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        AnimatedContent(
+            targetState = if (selectedTabIndex == 0) "books" else if (selectedCollectionId == null) "collections" else "collection_detail",
+            transitionSpec = {
+                slideInHorizontally { it } togetherWith slideOutHorizontally { -it }
+            },
+            modifier = Modifier.weight(1f),
+            label = "library_content"
+        ) { state ->
+            when (state) {
+                "books" -> {
+                    when {
+                        isLoading -> LoadingState()
+                        books.isEmpty() -> Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            EmptyState(
+                                title = "Your library is empty",
+                                subtitle = "Tap + to add books",
+                                image = R.drawable.library_empty,
+                                actionLabel = "Add Books",
+                                onAction = onAddBooks,
+                                modifier = Modifier.padding(horizontal = 24.dp),
+                            )
+                        }
+
+                        else -> BookGrid(
+                            books = books,
+                            onBookClick = onBookClick,
+                            onToggleWantToRead = onToggleWantToRead,
+                            onToggleFinished = onToggleFinished,
+                            onRenameBook = onRenameBook,
+                            onDeleteBook = onDeleteBook,
+                            onShareBook = onShareBook,
+                            onAddToCollection = onAddToCollection,
+                            collections = collections,
+                        )
+                    }
+                }
+
+                "collections" -> {
+                    CollectionsListScreen(
+                        collections = collections,
+                        onCollectionClick = { selectedCollectionId = it.id },
+                        onCreateCollection = onCreateCollection,
+                    )
+                }
+
+                "collection_detail" -> {
+                    if (selectedCollection != null) {
+                        CollectionDetailScreen(
+                            collection = selectedCollection,
+                            allBooks = books,
+                            onBack = { selectedCollectionId = null },
+                            onRename = { onRenameCollection(selectedCollection.id, it) },
+                            onDelete = {
+                                onDeleteCollection(selectedCollection.id)
+                                selectedCollectionId = null
+                            },
+                            onAddBook = { onAddBookToCollection(selectedCollection.id, it) },
+                            onRemoveBook = {
+                                onRemoveBookFromCollection(
+                                    selectedCollection.id,
+                                    it
+                                )
+                            },
+                            onOpenBook = onBookClick,
+                            onShareBook = onShareBook,
+                            onToggleWantToRead = onToggleWantToRead,
+                            onToggleFinished = onToggleFinished,
+                            onRenameBook = onRenameBook,
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -145,6 +240,21 @@ fun LibraryScreen(
             collectionsViewModel.addBookToCollection(collectionId, book.id)
         },
         collections = collections,
+        onCreateCollection = { collectionsViewModel.createCollection(it) },
+        onRenameCollection = { id, name -> collectionsViewModel.renameCollection(id, name) },
+        onDeleteCollection = { collectionsViewModel.deleteCollection(it) },
+        onAddBookToCollection = { id, bookId ->
+            collectionsViewModel.addBookToCollection(
+                id,
+                bookId
+            )
+        },
+        onRemoveBookFromCollection = { id, bookId ->
+            collectionsViewModel.removeBookFromCollection(
+                id,
+                bookId
+            )
+        },
         modifier = modifier,
     )
 }

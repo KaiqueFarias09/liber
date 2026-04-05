@@ -4,12 +4,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Fill
 import com.adamglin.phosphoricons.Regular
-import com.adamglin.phosphoricons.fill.House
 import com.adamglin.phosphoricons.fill.Books
-import com.adamglin.phosphoricons.fill.Stack
-import com.adamglin.phosphoricons.regular.House
+import com.adamglin.phosphoricons.fill.House
 import com.adamglin.phosphoricons.regular.Books
-import com.adamglin.phosphoricons.regular.Stack
+import com.adamglin.phosphoricons.regular.House
 
 enum class AppTab(
     val label: String,
@@ -25,10 +23,5 @@ enum class AppTab(
         label = "Library",
         activeIcon = PhosphorIcons.Fill.Books,
         inactiveIcon = PhosphorIcons.Regular.Books,
-    ),
-    COLLECTIONS(
-        label = "Collections",
-        activeIcon = PhosphorIcons.Fill.Stack,
-        inactiveIcon = PhosphorIcons.Regular.Stack,
     ),
 }
