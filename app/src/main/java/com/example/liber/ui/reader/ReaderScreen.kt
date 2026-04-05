@@ -1219,7 +1219,7 @@ fun AnnotationList(
         }
     } else {
         LazyColumn(
-            modifier = modifier.padding(horizontal = 20.dp),
+            modifier = modifier,
             contentPadding = PaddingValues(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
@@ -1247,7 +1247,8 @@ private fun DarkAnnotationItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .padding(start = 12.dp, end = 20.dp),
     ) {
         // Highlight color left accent border
         Box(
@@ -1256,7 +1257,7 @@ private fun DarkAnnotationItem(
                 .height(IntrinsicSize.Min)
                 .background(Color(annotation.color.toLong() and 0xFFFFFFFFL), RoundedCornerShape(2.dp))
         )
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(5.dp))
         Column(modifier = Modifier.weight(1f).padding(top = 2.dp, bottom = 4.dp)) {
             Text(
                 text = "Chapter • $dateStr",
