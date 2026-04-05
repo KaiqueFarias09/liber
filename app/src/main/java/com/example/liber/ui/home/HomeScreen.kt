@@ -32,8 +32,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.liber.R
 import com.example.liber.data.Book
 import com.example.liber.ui.components.BookListCard
+import com.example.liber.ui.components.EmptyState
 import com.example.liber.ui.components.WantToReadCover
 import com.example.liber.ui.theme.LiberTheme
 
@@ -98,7 +100,13 @@ fun HomeScreen(
         }
         item {
             if (wantToReadBooks.isEmpty()) {
-                WantToReadEmptyState()
+                EmptyState(
+                    title = "No books yet",
+                    subtitle = "Tap the bookmark icon in Library to add.",
+                    image = R.drawable.bookmarks_empty,
+                    showImage = false,
+                    modifier = Modifier.padding(horizontal = 24.dp)
+                )
             } else {
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 24.dp),
@@ -232,23 +240,6 @@ private fun PreviousStatusContent(progress: Int) {
         }
     } else {
         ProgressText(progress)
-    }
-}
-
-@Composable
-private fun WantToReadEmptyState() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(140.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = "No books yet.\nTap the bookmark icon in Library to add.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
     }
 }
 

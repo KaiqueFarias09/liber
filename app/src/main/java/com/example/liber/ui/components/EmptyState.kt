@@ -3,6 +3,7 @@ package com.example.liber.ui.components
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,9 +21,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun EmptyState(
@@ -30,6 +35,7 @@ fun EmptyState(
     @DrawableRes image: Int? = null,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
+    showImage: Boolean = true,
     containerColor: Color = MaterialTheme.colorScheme.primaryContainer,
     titleColor: Color = MaterialTheme.colorScheme.onPrimaryContainer,
     subtitleColor: Color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
@@ -38,23 +44,23 @@ fun EmptyState(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(24.dp))
             .background(containerColor)
-            .padding(horizontal = 32.dp, vertical = 40.dp),
+            .padding(horizontal = 32.dp, vertical = if (showImage && image != null) 40.dp else 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        if (image != null) {
+        if (showImage && image != null) {
             Image(
                 painter = painterResource(image),
                 contentDescription = null,
-                modifier = Modifier.size(250.dp),
+                modifier = Modifier.size(220.dp)
             )
         }
 
         Text(
             text = title,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
             color = titleColor,
             textAlign = TextAlign.Center,
         )
@@ -63,17 +69,19 @@ fun EmptyState(
             Spacer(Modifier.height(8.dp))
             Text(
                 text = subtitle,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyLarge,
                 color = subtitleColor,
                 textAlign = TextAlign.Center,
             )
         }
 
         if (actionLabel != null && onAction != null) {
-            Spacer(Modifier.height(24.dp))
-            Button(onClick = onAction) {
-                Text(actionLabel)
-            }
+            Spacer(Modifier.height(32.dp))
+            LiberButton(
+                text = actionLabel,
+                onClick = onAction,
+                type = LiberButtonType.PRIMARY_INVERTED
+            )
         }
     }
 }

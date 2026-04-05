@@ -968,9 +968,11 @@ fun SearchView(
                 title = "No results found",
                 subtitle = "Try a different search term.",
                 image = R.drawable.search_empty,
-                containerColor = Color(0xFF2C2C2E),
-                titleColor = Color(0xFF8E8E93),
-                subtitleColor = Color(0xFF48484A),
+                showImage = false,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                titleColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                subtitleColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                modifier = Modifier.padding(horizontal = 20.dp)
             )
         } else {
             LazyColumn(
@@ -1089,7 +1091,7 @@ fun NotebookView(
                     val highlights = remember(annotations) { annotations.filter { it.type == "highlight" } }
                     AnnotationList(
                         annotations = highlights,
-                        emptyMessage = "No highlights yet.\nSelect text in the reader to add one.",
+                        emptyMessage = "No highlights yet.",
                         onNoteClick = onNoteClick,
                         onDeleteNote = onDeleteNote,
                         emptyImage = R.drawable.highlights_empty,
@@ -1099,7 +1101,7 @@ fun NotebookView(
                     val notes = remember(annotations) { annotations.filter { it.type == "note" } }
                     AnnotationList(
                         annotations = notes,
-                        emptyMessage = "No notes yet.\nSelect text in the reader to add one.",
+                        emptyMessage = "No notes yet.",
                         onNoteClick = onNoteClick,
                         onDeleteNote = onDeleteNote,
                         emptyImage = R.drawable.notes_empty,
@@ -1120,12 +1122,11 @@ fun BookmarksView(
     if (bookmarks.isEmpty()) {
         EmptyState(
             title = "No bookmarks",
-            subtitle = "Tap the bookmark icon to save your place.",
             image = R.drawable.bookmarks_empty,
-            containerColor = Color(0xFF2C2C2E),
-            titleColor = Color(0xFF8E8E93),
-            subtitleColor = Color(0xFF48484A),
-            modifier = modifier,
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            titleColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            subtitleColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+            modifier = modifier.padding(horizontal = 20.dp),
         )
     } else {
         LazyColumn(
@@ -1201,9 +1202,10 @@ fun AnnotationList(
         EmptyState(
             title = emptyMessage,
             image = emptyImage,
-            containerColor = Color(0xFF2C2C2E),
-            titleColor = Color(0xFF8E8E93),
-            modifier = modifier,
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            titleColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            subtitleColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+            modifier = modifier.padding(horizontal = 20.dp),
         )
     } else {
         LazyColumn(

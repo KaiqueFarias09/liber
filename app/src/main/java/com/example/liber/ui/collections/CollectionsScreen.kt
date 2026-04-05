@@ -77,9 +77,11 @@ import com.adamglin.phosphoricons.regular.PlusCircle
 import com.adamglin.phosphoricons.regular.ShareNetwork
 import com.adamglin.phosphoricons.regular.Stack
 import com.adamglin.phosphoricons.regular.Trash
+import com.example.liber.R
 import com.example.liber.data.Book
 import com.example.liber.ui.components.BookCover
 import com.example.liber.ui.components.CoverStyle
+import com.example.liber.ui.components.EmptyState
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 
@@ -162,11 +164,21 @@ private fun CollectionsListScreen(
         },
     ) { innerPadding ->
         if (collections.isEmpty()) {
-            CollectionsEmptyState(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding),
-            )
+                contentAlignment = Alignment.Center
+            ) {
+                EmptyState(
+                    title = "No collections yet",
+                    subtitle = "Curate your reading by grouping books into collections.",
+                    image = R.drawable.library_empty,
+                    actionLabel = "Create Collection",
+                    onAction = { showCreateDialog = true },
+                    modifier = Modifier.padding(horizontal = 24.dp)
+                )
+            }
         } else {
             LazyColumn(
                 modifier = Modifier
@@ -222,32 +234,6 @@ private fun CollectionsHeader() {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(16.dp))
-    }
-}
-
-@Composable
-private fun CollectionsEmptyState(modifier: Modifier = Modifier) {
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                imageVector = PhosphorIcons.Regular.Stack,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.size(64.dp),
-            )
-            Spacer(Modifier.height(16.dp))
-            Text(
-                text = "No collections yet",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = "Tap + to create your first collection",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
     }
 }
 
@@ -539,16 +525,15 @@ private fun CollectionDetailScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainer)
-                    .padding(vertical = 40.dp),
+                    .padding(horizontal = 24.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = "This collection is empty",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                EmptyState(
+                    title = "This collection is empty",
+                    subtitle = "Add books from your library to this collection.",
+                    image = R.drawable.library_empty,
+                    actionLabel = "Add books",
+                    onAction = { showAddBooksSheet = true },
                 )
             }
         } else {
