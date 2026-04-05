@@ -20,6 +20,9 @@ interface BookDao {
     @Query("SELECT * FROM books WHERE wantToRead = 1 ORDER BY title ASC")
     fun getWantToReadBooks(): Flow<List<BookEntity>>
 
+    @Query("SELECT * FROM books WHERE fileUri = :fileUri LIMIT 1")
+    suspend fun getBookByFileUri(fileUri: String): BookEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertBook(book: BookEntity)
 

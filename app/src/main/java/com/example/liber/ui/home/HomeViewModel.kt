@@ -10,6 +10,7 @@ import com.example.liber.data.AnnotationEntity
 import com.example.liber.data.AppDatabase
 import com.example.liber.data.Book
 import com.example.liber.data.BookEntity
+import com.example.liber.ui.reader.AnnotationRequest
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -74,6 +75,18 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
+    // Posted by MainActivity when the user taps Highlight / Add Note in the text-selection menu.
+    private val _pendingAnnotationRequest = MutableStateFlow<AnnotationRequest?>(null)
+    val pendingAnnotationRequest: StateFlow<AnnotationRequest?> = _pendingAnnotationRequest
+
+    fun requestAnnotation(request: AnnotationRequest) {
+        _pendingAnnotationRequest.value = request
+    }
+
+    fun clearPendingAnnotation() {
+        _pendingAnnotationRequest.value = null
+    }
+
     // ── Actions ──────────────────────────────────────────────────────────────
 
     /** Opens a book in the reader and records it as last opened. Returns null on failure. */
@@ -119,9 +132,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             withContext(Dispatchers.IO) {
                 uris.forEach { uri ->
                     tryTakePersistablePermission(uri)
-                    val file = DocumentFile.fromSingleUri(getApplication(), uri) ?: return@forEach
-                    val book = parseBook(file) ?: return@forEach
-                    bookDao.insertBook(book.toEntity())
+                    if (bookDao.getBookByFileUri(uri.toString()) == null) {
+                        val file = DocumentFile.fromSingleUri(getApplication(), uri) ?: return@forEach
+                        val book = parseBook(file) ?: return@forEach
+                        bookDao.insertBook(book.toEntity())
+                    }
                 }
             }
             _isLoading.value = false
