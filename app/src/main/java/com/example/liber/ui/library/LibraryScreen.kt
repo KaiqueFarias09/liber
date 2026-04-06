@@ -1,10 +1,6 @@
 package com.example.liber.ui.library
 
 import android.net.Uri
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -26,11 +24,12 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,6 +50,7 @@ import com.example.liber.ui.components.BookGrid
 import com.example.liber.ui.components.EmptyState
 import com.example.liber.ui.home.HomeViewModel
 import com.example.liber.ui.theme.LiberTheme
+import kotlinx.coroutines.launch
 
 @Composable
 fun LibraryScreen(
@@ -72,9 +72,18 @@ fun LibraryScreen(
     onRemoveBookFromCollection: (Long, String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
 ) {
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    val pagerState = rememberPagerState { 2 }
+    val scope = rememberCoroutineScope()
     var selectedCollectionId by remember { mutableStateOf<Long?>(null) }
     val selectedCollection = collections.find { it.id == selectedCollectionId }
+
+    val selectedTabIndex = pagerState.currentPage
+
+    LaunchedEffect(selectedTabIndex) {
+        if (selectedTabIndex == 0) {
+            selectedCollectionId = null
+        }
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(
@@ -102,7 +111,11 @@ fun LibraryScreen(
             ) {
                 Tab(
                     selected = selectedTabIndex == 0,
-                    onClick = { selectedTabIndex = 0; selectedCollectionId = null },
+                    onClick = {
+                        scope.launch {
+                            pagerState.animateScrollToPage(0)
+                        }
+                    },
                     selectedContentColor = MaterialTheme.colorScheme.onBackground,
                     unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     text = {
@@ -115,7 +128,11 @@ fun LibraryScreen(
                 )
                 Tab(
                     selected = selectedTabIndex == 1,
-                    onClick = { selectedTabIndex = 1 },
+                    onClick = {
+                        scope.launch {
+                            pagerState.animateScrollToPage(1)
+                        }
+                    },
                     selectedContentColor = MaterialTheme.colorScheme.onBackground,
                     unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     text = {
@@ -130,16 +147,13 @@ fun LibraryScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            AnimatedContent(
-                targetState = if (selectedTabIndex == 0) "books" else "collections",
-                transitionSpec = {
-                    slideInHorizontally { it } togetherWith slideOutHorizontally { -it }
-                },
+            HorizontalPager(
+                state = pagerState,
                 modifier = Modifier.weight(1f),
-                label = "library_content"
-            ) { state ->
-                when (state) {
-                    "books" -> {
+                verticalAlignment = Alignment.Top,
+            ) { page ->
+                when (page) {
+                    0 -> {
                         when {
                             isLoading -> LoadingState()
                             books.isEmpty() -> Box(
@@ -171,7 +185,7 @@ fun LibraryScreen(
                         }
                     }
 
-                    "collections" -> {
+                    1 -> {
                         CollectionsListScreen(
                             collections = collections,
                             onCollectionClick = { selectedCollectionId = it.id },
