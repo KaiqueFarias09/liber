@@ -122,7 +122,7 @@ import kotlin.math.abs
 import org.readium.r2.navigator.preferences.Color as ReadiumColor
 
 private const val ID_HIGHLIGHT = 9_001
-private const val ID_ADD_NOTE  = 9_002
+private const val ID_ADD_NOTE = 9_002
 
 // Design constants
 internal val GreenAccent = Color(0xFF32D74B)
@@ -139,16 +139,14 @@ private fun findWebView(view: View?): WebView? {
     return null
 }
 
-// Pastel highlight color options (ARGB Int) — mirrors the extended palette light containers
+// Highlight color options (ARGB Int) — semi-transparent so they're visible on both
+// light (Paper, Calm) and dark (Original, Bold, Focus, Quiet) reader themes.
 internal val AnnotationColorOptions = listOf(
-    0xFFFFF8DC.toInt(), // Yellow
-    0xFFFFEDD8.toInt(), // Orange
-    0xFFFFE4E8.toInt(), // Rose
-    0xFFDCE8FF.toInt(), // Blue
-    0xFFDCF2E0.toInt(), // Green
-    0xFFEEDFFF.toInt(), // Purple
-    0xFFCEF5F0.toInt(), // Teal
-    0xFFFFDEDE.toInt(), // Red
+    0x80FFD60A.toInt(), // Yellow
+    0x8030D158.toInt(), // Green
+    0x80FF375F.toInt(), // Pink
+    0x800A84FF.toInt(), // Blue
+    0x80BF5AF2.toInt(), // Purple
 )
 
 /**
@@ -181,26 +179,34 @@ fun ReaderScreen(
     val fragmentActivity = LocalActivity.current as FragmentActivity
     val coroutineScope = rememberCoroutineScope()
 
-    val showUI        by viewModel.showUI.collectAsState()
-    val themeId       by viewModel.themeId.collectAsState()
-    val fontSize      by viewModel.fontSize.collectAsState()
+    val showUI by viewModel.showUI.collectAsState()
+    val themeId by viewModel.themeId.collectAsState()
+    val fontSize by viewModel.fontSize.collectAsState()
     val showAnnotationCreator by viewModel.showAnnotationCreator.collectAsState()
+    val showHighlightColorPicker by viewModel.showHighlightColorPicker.collectAsState()
 
     val theme = findReaderTheme(themeId)
 
     // Modal visibility state
-    var showContents  by remember { mutableStateOf(false) }
-    var showSearch    by remember { mutableStateOf(false) }
-    var showNotebook  by remember { mutableStateOf(false) }
-    var showThemes    by remember { mutableStateOf(false) }
+    var showContents by remember { mutableStateOf(false) }
+    var showSearch by remember { mutableStateOf(false) }
+    var showNotebook by remember { mutableStateOf(false) }
+    var showThemes by remember { mutableStateOf(false) }
 
-    val isAnyModalOpen = showContents || showSearch || showNotebook || showThemes || showAnnotationCreator
+    val isAnyModalOpen =
+        showContents || showSearch || showNotebook || showThemes || showAnnotationCreator || showHighlightColorPicker
 
-    // Bridge: when the selection callback posts a text-selection request, open the annotation creator
+    // Bridge: highlights → inline color picker; notes → full sheet.
     LaunchedEffect(pendingAnnotationRequest) {
         pendingAnnotationRequest ?: return@LaunchedEffect
-        val type = if (pendingAnnotationRequest is AnnotationRequest.Highlight) "highlight" else "note"
-        viewModel.startAnnotation(type = type, prefilledText = pendingAnnotationRequest.selectedText)
+        if (pendingAnnotationRequest is AnnotationRequest.Highlight) {
+            viewModel.startHighlightColorPicker(pendingAnnotationRequest.selectedText)
+        } else {
+            viewModel.startAnnotation(
+                type = "note",
+                prefilledText = pendingAnnotationRequest.selectedText
+            )
+        }
         onClearPendingAnnotation()
     }
 
@@ -214,14 +220,16 @@ fun ReaderScreen(
                 // Determine if it's a center tap (toggle UI) or edge tap (page turn)
                 val width = navigator?.publicationView?.width ?: 0
                 val x = event.point.x
-                
+
                 when {
                     x < width * 0.2f -> {
                         (nav as? OverflowableNavigator)?.goBackward(animated = true)
                     }
+
                     x > width * 0.8f -> {
                         (nav as? OverflowableNavigator)?.goForward(animated = true)
                     }
+
                     else -> {
                         viewModel.toggleUI()
                     }
@@ -246,7 +254,9 @@ fun ReaderScreen(
             runCatching {
                 val bmLoc = Locator.fromJSON(JSONObject(bm.locator)) ?: return@runCatching false
                 bmLoc.href == cl.href &&
-                    abs((bmLoc.locations.progression ?: 0.0) - (cl.locations.progression ?: 0.0)) < 0.03
+                        abs(
+                            (bmLoc.locations.progression ?: 0.0) - (cl.locations.progression ?: 0.0)
+                        ) < 0.03
             }.getOrDefault(false)
         }
     } ?: false
@@ -324,22 +334,47 @@ fun ReaderScreen(
 
                     val selectionCallback = object : ActionMode.Callback {
                         override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
-                            menu.add(Menu.NONE, ID_HIGHLIGHT, 0, context.getString(R.string.action_highlight))
+                            menu.add(
+                                Menu.NONE,
+                                ID_HIGHLIGHT,
+                                0,
+                                context.getString(R.string.action_highlight)
+                            )
                                 .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
-                            menu.add(Menu.NONE, ID_ADD_NOTE, 1, context.getString(R.string.action_add_note))
+                            menu.add(
+                                Menu.NONE,
+                                ID_ADD_NOTE,
+                                1,
+                                context.getString(R.string.action_add_note)
+                            )
                                 .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
                             return true
                         }
+
                         override fun onPrepareActionMode(mode: ActionMode, menu: Menu): Boolean {
                             if (menu.findItem(ID_HIGHLIGHT) == null)
-                                menu.add(Menu.NONE, ID_HIGHLIGHT, 0, context.getString(R.string.action_highlight))
+                                menu.add(
+                                    Menu.NONE,
+                                    ID_HIGHLIGHT,
+                                    0,
+                                    context.getString(R.string.action_highlight)
+                                )
                                     .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
                             if (menu.findItem(ID_ADD_NOTE) == null)
-                                menu.add(Menu.NONE, ID_ADD_NOTE, 1, context.getString(R.string.action_add_note))
+                                menu.add(
+                                    Menu.NONE,
+                                    ID_ADD_NOTE,
+                                    1,
+                                    context.getString(R.string.action_add_note)
+                                )
                                     .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
                             return true
                         }
-                        override fun onActionItemClicked(mode: ActionMode, item: MenuItem): Boolean {
+
+                        override fun onActionItemClicked(
+                            mode: ActionMode,
+                            item: MenuItem
+                        ): Boolean {
                             if (item.itemId != ID_HIGHLIGHT && item.itemId != ID_ADD_NOTE) return false
                             val webView = findWebView(fragmentActivity.window.decorView)
                             webView?.evaluateJavascript("window.getSelection().toString()") { raw ->
@@ -353,6 +388,7 @@ fun ReaderScreen(
                             } ?: mode.finish()
                             return true
                         }
+
                         override fun onDestroyActionMode(mode: ActionMode) {}
                     }
 
@@ -467,8 +503,11 @@ fun ReaderScreen(
                                             val bmLoc = Locator.fromJSON(JSONObject(bm.locator))
                                                 ?: return@runCatching false
                                             bmLoc.href == currentLocator?.href &&
-                                                abs((bmLoc.locations.progression ?: 0.0) -
-                                                    (currentLocator?.locations?.progression ?: 0.0)) < 0.03
+                                                    abs(
+                                                        (bmLoc.locations.progression ?: 0.0) -
+                                                                (currentLocator?.locations?.progression
+                                                                    ?: 0.0)
+                                                    ) < 0.03
                                         }.getOrDefault(false)
                                     }
                                     match?.let { onDeleteBookmark(it.id) }
@@ -505,6 +544,43 @@ fun ReaderScreen(
                         .background(chromeDivider)
                 )
             }
+        }
+
+        // ── Inline Highlight Color Picker ─────────────────────────────────────
+        if (showHighlightColorPicker) {
+            val pendingHighlightText by viewModel.pendingSelectedText.collectAsState()
+            HighlightColorPicker(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(bottom = 24.dp),
+                onColorSelected = { colorArgb ->
+                    coroutineScope.launch {
+                        val selectable = navigator as? SelectableNavigator
+                        val locator = selectable?.currentSelection()?.locator
+                            ?: navigator?.currentLocator?.value
+                            ?: run { viewModel.dismissHighlightColorPicker(); return@launch }
+                        onSaveAnnotation(
+                            AnnotationEntity(
+                                bookId = bookId,
+                                type = "highlight",
+                                color = colorArgb,
+                                locator = locator.toJSON().toString(),
+                                text = pendingHighlightText,
+                                note = null,
+                            )
+                        )
+                        selectable?.clearSelection()
+                        viewModel.dismissHighlightColorPicker()
+                    }
+                },
+                onDismiss = {
+                    coroutineScope.launch {
+                        (navigator as? SelectableNavigator)?.clearSelection()
+                        viewModel.dismissHighlightColorPicker()
+                    }
+                },
+            )
         }
 
         // ── Bottom Bar ────────────────────────────────────────────────────────
@@ -570,13 +646,25 @@ fun ReaderScreen(
                         horizontalArrangement = Arrangement.SpaceAround,
                     ) {
                         ReaderNavItem(
-                            icon = { Icon(PhosphorIcons.Regular.List, contentDescription = null, tint = chromeIcon) },
+                            icon = {
+                                Icon(
+                                    PhosphorIcons.Regular.List,
+                                    contentDescription = null,
+                                    tint = chromeIcon
+                                )
+                            },
                             label = "Contents",
                             labelColor = chromeLabel,
                             onClick = { showContents = true },
                         )
                         ReaderNavItem(
-                            icon = { Icon(PhosphorIcons.Regular.MagnifyingGlass, contentDescription = null, tint = chromeIcon) },
+                            icon = {
+                                Icon(
+                                    PhosphorIcons.Regular.MagnifyingGlass,
+                                    contentDescription = null,
+                                    tint = chromeIcon
+                                )
+                            },
                             label = "Search",
                             labelColor = chromeLabel,
                             onClick = { showSearch = true },
@@ -713,9 +801,9 @@ fun ReaderScreen(
 
     // ── Create / Edit Annotation ──────────────────────────────────────────────
     if (showAnnotationCreator) {
-        val noteText     by viewModel.annotationNoteText.collectAsState()
+        val noteText by viewModel.annotationNoteText.collectAsState()
         val selectedColor by viewModel.annotationColorArgb.collectAsState()
-        val selectedText  by viewModel.pendingSelectedText.collectAsState()
+        val selectedText by viewModel.pendingSelectedText.collectAsState()
         val annotationType by viewModel.pendingAnnotationType.collectAsState()
 
         ModalBottomSheet(
@@ -828,14 +916,14 @@ private fun ProgressScrubber(
         // Thumb
         val thumbR = 10.dp.toPx()
         val thumbX = fillW.coerceIn(thumbR, size.width - thumbR)
-        
+
         // Shadow
         drawCircle(
             color = Color.Black.copy(alpha = 0.15f),
             radius = thumbR + 1.dp.toPx(),
             center = Offset(thumbX, size.height / 2f + 1.dp.toPx())
         )
-        
+
         // Body
         drawCircle(
             color = Color.White,
@@ -1035,7 +1123,7 @@ fun SearchView(
                 items(searchResults) { locator ->
                     SearchResultRow(locator = locator, onClick = { onResultClick(locator) })
                 }
-                
+
                 item {
                     LaunchedEffect(Unit) {
                         viewModel.loadNextResults()
@@ -1066,7 +1154,7 @@ private fun SearchResultRow(
                 modifier = Modifier.padding(bottom = 4.dp)
             )
         }
-        
+
         Text(
             text = buildAnnotatedString {
                 append(locator.text.before ?: "")
@@ -1113,7 +1201,11 @@ fun NotebookView(
                 .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(10.dp))
                 .padding(4.dp),
         ) {
-            listOf("bookmarks" to "Bookmarks", "highlights" to "Highlights", "notes" to "Notes").forEach { (id, label) ->
+            listOf(
+                "bookmarks" to "Bookmarks",
+                "highlights" to "Highlights",
+                "notes" to "Notes"
+            ).forEach { (id, label) ->
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -1146,8 +1238,10 @@ fun NotebookView(
                         onDeleteBookmark = onDeleteBookmark,
                     )
                 }
+
                 "highlights" -> {
-                    val highlights = remember(annotations) { annotations.filter { it.type == "highlight" } }
+                    val highlights =
+                        remember(annotations) { annotations.filter { it.type == "highlight" } }
                     AnnotationList(
                         annotations = highlights,
                         emptyMessage = "No highlights yet.",
@@ -1156,6 +1250,7 @@ fun NotebookView(
                         emptyImage = R.drawable.highlights_empty,
                     )
                 }
+
                 "notes" -> {
                     val notes = remember(annotations) { annotations.filter { it.type == "note" } }
                     AnnotationList(
@@ -1241,11 +1336,12 @@ fun BookmarksView(
                         }
                     }
                 }
-                Box(modifier = Modifier
-                    .fillMaxWidth()
-                    .height(0.5.dp)
-                    .padding(horizontal = 20.dp)
-                    .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(0.5.dp)
+                        .padding(horizontal = 20.dp)
+                        .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                 )
             }
         }
@@ -1314,9 +1410,11 @@ internal fun DarkAnnotationItem(
                 )
         )
         Spacer(Modifier.width(5.dp))
-        Column(modifier = Modifier
-            .weight(1f)
-            .padding(top = 2.dp, bottom = 4.dp)) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(top = 2.dp, bottom = 4.dp)
+        ) {
             Text(
                 text = "Chapter • $dateStr",
                 style = MaterialTheme.typography.labelSmall,
@@ -1436,7 +1534,8 @@ private fun ThemesSheet(
                     .padding(vertical = 14.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(PhosphorIcons.Regular.Minus, contentDescription = "Decrease font",
+                Icon(
+                    PhosphorIcons.Regular.Minus, contentDescription = "Decrease font",
                     tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp)
                 )
             }
@@ -1455,7 +1554,8 @@ private fun ThemesSheet(
                     .padding(vertical = 14.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(PhosphorIcons.Regular.TextAa, contentDescription = "Increase font",
+                Icon(
+                    PhosphorIcons.Regular.TextAa, contentDescription = "Increase font",
                     tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(24.dp)
                 )
             }
@@ -1532,6 +1632,55 @@ private fun ThemePreviewTile(
     }
 }
 
+// ── HighlightColorPicker ──────────────────────────────────────────────────────
+
+@Composable
+private fun HighlightColorPicker(
+    onColorSelected: (Int) -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(50.dp),
+        color = Color(0xCC1C1C1E),
+        shadowElevation = 12.dp,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            AnnotationColorOptions.forEach { colorArgb ->
+                // Display circles at full opacity so the hue is clearly visible in the picker.
+                val hue = Color(colorArgb.toLong() and 0xFFFFFFFFL).copy(alpha = 1f)
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(hue, CircleShape)
+                        .border(1.5.dp, Color.White.copy(alpha = 0.25f), CircleShape)
+                        .clickable { onColorSelected(colorArgb) }
+                )
+            }
+            Spacer(Modifier.width(4.dp))
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .background(Color.White.copy(alpha = 0.15f), CircleShape)
+                    .clickable(onClick = onDismiss),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    "✕",
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+        }
+    }
+}
+
 // ── CreateAnnotationSheet ─────────────────────────────────────────────────────
 
 @Composable
@@ -1547,8 +1696,8 @@ fun CreateAnnotationSheet(
     onCancel: () -> Unit,
 ) {
     val isHighlight = annotationType == "highlight"
-    val title       = if (isHighlight) "Highlight" else "New Note"
-    val saveLabel   = if (isHighlight) "Save highlight" else "Save note"
+    val title = if (isHighlight) "Highlight" else "New Note"
+    val saveLabel = if (isHighlight) "Save highlight" else "Save note"
 
     Column(
         modifier = Modifier
@@ -1628,9 +1777,11 @@ fun CreateAnnotationSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(120.dp),
-            placeholder = { Text(if (isHighlight) "Add a note… (optional)" else "Write your note…",
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            placeholder = {
+                Text(
+                    if (isHighlight) "Add a note… (optional)" else "Write your note…",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             },
             maxLines = 5,
             shape = RoundedCornerShape(12.dp),

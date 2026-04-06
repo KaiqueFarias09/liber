@@ -11,17 +11,16 @@ import kotlinx.coroutines.launch
 import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.shared.publication.Locator
 import org.readium.r2.shared.publication.Publication
-import org.readium.r2.shared.publication.services.PositionsService
 import org.readium.r2.shared.publication.services.positions
 import org.readium.r2.shared.publication.services.search.SearchIterator
 import org.readium.r2.shared.publication.services.search.search
 
-// Default annotation color — pastel yellow (matches PastelYellow100)
-private const val DEFAULT_ANNOTATION_COLOR = 0xFFFFF8DC.toInt()
+// Default annotation color — yellow at 50 % opacity (visible on both light and dark themes)
+private val DEFAULT_ANNOTATION_COLOR = 0x80FFD60A.toInt()
 
-private const val PREFS_NAME  = "reader_prefs"
-private const val KEY_THEME   = "theme_id"
-private const val KEY_FONT    = "font_size"
+private const val PREFS_NAME = "reader_prefs"
+private const val KEY_THEME = "theme_id"
+private const val KEY_FONT = "font_size"
 
 @OptIn(ExperimentalReadiumApi::class)
 class ReaderViewModel(
@@ -146,8 +145,13 @@ class ReaderViewModel(
         _showAnnotationCreator.value = true
     }
 
-    fun setAnnotationNote(text: String) { _annotationNoteText.value = text }
-    fun setAnnotationColor(argb: Int)   { _annotationColorArgb.value = argb }
+    fun setAnnotationNote(text: String) {
+        _annotationNoteText.value = text
+    }
+
+    fun setAnnotationColor(argb: Int) {
+        _annotationColorArgb.value = argb
+    }
 
     fun cancelAnnotation() {
         _showAnnotationCreator.value = false
@@ -155,6 +159,21 @@ class ReaderViewModel(
         _pendingAnnotationType.value = "note"
         _annotationNoteText.value = ""
         _annotationColorArgb.value = DEFAULT_ANNOTATION_COLOR
+    }
+
+    // ── Inline highlight color picker ────────────────────────────────────────
+
+    private val _showHighlightColorPicker = MutableStateFlow(false)
+    val showHighlightColorPicker: StateFlow<Boolean> = _showHighlightColorPicker
+
+    fun startHighlightColorPicker(text: String?) {
+        _pendingSelectedText.value = text
+        _showHighlightColorPicker.value = true
+    }
+
+    fun dismissHighlightColorPicker() {
+        _showHighlightColorPicker.value = false
+        _pendingSelectedText.value = null
     }
 
     // ── Lifecycle ────────────────────────────────────────────────────────────
