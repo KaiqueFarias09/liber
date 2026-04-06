@@ -1,5 +1,7 @@
 package com.example.liber.ui.components
 
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -7,7 +9,9 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.example.liber.ui.navigation.AppTab
 import com.example.liber.ui.theme.LiberTheme
 
@@ -24,7 +28,11 @@ fun LiberBottomNav(
         indicatorColor = MaterialTheme.colorScheme.primaryContainer,
     )
 
-    NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+    NavigationBar(
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = 0.dp,
+        modifier = Modifier.height(76.dp)
+    ) {
         AppTab.entries.forEach { tab ->
             val selected = tab == activeTab
             NavigationBarItem(
@@ -34,10 +42,12 @@ fun LiberBottomNav(
                     Icon(
                         imageVector = if (selected) tab.activeIcon else tab.inactiveIcon,
                         contentDescription = tab.label,
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 },
                 label = { Text(tab.label, style = MaterialTheme.typography.labelSmall) },
                 colors = itemColors,
+                alwaysShowLabel = true
             )
         }
     }
