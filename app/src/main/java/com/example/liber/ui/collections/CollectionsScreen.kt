@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -83,6 +84,7 @@ fun CollectionsListScreen(
 
     Scaffold(
         containerColor = Color.Transparent,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
             if (collections.isNotEmpty()) {
                 FloatingActionButton(
@@ -114,19 +116,21 @@ fun CollectionsListScreen(
             }
         } else {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                verticalArrangement = Arrangement.spacedBy(0.dp),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    start = 24.dp,
+                    top = 8.dp, // Match BookGrid's top padding
+                    end = 24.dp,
+                    bottom = 80.dp + innerPadding.calculateBottomPadding()
+                ),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 items(collections, key = { it.id }) { collection ->
                     CollectionShelfRow(
                         collection = collection,
                         onClick = { onCollectionClick(collection) },
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     )
                 }
-                item { Spacer(Modifier.height(80.dp)) }
             }
         }
     }
