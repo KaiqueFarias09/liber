@@ -3,6 +3,7 @@ package com.example.liber.ui.components
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -24,18 +25,27 @@ fun BookCover(
     contentDescription: String,
     modifier: Modifier = Modifier,
     style: CoverStyle = CoverStyle.SMALL,
+    /**
+     * When true the image is cropped to fill the entire parent bounds (width + height).
+     * Use this when the parent has a fixed height — e.g. list view items — so the gradient
+     * overlay never extends beyond the visible image area.
+     * When false (default) the image fills only the width and its height wraps the content.
+     */
+    fillBounds: Boolean = false,
 ) {
     Box(modifier = modifier) {
         AsyncImage(
             model = coverUri,
             contentDescription = contentDescription,
-            modifier = Modifier
+            modifier = if (fillBounds) Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+            else Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentScale = ContentScale.FillWidth,
+            contentScale = if (fillBounds) ContentScale.Crop else ContentScale.FillWidth,
         )
         // Hardcover lighting overlay — mimics spine highlight + shadow
-        // We use a simple Box with matchParentSize to ensure it overlays the image perfectly
         Box(
             modifier = Modifier
                 .matchParentSize()

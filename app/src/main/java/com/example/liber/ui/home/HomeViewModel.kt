@@ -13,6 +13,8 @@ import com.example.liber.data.Book
 import com.example.liber.data.BookEntity
 import com.example.liber.data.BookRepository
 import com.example.liber.data.BookmarkEntity
+import com.example.liber.ui.library.LibrarySortOption
+import com.example.liber.ui.library.LibraryViewMode
 import com.example.liber.ui.reader.AnnotationRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -70,6 +72,22 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
+
+    // ── Library UI preferences (persist across tab navigation) ───────────────
+
+    private val _libraryViewMode = MutableStateFlow(LibraryViewMode.GRID)
+    val libraryViewMode: StateFlow<LibraryViewMode> = _libraryViewMode
+
+    private val _librarySortOption = MutableStateFlow(LibrarySortOption.RECENT)
+    val librarySortOption: StateFlow<LibrarySortOption> = _librarySortOption
+
+    fun setLibraryViewMode(mode: LibraryViewMode) {
+        _libraryViewMode.value = mode
+    }
+
+    fun setLibrarySortOption(option: LibrarySortOption) {
+        _librarySortOption.value = option
+    }
 
     // Posted by MainActivity when the user taps Highlight / Add Note in the text-selection menu.
     private val _pendingAnnotationRequest = MutableStateFlow<AnnotationRequest?>(null)

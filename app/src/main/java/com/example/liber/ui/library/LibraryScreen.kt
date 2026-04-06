@@ -70,6 +70,10 @@ fun LibraryScreen(
     onDeleteCollection: (Long) -> Unit = {},
     onAddBookToCollection: (Long, String) -> Unit = { _, _ -> },
     onRemoveBookFromCollection: (Long, String) -> Unit = { _, _ -> },
+    viewMode: LibraryViewMode = LibraryViewMode.GRID,
+    onViewModeChange: (LibraryViewMode) -> Unit = {},
+    sortOption: LibrarySortOption = LibrarySortOption.RECENT,
+    onSortOptionChange: (LibrarySortOption) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val pagerState = rememberPagerState { 2 }
@@ -181,6 +185,10 @@ fun LibraryScreen(
                                 showAddToCollection = true,
                                 onAddToCollection = onAddToCollection,
                                 collections = collections,
+                                viewMode = viewMode,
+                                onViewModeChange = onViewModeChange,
+                                sortOption = sortOption,
+                                onSortOptionChange = onSortOptionChange,
                             )
                         }
                     }
@@ -242,6 +250,8 @@ fun LibraryScreen(
     val books by viewModel.books.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val collections by collectionsViewModel.collections.collectAsState()
+    val viewMode by viewModel.libraryViewMode.collectAsState()
+    val sortOption by viewModel.librarySortOption.collectAsState()
 
     LibraryScreen(
         books = books,
@@ -261,17 +271,15 @@ fun LibraryScreen(
         onRenameCollection = { id, name -> collectionsViewModel.renameCollection(id, name) },
         onDeleteCollection = { collectionsViewModel.deleteCollection(it) },
         onAddBookToCollection = { id, bookId ->
-            collectionsViewModel.addBookToCollection(
-                id,
-                bookId
-            )
+            collectionsViewModel.addBookToCollection(id, bookId)
         },
         onRemoveBookFromCollection = { id, bookId ->
-            collectionsViewModel.removeBookFromCollection(
-                id,
-                bookId
-            )
+            collectionsViewModel.removeBookFromCollection(id, bookId)
         },
+        viewMode = viewMode,
+        onViewModeChange = { viewModel.setLibraryViewMode(it) },
+        sortOption = sortOption,
+        onSortOptionChange = { viewModel.setLibrarySortOption(it) },
         modifier = modifier,
     )
 }
