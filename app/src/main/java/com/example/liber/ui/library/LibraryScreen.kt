@@ -289,6 +289,10 @@ fun LibraryScreen(
                     onToggleWantToRead = onToggleWantToRead,
                     onToggleFinished = onToggleFinished,
                     onRenameBook = onRenameBook,
+                    viewMode = viewMode,
+                    onViewModeChange = onViewModeChange,
+                    sortOption = sortOption,
+                    onSortOptionChange = onSortOptionChange,
                 )
             }
         }

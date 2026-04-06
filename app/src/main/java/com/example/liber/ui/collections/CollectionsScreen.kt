@@ -68,6 +68,8 @@ import com.example.liber.ui.components.BookCover
 import com.example.liber.ui.components.BookGrid
 import com.example.liber.ui.components.CoverStyle
 import com.example.liber.ui.components.EmptyState
+import com.example.liber.ui.library.LibrarySortOption
+import com.example.liber.ui.library.LibraryViewMode
 
 // ── List screen ───────────────────────────────────────────────────────────────
 
@@ -317,6 +319,10 @@ fun CollectionDetailScreen(
     onToggleWantToRead: (Book) -> Unit,
     onToggleFinished: (Book) -> Unit,
     onRenameBook: (Book, String) -> Unit,
+    viewMode: LibraryViewMode = LibraryViewMode.GRID,
+    onViewModeChange: (LibraryViewMode) -> Unit = {},
+    sortOption: LibrarySortOption = LibrarySortOption.RECENT,
+    onSortOptionChange: (LibrarySortOption) -> Unit = {},
 ) {
     var showMenu by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
@@ -452,6 +458,10 @@ fun CollectionDetailScreen(
                 contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
                 deleteLabel = "Remove from collection",
                 showAddToCollection = false,
+                viewMode = viewMode,
+                onViewModeChange = onViewModeChange,
+                sortOption = sortOption,
+                onSortOptionChange = onSortOptionChange,
             )
         }
     }
