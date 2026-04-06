@@ -16,6 +16,7 @@ import com.example.liber.data.ScanSourceRepository
 import com.example.liber.data.ScanState
 import com.example.liber.data.ScanStateHolder
 import com.example.liber.data.toEntity
+import com.example.liber.ui.LiberAppViewModel
 import com.example.liber.ui.library.LibrarySortOption
 import com.example.liber.ui.library.LibraryViewMode
 import com.example.liber.ui.reader.AnnotationRequest
@@ -171,19 +172,44 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             _isLoading.value = true
             withContext(Dispatchers.IO) {
                 uris.forEach { uri ->
-                    tryTakePersistablePermission(uri)
-                    val file = DocumentFile.fromSingleUri(getApplication(), uri) ?: return@forEach
-                    val book = bookImporter.parseBook(file) ?: return@forEach
-                    val isDuplicate = book.contentId
-                        ?.let { bookRepository.getBookByContentId(it) } != null
-                            || bookRepository.getBookByFileUri(uri.toString()) != null
-                    if (!isDuplicate) {
-                        bookRepository.insertBook(book.toEntity())
-                    }
+                    importBook(uri)
                 }
             }
             _isLoading.value = false
         }
+    }
+
+    fun importAndOpenBook(uri: Uri, liberAppViewModel: LiberAppViewModel) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            val book = withContext(Dispatchers.IO) {
+                importBook(uri)
+            }
+
+            if (book != null) {
+                val publication = openBook(book)
+                if (publication != null) {
+                    liberAppViewModel.openEpub(book, publication)
+                } else if (book.fileUri.toString().endsWith(".pdf", ignoreCase = true)) {
+                    liberAppViewModel.openPdf(book)
+                }
+            }
+            _isLoading.value = false
+        }
+    }
+
+    private suspend fun importBook(uri: Uri): Book? {
+        tryTakePersistablePermission(uri)
+        val file = DocumentFile.fromSingleUri(getApplication(), uri) ?: return null
+        val book = bookImporter.parseBook(file) ?: return null
+        val existingBook = book.contentId
+            ?.let { bookRepository.getBookByContentId(it) }
+            ?: bookRepository.getBookByFileUri(uri.toString())
+
+        if (existingBook == null) {
+            bookRepository.insertBook(book.toEntity())
+        }
+        return book
     }
 
     fun addScanSource(treeUri: Uri, folderName: String) {

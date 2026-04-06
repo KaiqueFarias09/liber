@@ -65,6 +65,7 @@ fun LiberApp(
     val activeBook by liberAppViewModel.activeBook.collectAsState()
     val activePublication by liberAppViewModel.activePublication.collectAsState()
     val activeTab by liberAppViewModel.activeTab.collectAsState()
+    val scanSources by viewModel.scanSources.collectAsState()
 
     val bookLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments(),
@@ -101,6 +102,22 @@ fun LiberApp(
             notificationPermLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
         folderLauncher.launch(null)
+    }
+
+    val onRescanFolder: (com.example.liber.data.ScanSourceEntity) -> Unit = { source ->
+        if (Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        val treeUri = android.net.Uri.parse(source.treeUri)
+        val intent = BookScanService.buildIntent(context, treeUri, source.displayName)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(intent)
+        } else {
+            context.startService(intent)
+        }
     }
 
     val onOpenBook: (com.example.liber.data.Book) -> Unit = { book ->
@@ -210,7 +227,6 @@ fun LiberApp(
                                         )
                                     )
                                 },
-                                onScanFolder = onScanFolder,
                                 onShareBook = { book ->
                                     val intent = Intent(Intent.ACTION_SEND).apply {
                                         type = "application/epub+zip"
@@ -225,7 +241,23 @@ fun LiberApp(
 
                             AppTab.SETTINGS -> SettingsScreen(
                                 viewModel = settingsViewModel,
-                                modifier = Modifier.fillMaxSize()
+                                scanSources = scanSources,
+                                onAddBooks = {
+                                    bookLauncher.launch(
+                                        arrayOf(
+                                            "application/epub+zip",
+                                            "application/pdf",
+                                            "application/x-cbz",
+                                            "application/audiobook+zip",
+                                            "application/lpf+zip",
+                                            "application/webpub+json"
+                                        )
+                                    )
+                                },
+                                onAddScanFolder = onScanFolder,
+                                onRescanFolder = onRescanFolder,
+                                onRemoveFolder = { source -> viewModel.removeScanSource(source.treeUri) },
+                                modifier = Modifier.fillMaxSize(),
                             )
                         }
                     }
