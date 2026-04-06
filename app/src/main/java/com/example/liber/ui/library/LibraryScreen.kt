@@ -16,10 +16,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SecondaryTabRow
+import androidx.compose.material3.SecondaryScrollableTabRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
@@ -34,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.adamglin.PhosphorIcons
@@ -80,28 +82,49 @@ fun LibraryScreen(
         ) {
             LibraryHeader(onAddBooks = onAddBooks)
 
-            SecondaryTabRow(
+            SecondaryScrollableTabRow(
                 selectedTabIndex = selectedTabIndex,
                 containerColor = Color.Transparent,
-                contentColor = MaterialTheme.colorScheme.onBackground,
+                edgePadding = 24.dp,
                 indicator = {
                     TabRowDefaults.SecondaryIndicator(
                         modifier = Modifier.tabIndicatorOffset(selectedTabIndex),
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
+                        height = 1.dp
                     )
                 },
-                divider = {},
-                modifier = Modifier.padding(horizontal = 24.dp)
+                divider = {
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                    )
+                },
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Tab(
                     selected = selectedTabIndex == 0,
                     onClick = { selectedTabIndex = 0; selectedCollectionId = null },
-                    text = { Text("Books", style = MaterialTheme.typography.titleMedium) }
+                    selectedContentColor = MaterialTheme.colorScheme.onBackground,
+                    unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    text = {
+                        Text(
+                            text = "Books",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = if (selectedTabIndex == 0) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
                 )
                 Tab(
                     selected = selectedTabIndex == 1,
                     onClick = { selectedTabIndex = 1 },
-                    text = { Text("Collections", style = MaterialTheme.typography.titleMedium) }
+                    selectedContentColor = MaterialTheme.colorScheme.onBackground,
+                    unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    text = {
+                        Text(
+                            text = "Collections",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = if (selectedTabIndex == 1) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
                 )
             }
 
