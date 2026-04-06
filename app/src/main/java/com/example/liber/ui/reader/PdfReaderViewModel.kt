@@ -4,6 +4,8 @@ import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.liber.data.AppDatabase
+import com.example.liber.data.InkStrokeEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,6 +22,8 @@ data class PdfInkConfig(
 )
 
 class PdfReaderViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val db = AppDatabase.getDatabase(application)
 
     // ── UI chrome visibility ─────────────────────────────────────────────────
     private val _showUI = MutableStateFlow(true)
@@ -98,6 +102,22 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
     // ── Writable URI (internal-storage copy for EditablePdfViewerFragment) ───
     private val _writableUri = MutableStateFlow<Uri?>(null)
     val writableUri: StateFlow<Uri?> = _writableUri.asStateFlow()
+
+    // ── Ink stroke persistence ────────────────────────────────────────────────
+    private val _persistedStrokes = MutableStateFlow<List<InkStrokeEntity>>(emptyList())
+    val persistedStrokes: StateFlow<List<InkStrokeEntity>> = _persistedStrokes.asStateFlow()
+
+    fun loadStrokes(bookId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _persistedStrokes.value = db.inkStrokeDao().getForBook(bookId)
+        }
+    }
+
+    fun saveStroke(entity: InkStrokeEntity) {
+        viewModelScope.launch(Dispatchers.IO) {
+            db.inkStrokeDao().insert(entity)
+        }
+    }
 
     /**
      * Copies the source PDF to internal storage so the PDF viewer fragment can

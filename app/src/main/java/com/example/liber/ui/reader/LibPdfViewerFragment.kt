@@ -22,6 +22,12 @@ class LibPdfViewerFragment : androidx.pdf.viewer.fragment.PdfViewerFragment() {
     /** Invoked whenever the first visible page index (0-indexed) changes. */
     var onPageChanged: ((page: Int) -> Unit)? = null
 
+    /**
+     * Invoked on every viewport change with a map of visible page index → screen RectF.
+     * Used by the drawing overlay to map stroke coordinates to page-relative space.
+     */
+    var onPageLocationsChanged: ((Map<Int, RectF>) -> Unit)? = null
+
     private var pendingDocumentUri: Uri? = null
     private var pdfViewRef: PdfView? = null
     private var viewportListener: PdfView.OnViewportChangedListener? = null
@@ -59,6 +65,14 @@ class LibPdfViewerFragment : androidx.pdf.viewer.fragment.PdfViewerFragment() {
                 zoomLevel: Float,
             ) {
                 onPageChanged?.invoke(firstVisiblePage)
+                if (onPageLocationsChanged != null) {
+                    val map = HashMap<Int, RectF>(pageLocations.size())
+                    for (i in 0 until pageLocations.size()) {
+                        map[pageLocations.keyAt(i)] =
+                            RectF(pageLocations.valueAt(i))
+                    }
+                    onPageLocationsChanged?.invoke(map)
+                }
             }
         }
         pdfView.addOnViewportChangedListener(viewportListener!!)

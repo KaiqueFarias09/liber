@@ -1,6 +1,10 @@
 package com.example.liber.ui.reader
 
 import android.graphics.Matrix
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
 import android.net.Uri
 import android.view.MotionEvent
 import android.view.View
@@ -52,6 +56,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -94,6 +99,8 @@ import com.adamglin.phosphoricons.regular.NotePencil
 import com.adamglin.phosphoricons.regular.PencilSimple
 import com.example.liber.data.AnnotationEntity
 import com.example.liber.data.BookmarkEntity
+import com.example.liber.data.InkStrokeEntity
+import org.json.JSONArray
 import org.json.JSONObject
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
@@ -123,6 +130,7 @@ fun PdfReaderScreen(
     val drawMode by viewModel.drawingModeActive.collectAsState()
     val showNoteCreator by viewModel.showNoteCreator.collectAsState()
     val writableUri by viewModel.writableUri.collectAsState()
+    val persistedStrokes by viewModel.persistedStrokes.collectAsState()
 
     var showContents by remember { mutableStateOf(false) }
     var showNotebook by remember { mutableStateOf(false) }
@@ -131,6 +139,9 @@ fun PdfReaderScreen(
     // Hoisted here so strokes survive drawing-mode toggles
     val finishedStrokes = remember { mutableStateListOf<androidx.ink.strokes.Stroke>() }
 
+    // Tracks the screen rect of each visible page; updated by the fragment on every scroll/zoom.
+    val pageLocations = remember { mutableStateOf(emptyMap<Int, android.graphics.RectF>()) }
+
     val isAnyModalOpen = showContents || showNotebook || showDrawPanel || showNoteCreator
 
     // Page-based bookmark detection
@@ -138,8 +149,11 @@ fun PdfReaderScreen(
         runCatching { JSONObject(bm.locator).getInt("page") == currentPage }.getOrDefault(false)
     }
 
-    // Prepare writable URI on first open
-    LaunchedEffect(uri, bookId) { viewModel.prepareWritableUri(uri, bookId) }
+    // Prepare writable URI on first open and load any persisted ink strokes
+    LaunchedEffect(uri, bookId) {
+        viewModel.prepareWritableUri(uri, bookId)
+        viewModel.loadStrokes(bookId)
+    }
 
     // Fragment reference for programmatic control
     var pdfFragment by remember { mutableStateOf<LibPdfViewerFragment?>(null) }
@@ -192,6 +206,7 @@ fun PdfReaderScreen(
                         }
                     }
                     frag.onPageChanged = { page -> viewModel.onPageChanged(page) }
+                    frag.onPageLocationsChanged = { locations -> pageLocations.value = locations }
                     fragmentActivity.supportFragmentManager.commit { replace(id, frag) }
                     pdfFragment = frag
                 }
@@ -207,12 +222,18 @@ fun PdfReaderScreen(
         )
 
         // ── Ink Drawing Overlay ───────────────────────────────────────────────
-        // Always composed so finishedStrokes (hoisted above) are rendered even
-        // when drawing mode is off. The overlay only intercepts touch in draw mode.
+        // Always composed so strokes are rendered even when drawing mode is off.
+        // Only intercepts touch when drawing mode is on.
         InkDrawingOverlay(
             inkConfig = inkConfig,
             drawMode = drawMode,
             finishedStrokes = finishedStrokes,
+            persistedStrokes = persistedStrokes,
+            pageLocations = pageLocations.value,
+            onStrokeCompleted = { stroke, config ->
+                val entity = buildInkStrokeEntity(stroke, config, bookId, pageLocations.value)
+                if (entity != null) viewModel.saveStroke(entity)
+            },
             modifier = Modifier.fillMaxSize(),
         )
 
@@ -764,9 +785,16 @@ private fun InkDrawingOverlay(
     inkConfig: PdfInkConfig,
     drawMode: Boolean,
     finishedStrokes: androidx.compose.runtime.snapshots.SnapshotStateList<Stroke>,
+    persistedStrokes: List<InkStrokeEntity>,
+    pageLocations: Map<Int, android.graphics.RectF>,
+    onStrokeCompleted: (stroke: Stroke, config: PdfInkConfig) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val inProgressView = remember { mutableStateOf<InProgressStrokesView?>(null) }
+
+    // rememberUpdatedState so the factory-created listener always calls the latest lambda
+    val currentOnStrokeCompleted = rememberUpdatedState(onStrokeCompleted)
+    val currentInkConfig = rememberUpdatedState(inkConfig)
 
     val brush = remember(inkConfig) {
         when (inkConfig.tool) {
@@ -793,7 +821,46 @@ private fun InkDrawingOverlay(
     }
 
     Box(modifier = modifier) {
-        // Render finished strokes on a Compose Canvas
+        // ── Layer 1: Persisted strokes from previous sessions (Canvas Path) ──
+        val persistedPaint = remember {
+            Paint().apply {
+                isAntiAlias = true; style = Paint.Style.STROKE; strokeCap =
+                Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND
+            }
+        }
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawIntoCanvas { composeCanvas ->
+                val canvas = composeCanvas.nativeCanvas
+                persistedStrokes.forEach { entity ->
+                    val pageRect = pageLocations[entity.page] ?: return@forEach
+                    val pw = pageRect.width()
+                    val ph = pageRect.height()
+                    if (pw <= 0f || ph <= 0f) return@forEach
+                    val pts = parseStrokePoints(entity.pointsJson)
+                    if (pts.size < 2) return@forEach
+
+                    val path = Path()
+                    pts.forEachIndexed { i, (nx, ny) ->
+                        val sx = pageRect.left + nx * pw
+                        val sy = pageRect.top + ny * ph
+                        if (i == 0) path.moveTo(sx, sy) else path.lineTo(sx, sy)
+                    }
+
+                    persistedPaint.color = entity.colorArgb
+                    persistedPaint.strokeWidth = entity.strokeWidthFraction * pw
+                    if (entity.isHighlighter) {
+                        persistedPaint.alpha = 128
+                        persistedPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.MULTIPLY)
+                    } else {
+                        persistedPaint.alpha = 255
+                        persistedPaint.xfermode = null
+                    }
+                    canvas.drawPath(path, persistedPaint)
+                }
+            }
+        }
+
+        // ── Layer 2: Current-session finished strokes (CanvasStrokeRenderer) ──
         val strokeRenderer = remember { CanvasStrokeRenderer.create() }
         val identityMatrix = remember { Matrix() }
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -804,7 +871,7 @@ private fun InkDrawingOverlay(
             }
         }
 
-        // InProgressStrokesView intercepts touch events and renders active strokes
+        // ── Layer 3: InProgressStrokesView — captures touch, renders live strokes ──
         AndroidView(
             factory = { ctx ->
                 InProgressStrokesView(ctx).apply {
@@ -812,6 +879,9 @@ private fun InkDrawingOverlay(
                         override fun onStrokesFinished(strokes: Map<InProgressStrokeId, Stroke>) {
                             finishedStrokes.addAll(strokes.values)
                             removeFinishedStrokes(strokes.keys)
+                            strokes.values.forEach { stroke ->
+                                currentOnStrokeCompleted.value(stroke, currentInkConfig.value)
+                            }
                         }
                     })
                 }.also { inProgressView.value = it }
@@ -930,5 +1000,102 @@ private fun PdfProgressScrubber(
             radius = thumbR,
             center = Offset(thumbX, size.height / 2f),
         )
+    }
+}
+
+// ── Ink stroke serialization helpers ─────────────────────────────────────────
+
+/**
+ * Converts a finished [Stroke] into a persistable [InkStrokeEntity] with page-normalized
+ * coordinates. Returns null if no page can be determined from [pageLocations].
+ *
+ * Points are stored as fractions in [0, 1] relative to the page rect so that they render
+ * correctly regardless of scroll position or zoom level.
+ */
+private fun buildInkStrokeEntity(
+    stroke: Stroke,
+    config: PdfInkConfig,
+    bookId: String,
+    pageLocations: Map<Int, android.graphics.RectF>,
+): InkStrokeEntity? {
+    if (pageLocations.isEmpty() || stroke.inputs.size == 0) return null
+
+    // Compute stroke bounding box to find the best-matching page.
+    var minX = Float.MAX_VALUE
+    var minY = Float.MAX_VALUE
+    var maxX = -Float.MAX_VALUE
+    var maxY = -Float.MAX_VALUE
+    for (i in 0 until stroke.inputs.size) {
+        val pt = stroke.inputs[i]
+        if (pt.x < minX) minX = pt.x; if (pt.x > maxX) maxX = pt.x
+        if (pt.y < minY) minY = pt.y; if (pt.y > maxY) maxY = pt.y
+    }
+    val strokeRect = android.graphics.RectF(minX, minY, maxX, maxY)
+
+    // Pick the page whose rect has the greatest overlap with the stroke bounding box.
+    var bestPage = -1
+    var bestRect: android.graphics.RectF? = null
+    var bestOverlap = -1f
+    val intersection = android.graphics.RectF()
+    for ((page, rect) in pageLocations) {
+        val overlap = if (intersection.setIntersect(strokeRect, rect))
+            intersection.width() * intersection.height() else 0f
+        if (overlap > bestOverlap) {
+            bestOverlap = overlap; bestPage = page; bestRect = rect
+        }
+    }
+    // Fall back to closest page by centroid distance if no overlap found.
+    if (bestPage == -1) {
+        val cx = (minX + maxX) / 2f
+        val cy = (minY + maxY) / 2f
+        var minDist = Float.MAX_VALUE
+        for ((page, rect) in pageLocations) {
+            val dx = maxOf(rect.left - cx, 0f, cx - rect.right)
+            val dy = maxOf(rect.top - cy, 0f, cy - rect.bottom)
+            val d = dx * dx + dy * dy
+            if (d < minDist) {
+                minDist = d; bestPage = page; bestRect = rect
+            }
+        }
+    }
+    val pageRect = bestRect ?: return null
+    val pw = pageRect.width()
+    val ph = pageRect.height()
+    if (pw <= 0f || ph <= 0f) return null
+
+    // Serialize points as normalized JSON.
+    val sb = StringBuilder("[")
+    for (i in 0 until stroke.inputs.size) {
+        val pt = stroke.inputs[i]
+        val nx = (pt.x - pageRect.left) / pw
+        val ny = (pt.y - pageRect.top) / ph
+        if (i > 0) sb.append(',')
+        sb.append("""{"x":$nx,"y":$ny}""")
+    }
+    sb.append(']')
+
+    val isHighlighter = config.tool == PdfInkTool.HIGHLIGHTER
+    val rawWidth = if (isHighlighter) config.thickness * 2.5f else config.thickness
+
+    return InkStrokeEntity(
+        bookId = bookId,
+        page = bestPage,
+        strokeWidthFraction = rawWidth / pw,
+        colorArgb = config.color,
+        isHighlighter = isHighlighter,
+        pointsJson = sb.toString(),
+    )
+}
+
+/** Deserializes the JSON point array stored in [InkStrokeEntity.pointsJson]. */
+private fun parseStrokePoints(json: String): List<Pair<Float, Float>> {
+    return try {
+        val arr = JSONArray(json)
+        List(arr.length()) { i ->
+            val obj = arr.getJSONObject(i)
+            obj.getDouble("x").toFloat() to obj.getDouble("y").toFloat()
+        }
+    } catch (_: Exception) {
+        emptyList()
     }
 }

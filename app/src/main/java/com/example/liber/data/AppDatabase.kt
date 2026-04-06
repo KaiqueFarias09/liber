@@ -15,14 +15,16 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         CollectionEntity::class,
         BookCollectionEntity::class,
         ScanSourceEntity::class,
+        InkStrokeEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun bookDao(): BookDao
     abstract fun collectionDao(): CollectionDao
     abstract fun scanSourceDao(): ScanSourceDao
+    abstract fun inkStrokeDao(): InkStrokeDao
 
     companion object {
         @Volatile
@@ -58,6 +60,27 @@ abstract class AppDatabase : RoomDatabase() {
                     )
                 """.trimIndent())
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_annotations_bookId` ON `annotations` (`bookId`)")
+            }
+        }
+
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `ink_strokes` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `bookId` TEXT NOT NULL,
+                        `page` INTEGER NOT NULL,
+                        `strokeWidthFraction` REAL NOT NULL,
+                        `colorArgb` INTEGER NOT NULL,
+                        `isHighlighter` INTEGER NOT NULL,
+                        `pointsJson` TEXT NOT NULL,
+                        `createdAt` INTEGER NOT NULL,
+                        FOREIGN KEY(`bookId`) REFERENCES `books`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_ink_strokes_bookId` ON `ink_strokes` (`bookId`)")
             }
         }
 
@@ -130,7 +153,8 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_3_4,
                         MIGRATION_4_5,
                         MIGRATION_5_6,
-                        MIGRATION_6_7
+                        MIGRATION_6_7,
+                        MIGRATION_7_8,
                     )
                     .build()
                 INSTANCE = instance
