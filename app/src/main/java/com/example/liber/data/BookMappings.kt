@@ -14,4 +14,14 @@ fun BookEntity.toBook() = Book(
     wantToRead = wantToRead,
     readingProgress = readingProgress,
     lastLocator = lastLocator,
+    contentId = contentId,
+)
+
+fun Book.toEntity() = BookEntity(
+    id = id,
+    title = title,
+    author = author,
+    coverPath = coverUri?.path,
+    fileUri = fileUri.toString(),
+    contentId = contentId,
 )

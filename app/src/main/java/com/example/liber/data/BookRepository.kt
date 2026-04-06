@@ -20,6 +20,9 @@ class BookRepository(private val bookDao: BookDao) {
     suspend fun getBookByFileUri(fileUri: String): BookEntity? =
         bookDao.getBookByFileUri(fileUri)
 
+    suspend fun getBookByContentId(contentId: String): BookEntity? =
+        bookDao.getBookByContentId(contentId)
+
     suspend fun insertBook(book: BookEntity) =
         bookDao.insertBook(book)
 

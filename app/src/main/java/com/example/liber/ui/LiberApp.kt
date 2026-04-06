@@ -1,6 +1,9 @@
 package com.example.liber.ui
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -23,8 +26,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.documentfile.provider.DocumentFile
 import com.example.liber.data.AnnotationEntity
 import com.example.liber.data.BookmarkEntity
+import com.example.liber.service.BookScanService
 import com.example.liber.ui.collections.CollectionsViewModel
 import com.example.liber.ui.components.LiberBottomNav
 import com.example.liber.ui.components.LiberNavRail
@@ -64,6 +70,37 @@ fun LiberApp(
         contract = ActivityResultContracts.OpenMultipleDocuments(),
     ) { uris ->
         if (uris.isNotEmpty()) viewModel.loadBooksFromUris(uris)
+    }
+
+    val notificationPermLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { /* scan proceeds regardless of whether notification permission was granted */ }
+
+    val folderLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree()
+    ) { treeUri ->
+        treeUri ?: return@rememberLauncherForActivityResult
+        context.contentResolver.takePersistableUriPermission(
+            treeUri, Intent.FLAG_GRANT_READ_URI_PERMISSION
+        )
+        val folderName = DocumentFile.fromTreeUri(context, treeUri)?.name ?: "Folder"
+        viewModel.addScanSource(treeUri, folderName)
+        val intent = BookScanService.buildIntent(context, treeUri, folderName)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(intent)
+        } else {
+            context.startService(intent)
+        }
+    }
+
+    val onScanFolder: () -> Unit = {
+        if (Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        folderLauncher.launch(null)
     }
 
     val onOpenBook: (com.example.liber.data.Book) -> Unit = { book ->
@@ -173,6 +210,7 @@ fun LiberApp(
                                         )
                                     )
                                 },
+                                onScanFolder = onScanFolder,
                                 onShareBook = { book ->
                                     val intent = Intent(Intent.ACTION_SEND).apply {
                                         type = "application/epub+zip"

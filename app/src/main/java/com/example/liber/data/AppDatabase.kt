@@ -14,13 +14,15 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         BookmarkEntity::class,
         CollectionEntity::class,
         BookCollectionEntity::class,
+        ScanSourceEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun bookDao(): BookDao
     abstract fun collectionDao(): CollectionDao
+    abstract fun scanSourceDao(): ScanSourceDao
 
     companion object {
         @Volatile
@@ -56,6 +58,23 @@ abstract class AppDatabase : RoomDatabase() {
                     )
                 """.trimIndent())
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_annotations_bookId` ON `annotations` (`bookId`)")
+            }
+        }
+
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE books ADD COLUMN contentId TEXT")
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `scan_sources` (
+                        `treeUri` TEXT NOT NULL PRIMARY KEY,
+                        `displayName` TEXT NOT NULL,
+                        `lastScannedAt` INTEGER,
+                        `bookCount` INTEGER NOT NULL DEFAULT 0,
+                        `addedAt` INTEGER NOT NULL
+                    )
+                """.trimIndent()
+                )
             }
         }
 
@@ -105,7 +124,14 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "liber_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                    .addMigrations(
+                        MIGRATION_1_2,
+                        MIGRATION_2_3,
+                        MIGRATION_3_4,
+                        MIGRATION_4_5,
+                        MIGRATION_5_6,
+                        MIGRATION_6_7
+                    )
                     .build()
                 INSTANCE = instance
                 instance

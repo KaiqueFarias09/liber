@@ -11,5 +11,6 @@ data class Book(
     val lastOpenedAt: Long? = null,
     val wantToRead: Boolean = false,
     val readingProgress: Int = 0,
-    val lastLocator: String? = null
+    val lastLocator: String? = null,
+    val contentId: String? = null,
 )

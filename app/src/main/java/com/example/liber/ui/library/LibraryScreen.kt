@@ -8,9 +8,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,9 +39,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
+import com.adamglin.phosphoricons.regular.FilePlus
+import com.adamglin.phosphoricons.regular.FolderOpen
 import com.adamglin.phosphoricons.regular.Plus
 import com.example.liber.R
 import com.example.liber.data.Book
+import com.example.liber.data.ScanState
 import com.example.liber.ui.collections.CollectionDetailScreen
 import com.example.liber.ui.collections.CollectionUiState
 import com.example.liber.ui.collections.CollectionsListScreen
@@ -46,6 +52,7 @@ import com.example.liber.ui.collections.CollectionsViewModel
 import com.example.liber.ui.components.BookGrid
 import com.example.liber.ui.components.EmptyState
 import com.example.liber.ui.components.LiberHeader
+import com.example.liber.ui.components.ScanProgressBanner
 import com.example.liber.ui.home.HomeViewModel
 import com.example.liber.ui.theme.LiberTheme
 import kotlinx.coroutines.launch
@@ -56,6 +63,9 @@ fun LibraryScreen(
     isLoading: Boolean,
     onBookClick: (Book) -> Unit,
     onAddBooks: () -> Unit,
+    onScanFolder: () -> Unit = {},
+    scanState: ScanState = ScanState.Idle,
+    onDismissScanBanner: () -> Unit = {},
     onToggleWantToRead: (Book) -> Unit,
     onToggleFinished: (Book) -> Unit,
     onRenameBook: (Book, String) -> Unit,
@@ -77,6 +87,7 @@ fun LibraryScreen(
     val pagerState = rememberPagerState { 2 }
     val scope = rememberCoroutineScope()
     var selectedCollectionId by remember { mutableStateOf<Long?>(null) }
+    var addMenuExpanded by remember { mutableStateOf(false) }
     val selectedCollection = collections.find { it.id == selectedCollectionId }
 
     val selectedTabIndex = pagerState.currentPage
@@ -94,14 +105,54 @@ fun LibraryScreen(
             LiberHeader(
                 title = "Library",
                 actions = {
-                    IconButton(onClick = onAddBooks) {
-                        Icon(
-                            imageVector = PhosphorIcons.Regular.Plus,
-                            contentDescription = "Add Books",
-                            tint = MaterialTheme.colorScheme.onBackground,
-                        )
+                    Box {
+                        IconButton(onClick = { addMenuExpanded = true }) {
+                            Icon(
+                                imageVector = PhosphorIcons.Regular.Plus,
+                                contentDescription = "Add Books",
+                                tint = MaterialTheme.colorScheme.onBackground,
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = addMenuExpanded,
+                            onDismissRequest = { addMenuExpanded = false },
+                        ) {
+                            DropdownMenuItem(
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = PhosphorIcons.Regular.FilePlus,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp),
+                                    )
+                                },
+                                text = { Text("Add files…") },
+                                onClick = {
+                                    addMenuExpanded = false
+                                    onAddBooks()
+                                },
+                            )
+                            DropdownMenuItem(
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = PhosphorIcons.Regular.FolderOpen,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp),
+                                    )
+                                },
+                                text = { Text("Scan folder…") },
+                                onClick = {
+                                    addMenuExpanded = false
+                                    onScanFolder()
+                                },
+                            )
+                        }
                     }
                 }
+            )
+
+            ScanProgressBanner(
+                state = scanState,
+                onDismiss = onDismissScanBanner,
             )
 
             SecondaryScrollableTabRow(
@@ -252,6 +303,7 @@ fun LibraryScreen(
     viewModel: HomeViewModel,
     onBookClick: (Book) -> Unit,
     onAddBooks: () -> Unit,
+    onScanFolder: () -> Unit = {},
     onShareBook: (Book) -> Unit,
     collectionsViewModel: CollectionsViewModel,
     modifier: Modifier = Modifier,
@@ -261,12 +313,16 @@ fun LibraryScreen(
     val collections by collectionsViewModel.collections.collectAsState()
     val viewMode by viewModel.libraryViewMode.collectAsState()
     val sortOption by viewModel.librarySortOption.collectAsState()
+    val scanState by viewModel.scanState.collectAsState()
 
     LibraryScreen(
         books = books,
         isLoading = isLoading,
         onBookClick = onBookClick,
         onAddBooks = onAddBooks,
+        onScanFolder = onScanFolder,
+        scanState = scanState,
+        onDismissScanBanner = { viewModel.dismissScanBanner() },
         onToggleWantToRead = { book -> viewModel.toggleWantToRead(book.id, book.wantToRead) },
         onToggleFinished = { book -> viewModel.toggleFinished(book.id, book.readingProgress == 100) },
         onRenameBook = { book, newTitle -> viewModel.renameBook(book.id, newTitle) },
