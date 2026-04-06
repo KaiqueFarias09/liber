@@ -1,25 +1,14 @@
 package com.example.liber.ui.home
 
 import android.net.Uri
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import com.adamglin.PhosphorIcons
-import com.adamglin.phosphoricons.Regular
-import com.adamglin.phosphoricons.regular.CaretRight
-import com.adamglin.phosphoricons.regular.CheckCircle
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -29,13 +18,17 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.adamglin.PhosphorIcons
+import com.adamglin.phosphoricons.Regular
+import com.adamglin.phosphoricons.regular.CaretRight
+import com.adamglin.phosphoricons.regular.CheckCircle
 import com.example.liber.R
 import com.example.liber.data.Book
 import com.example.liber.ui.components.BookListCard
 import com.example.liber.ui.components.EmptyState
+import com.example.liber.ui.components.LiberScrollableScreen
 import com.example.liber.ui.components.WantToReadCover
 import com.example.liber.ui.theme.LiberTheme
 
@@ -47,23 +40,11 @@ fun HomeScreen(
     onBookClick: (Book) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize(),
+    LiberScrollableScreen(
+        title = null,
+        modifier = modifier,
         contentPadding = PaddingValues(bottom = 32.dp),
     ) {
-        // ── Header ─────────────────────────────────────────────────────────
-        item {
-            Text(
-                text = "Home",
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier
-                    .statusBarsPadding()
-                    .padding(horizontal = 24.dp, vertical = 20.dp),
-            )
-        }
-
         // ── Continue ────────────────────────────────────────────────────────
         if (continueBooks.isNotEmpty()) {
             item {

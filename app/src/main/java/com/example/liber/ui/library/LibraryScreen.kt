@@ -1,16 +1,13 @@
 package com.example.liber.ui.library
 
 import android.net.Uri
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.CircularProgressIndicator
@@ -48,6 +45,7 @@ import com.example.liber.ui.collections.CollectionsListScreen
 import com.example.liber.ui.collections.CollectionsViewModel
 import com.example.liber.ui.components.BookGrid
 import com.example.liber.ui.components.EmptyState
+import com.example.liber.ui.components.LiberHeader
 import com.example.liber.ui.home.HomeViewModel
 import com.example.liber.ui.theme.LiberTheme
 import kotlinx.coroutines.launch
@@ -93,7 +91,18 @@ fun LibraryScreen(
         Column(
             modifier = Modifier.fillMaxSize(),
         ) {
-            LibraryHeader(onAddBooks = onAddBooks)
+            LiberHeader(
+                title = "Library",
+                actions = {
+                    IconButton(onClick = onAddBooks) {
+                        Icon(
+                            imageVector = PhosphorIcons.Regular.Plus,
+                            contentDescription = "Add Books",
+                            tint = MaterialTheme.colorScheme.onBackground,
+                        )
+                    }
+                }
+            )
 
             SecondaryScrollableTabRow(
                 selectedTabIndex = selectedTabIndex,
@@ -282,33 +291,6 @@ fun LibraryScreen(
         onSortOptionChange = { viewModel.setLibrarySortOption(it) },
         modifier = modifier,
     )
-}
-
-// ── Private sub-composables ───────────────────────────────────────────────────
-
-@Composable
-private fun LibraryHeader(onAddBooks: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .statusBarsPadding()
-            .padding(start = 24.dp, end = 8.dp, top = 20.dp, bottom = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = "Library",
-            style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
-        IconButton(onClick = onAddBooks) {
-            Icon(
-                imageVector = PhosphorIcons.Regular.Plus,
-                contentDescription = "Add Books",
-                tint = MaterialTheme.colorScheme.onBackground,
-            )
-        }
-    }
 }
 
 @Composable

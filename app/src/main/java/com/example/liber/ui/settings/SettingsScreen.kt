@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -29,6 +28,7 @@ import com.adamglin.phosphoricons.regular.Palette
 import com.adamglin.phosphoricons.regular.Sun
 import com.adamglin.phosphoricons.regular.SunHorizon
 import com.example.liber.data.prefs.ThemeMode
+import com.example.liber.ui.components.LiberScreen
 
 @Composable
 fun SettingsScreen(
@@ -37,20 +37,15 @@ fun SettingsScreen(
 ) {
     val themeMode by viewModel.themeMode.collectAsState()
 
-    LazyColumn(
+    LiberScreen(
+        title = "Settings",
         modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 24.dp)
     ) {
-        item {
-            Text(
-                text = "Settings",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(vertical = 24.dp)
-            )
-        }
-
-        item {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp)
+        ) {
             SettingsSection(title = "Appearance") {
                 ThemeSetting(
                     currentMode = themeMode,
