@@ -2,8 +2,15 @@ package com.example.liber.data
 
 import android.app.Application
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Typeface
 import android.graphics.pdf.PdfRenderer
 import android.net.Uri
+import android.text.Layout
+import android.text.StaticLayout
+import android.text.TextPaint
 import androidx.documentfile.provider.DocumentFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -49,12 +56,16 @@ class BookImporter(private val application: Application) {
     }
 
     private suspend fun parsePdf(file: DocumentFile): Book {
-        val coverUri = extractPdfCover(file.uri, file.name ?: "pdf")
+        val title = file.name?.substringBeforeLast('.') ?: "Unknown PDF"
+        val author = "PDF Document"
+        val coverUri = extractPdfCover(file.uri, file.name ?: "pdf") ?: run {
+            saveBitmapToCache(generateFallbackCover(title, author), file.name ?: "pdf")
+        }
         val contentId = computeFileHash(file.uri)
         return Book(
             id = UUID.randomUUID().toString(),
-            title = file.name?.substringBeforeLast('.') ?: "Unknown PDF",
-            author = "PDF Document",
+            title = title,
+            author = author,
             coverUri = coverUri,
             fileUri = file.uri,
             contentId = contentId,
@@ -66,11 +77,13 @@ class BookImporter(private val application: Application) {
         val asset = assetRetriever.retrieve(tempFile.toUrl()).getOrNull() ?: return null
         val publication = publicationOpener.open(asset, allowUserInteraction = false).getOrNull()
             ?: return null
-        val coverUri = extractCover(publication, file.name ?: "cover")
+        val title = publication.metadata.title ?: "Unknown Title"
+        val author = publication.metadata.authors.firstOrNull()?.name
+        val coverUri = extractCover(publication, file.name ?: "cover", title, author)
         Book(
             id = UUID.randomUUID().toString(),
-            title = publication.metadata.title ?: "Unknown Title",
-            author = publication.metadata.authors.firstOrNull()?.name,
+            title = title,
+            author = author,
             coverUri = coverUri,
             fileUri = file.uri,
             contentId = publication.metadata.identifier ?: computeFileHash(file.uri),
@@ -92,11 +105,80 @@ class BookImporter(private val application: Application) {
         null
     }
 
-    private suspend fun extractCover(publication: Publication, fileName: String): Uri? =
-        withContext(Dispatchers.IO) {
-            val bitmap = publication.cover() ?: return@withContext null
-            saveBitmapToCache(bitmap, fileName)
+    private suspend fun extractCover(
+        publication: Publication,
+        fileName: String,
+        title: String,
+        author: String?
+    ): Uri? = withContext(Dispatchers.IO) {
+        val bitmap = publication.cover() ?: generateFallbackCover(title, author)
+        saveBitmapToCache(bitmap, fileName)
+    }
+
+    private fun generateFallbackCover(title: String, author: String?): Bitmap {
+        val width = 600
+        val height = 900
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+
+        // Background color based on title hash
+        val colors = listOf(
+            0xFF5C6BC0.toInt(), // Indigo 400
+            0xFF26A69A.toInt(), // Teal 400
+            0xFF7E57C2.toInt(), // Deep Purple 400
+            0xFF42A5F5.toInt(), // Blue 400
+            0xFF9CCC65.toInt(), // Light Green 400
+            0xFF8D6E63.toInt(), // Brown 400
+            0xFF78909C.toInt(), // Blue Grey 400
+            0xFFEC407A.toInt(), // Pink 400
+            0xFFFF7043.toInt(), // Deep Orange 400
+            0xFF26C6DA.toInt()  // Cyan 400
+        )
+        val bgColor = colors[Math.abs(title.hashCode()) % colors.size]
+        canvas.drawColor(bgColor)
+
+        val textPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
         }
+
+        val padding = 60
+        val maxWidth = width - (padding * 2)
+
+        // Draw Title
+        textPaint.textSize = 64f
+        textPaint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+
+        val titleLayout = StaticLayout.Builder.obtain(title, 0, title.length, textPaint, maxWidth)
+            .setAlignment(Layout.Alignment.ALIGN_CENTER)
+            .build()
+
+        // Draw Author
+        val authorLayout = author?.let {
+            textPaint.textSize = 40f
+            textPaint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+            StaticLayout.Builder.obtain(it, 0, it.length, textPaint, maxWidth)
+                .setAlignment(Layout.Alignment.ALIGN_CENTER)
+                .build()
+        }
+
+        val contentHeight =
+            titleLayout.height + (if (authorLayout != null) authorLayout.height + 40 else 0)
+        val startY = (height - contentHeight) / 2f
+
+        canvas.save()
+        canvas.translate(padding.toFloat(), startY)
+        titleLayout.draw(canvas)
+        canvas.restore()
+
+        if (authorLayout != null) {
+            canvas.save()
+            canvas.translate(padding.toFloat(), startY + titleLayout.height + 40)
+            authorLayout.draw(canvas)
+            canvas.restore()
+        }
+
+        return bitmap
+    }
 
     private suspend fun extractPdfCover(uri: Uri, fileName: String): Uri? =
         withContext(Dispatchers.IO) {
