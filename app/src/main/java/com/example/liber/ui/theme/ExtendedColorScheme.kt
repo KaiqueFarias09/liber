@@ -24,6 +24,7 @@ data class ExtendedColorScheme(
     val onPurpleContainer: Color,
     val tealContainer: Color,
     val onTealContainer: Color,
+    val isDark: Boolean,
 )
 
 val LightExtendedColors = ExtendedColorScheme(
@@ -35,6 +36,7 @@ val LightExtendedColors = ExtendedColorScheme(
     greenContainer   = PastelGreen100,  onGreenContainer   = PastelGreen700,
     purpleContainer  = PastelPurple100, onPurpleContainer  = PastelPurple700,
     tealContainer    = PastelTeal100,   onTealContainer    = PastelTeal700,
+    isDark = false,
 )
 
 val DarkExtendedColors = ExtendedColorScheme(
@@ -46,6 +48,7 @@ val DarkExtendedColors = ExtendedColorScheme(
     greenContainer   = PastelGreen850,  onGreenContainer   = PastelGreen300,
     purpleContainer  = PastelPurple850, onPurpleContainer  = PastelPurple300,
     tealContainer    = PastelTeal850,   onTealContainer    = PastelTeal300,
+    isDark = true,
 )
 
 val LocalExtendedColors = staticCompositionLocalOf { LightExtendedColors }
