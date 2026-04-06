@@ -34,6 +34,8 @@ import com.example.liber.ui.library.LibraryScreen
 import com.example.liber.ui.navigation.AppTab
 import com.example.liber.ui.reader.PdfReaderScreen
 import com.example.liber.ui.reader.ReaderScreen
+import com.example.liber.ui.settings.SettingsScreen
+import com.example.liber.ui.settings.SettingsViewModel
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import org.readium.r2.shared.ExperimentalReadiumApi
@@ -47,6 +49,7 @@ fun LiberApp(
     viewModel: HomeViewModel,
     collectionsViewModel: CollectionsViewModel,
     liberAppViewModel: LiberAppViewModel,
+    settingsViewModel: SettingsViewModel,
     windowSizeClass: androidx.compose.material3.windowsizeclass.WindowSizeClass
 ) {
     val context = LocalContext.current
@@ -179,6 +182,11 @@ fun LiberApp(
                                     context.startActivity(Intent.createChooser(intent, "Share Book"))
                                 },
                                 collectionsViewModel = collectionsViewModel,
+                                modifier = Modifier.fillMaxSize()
+                            )
+
+                            AppTab.SETTINGS -> SettingsScreen(
+                                viewModel = settingsViewModel,
                                 modifier = Modifier.fillMaxSize()
                             )
                         }

@@ -7,6 +7,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
+import com.example.liber.data.prefs.ThemeMode
 
 private val LiberLightColorScheme = lightColorScheme(
     primary                = Rose500,
@@ -90,9 +91,14 @@ private val LiberDarkColorScheme = darkColorScheme(
 
 @Composable
 fun LiberTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    themeMode: ThemeMode = ThemeMode.AUTO,
     content: @Composable () -> Unit,
 ) {
+    val darkTheme = when (themeMode) {
+        ThemeMode.AUTO -> isSystemInDarkTheme()
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+    }
     val colorScheme = if (darkTheme) LiberDarkColorScheme else LiberLightColorScheme
     val extendedColors = if (darkTheme) DarkExtendedColors else LightExtendedColors
 
