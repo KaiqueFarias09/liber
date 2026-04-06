@@ -128,6 +128,9 @@ fun PdfReaderScreen(
     var showNotebook by remember { mutableStateOf(false) }
     var showDrawPanel by remember { mutableStateOf(false) }
 
+    // Hoisted here so strokes survive drawing-mode toggles
+    val finishedStrokes = remember { mutableStateListOf<androidx.ink.strokes.Stroke>() }
+
     val isAnyModalOpen = showContents || showNotebook || showDrawPanel || showNoteCreator
 
     // Page-based bookmark detection
@@ -204,12 +207,14 @@ fun PdfReaderScreen(
         )
 
         // ── Ink Drawing Overlay ───────────────────────────────────────────────
-        if (drawMode) {
-            InkDrawingOverlay(
-                inkConfig = inkConfig,
-                modifier = Modifier.fillMaxSize(),
-            )
-        }
+        // Always composed so finishedStrokes (hoisted above) are rendered even
+        // when drawing mode is off. The overlay only intercepts touch in draw mode.
+        InkDrawingOverlay(
+            inkConfig = inkConfig,
+            drawMode = drawMode,
+            finishedStrokes = finishedStrokes,
+            modifier = Modifier.fillMaxSize(),
+        )
 
         // ── Top Bar ───────────────────────────────────────────────────────────
         AnimatedVisibility(
@@ -757,9 +762,10 @@ fun PdfReaderScreen(
 @Composable
 private fun InkDrawingOverlay(
     inkConfig: PdfInkConfig,
+    drawMode: Boolean,
+    finishedStrokes: androidx.compose.runtime.snapshots.SnapshotStateList<Stroke>,
     modifier: Modifier = Modifier,
 ) {
-    val finishedStrokes = remember { mutableStateListOf<Stroke>() }
     val inProgressView = remember { mutableStateOf<InProgressStrokesView?>(null) }
 
     val brush = remember(inkConfig) {
@@ -813,6 +819,7 @@ private fun InkDrawingOverlay(
             modifier = Modifier
                 .fillMaxSize()
                 .pointerInteropFilter { event ->
+                    if (!drawMode) return@pointerInteropFilter false
                     val view = inProgressView.value ?: return@pointerInteropFilter false
                     val activeBrush = brush ?: return@pointerInteropFilter false
 

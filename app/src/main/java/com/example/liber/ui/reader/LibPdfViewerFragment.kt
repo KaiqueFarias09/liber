@@ -78,6 +78,9 @@ class LibPdfViewerFragment : androidx.pdf.viewer.fragment.PdfViewerFragment() {
 
     /** Programmatically scrolls the PDF to the given 0-indexed page number. */
     fun scrollToPage(pageNum: Int) {
-        pdfViewRef?.scrollToPage(pageNum)
+        // Post to the next frame: PdfView requires its PdfDocument to be fully
+        // initialized before scrollToPage can succeed, and onLoadDocumentSuccess
+        // fires before that initialization completes.
+        pdfViewRef?.post { pdfViewRef?.scrollToPage(pageNum) }
     }
 }
