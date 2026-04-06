@@ -147,10 +147,24 @@ fun LiberApp(
     val publication = activePublication
 
     if (book != null && book.fileUri.toString().endsWith(".pdf", ignoreCase = true)) {
+        val initialPage = remember(book.lastLocator) {
+            book.lastLocator?.let {
+                runCatching { org.json.JSONObject(it).getInt("page") }.getOrDefault(0)
+            } ?: 0
+        }
         PdfReaderScreen(
             uri = book.fileUri,
             title = book.title,
-            onBack = { liberAppViewModel.closeReader() }
+            bookId = book.id,
+            initialPage = initialPage,
+            bookmarks = bookmarks,
+            notes = annotations.filter { it.type == "note" },
+            onSaveLocator = { json, progress -> viewModel.saveLocator(book.id, json, progress) },
+            onSaveBookmark = { bookmark -> viewModel.saveBookmark(bookmark) },
+            onDeleteBookmark = { bookmarkId -> viewModel.deleteBookmark(bookmarkId) },
+            onSaveNote = { annotation -> viewModel.saveAnnotation(annotation) },
+            onDeleteNote = { annotationId -> viewModel.deleteAnnotation(annotationId) },
+            onBack = { liberAppViewModel.closeReader() },
         )
     } else if (publication != null && book != null) {
         ReaderScreen(

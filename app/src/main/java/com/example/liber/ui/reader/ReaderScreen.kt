@@ -125,8 +125,8 @@ private const val ID_HIGHLIGHT = 9_001
 private const val ID_ADD_NOTE  = 9_002
 
 // Design constants
-private val GreenAccent = Color(0xFF32D74B)
-private val RedAccent   = Color(0xFFFF3B30)
+internal val GreenAccent = Color(0xFF32D74B)
+internal val RedAccent = Color(0xFFFF3B30)
 
 /** Recursively finds the first [WebView] in the view hierarchy, or null. */
 private fun findWebView(view: View?): WebView? {
@@ -140,7 +140,7 @@ private fun findWebView(view: View?): WebView? {
 }
 
 // Pastel highlight color options (ARGB Int) — mirrors the extended palette light containers
-private val AnnotationColorOptions = listOf(
+internal val AnnotationColorOptions = listOf(
     0xFFFFF8DC.toInt(), // Yellow
     0xFFFFEDD8.toInt(), // Orange
     0xFFFFE4E8.toInt(), // Rose
@@ -848,7 +848,7 @@ private fun ProgressScrubber(
 // ── ReaderNavItem ─────────────────────────────────────────────────────────────
 
 @Composable
-private fun ReaderNavItem(
+internal fun ReaderNavItem(
     icon: @Composable () -> Unit,
     label: String,
     labelColor: Color,
@@ -874,7 +874,7 @@ private fun ReaderNavItem(
 // ── DarkSheetHeader ───────────────────────────────────────────────────────────
 
 @Composable
-private fun DarkSheetHeader(title: String, onClose: () -> Unit) {
+internal fun DarkSheetHeader(title: String, onClose: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1288,7 +1288,7 @@ fun AnnotationList(
 }
 
 @Composable
-private fun DarkAnnotationItem(
+internal fun DarkAnnotationItem(
     annotation: AnnotationEntity,
     onClick: () -> Unit,
     onDelete: () -> Unit,
