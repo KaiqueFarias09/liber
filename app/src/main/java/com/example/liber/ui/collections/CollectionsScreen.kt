@@ -167,7 +167,14 @@ private fun CollectionShelfRow(
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        Column(modifier = Modifier.padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 12.dp)) {
+        Column(
+            modifier = Modifier.padding(
+                top = 16.dp,
+                start = 16.dp,
+                end = 16.dp,
+                bottom = 12.dp
+            )
+        ) {
             // Title row
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -348,11 +355,20 @@ fun CollectionDetailScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = PhosphorIcons.Regular.ArrowLeft,
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onBackground,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = PhosphorIcons.Regular.ArrowLeft,
+                        contentDescription = "Back",
+                        tint = MaterialTheme.colorScheme.onBackground,
+                    )
+                }
+                Text(
+                    text = collection.name,
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
                 )
             }
             Box {
@@ -398,11 +414,6 @@ fun CollectionDetailScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp, vertical = 8.dp),
         ) {
-            Text(
-                text = collection.name,
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
             Spacer(Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -556,7 +567,7 @@ private fun DeleteCollectionDialog(
         text = {
             Text(
                 "\"$collectionName\" will be permanently removed. " +
-                    "The books inside will remain in your library.",
+                        "The books inside will remain in your library.",
                 style = MaterialTheme.typography.bodyMedium,
             )
         },
