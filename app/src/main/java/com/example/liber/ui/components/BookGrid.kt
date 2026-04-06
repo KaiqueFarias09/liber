@@ -3,6 +3,7 @@ package com.example.liber.ui.components
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -12,10 +13,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -52,47 +53,34 @@ fun BookGrid(
     onAddToCollection: (Book, Long) -> Unit = { _, _ -> },
     collections: List<CollectionUiState> = emptyList(),
 ) {
-    val chunkedBooks = remember(books) { books.chunked(2) }
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val columns = when {
+            maxWidth < 600.dp -> 2
+            maxWidth < 900.dp -> 4
+            else -> 6
+        }
 
-    LazyColumn(
-        contentPadding = contentPadding,
-        verticalArrangement = Arrangement.spacedBy(24.dp),
-        modifier = modifier.fillMaxSize()
-    ) {
-        items(chunkedBooks, key = { it.first().id }) { rowBooks ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.Bottom
-            ) {
-                rowBooks.forEach { book ->
-                    Box(
-                        modifier = Modifier.weight(1f),
-                        contentAlignment = Alignment.BottomStart
-                    ) {
-                        BookGridItem(
-                            book = book,
-                            onClick = { onBookClick(book) },
-                            onToggleWantToRead = { onToggleWantToRead(book) },
-                            onToggleFinished = { onToggleFinished(book) },
-                            onRenameBook = { onRenameBook(book, it) },
-                            onDeleteBook = { onDeleteBook(book) },
-                            onShareBook = { onShareBook(book) },
-                            deleteLabel = deleteLabel,
-                            showAddToCollection = showAddToCollection,
-                            onAddToCollection = { collectionId ->
-                                onAddToCollection(
-                                    book,
-                                    collectionId
-                                )
-                            },
-                            collections = collections,
-                        )
-                    }
-                }
-                if (rowBooks.size == 1) {
-                    Spacer(modifier = Modifier.weight(1f))
-                }
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(columns),
+            contentPadding = contentPadding,
+            horizontalArrangement = Arrangement.spacedBy(20.dp),
+            verticalArrangement = Arrangement.spacedBy(32.dp),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            items(books, key = { it.id }) { book ->
+                BookGridItem(
+                    book = book,
+                    onClick = { onBookClick(book) },
+                    onToggleWantToRead = { onToggleWantToRead(book) },
+                    onToggleFinished = { onToggleFinished(book) },
+                    onRenameBook = { onRenameBook(book, it) },
+                    onDeleteBook = { onDeleteBook(book) },
+                    onShareBook = { onShareBook(book) },
+                    deleteLabel = deleteLabel,
+                    showAddToCollection = showAddToCollection,
+                    onAddToCollection = { collectionId -> onAddToCollection(book, collectionId) },
+                    collections = collections,
+                )
             }
         }
     }
@@ -119,7 +107,7 @@ fun BookGridItem(
 
     Column(
         modifier = modifier
-            .widthIn(max = 180.dp)
+            .fillMaxWidth()
             .clickable(onClick = onClick),
     ) {
         BookCover(
@@ -131,7 +119,7 @@ fun BookGridItem(
                 .wrapContentHeight(),
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
