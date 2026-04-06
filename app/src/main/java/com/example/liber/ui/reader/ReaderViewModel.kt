@@ -155,6 +155,7 @@ class ReaderViewModel(
 
     fun cancelAnnotation() {
         _showAnnotationCreator.value = false
+        _editingAnnotationId.value = null
         _pendingSelectedText.value = null
         _pendingAnnotationType.value = "note"
         _annotationNoteText.value = ""
@@ -174,6 +175,35 @@ class ReaderViewModel(
     fun dismissHighlightColorPicker() {
         _showHighlightColorPicker.value = false
         _pendingSelectedText.value = null
+    }
+
+    // ── Annotation action menu (tap on existing highlight) ───────────────────
+
+    private val _tappedAnnotationId = MutableStateFlow<Long?>(null)
+    val tappedAnnotationId: StateFlow<Long?> = _tappedAnnotationId
+
+    fun onAnnotationTapped(id: Long) {
+        _tappedAnnotationId.value = id
+    }
+
+    fun dismissAnnotationMenu() {
+        _tappedAnnotationId.value = null
+    }
+
+    // ── Editing an existing annotation (add/change note or color) ────────────
+
+    // Non-null while the CreateAnnotationSheet is editing a saved annotation.
+    private val _editingAnnotationId = MutableStateFlow<Long?>(null)
+    val editingAnnotationId: StateFlow<Long?> = _editingAnnotationId
+
+    fun startAnnotationEdit(annotation: com.example.liber.data.AnnotationEntity) {
+        _tappedAnnotationId.value = null           // close the action menu
+        _editingAnnotationId.value = annotation.id
+        _pendingAnnotationType.value = annotation.type
+        _pendingSelectedText.value = annotation.text
+        _annotationNoteText.value = annotation.note ?: ""
+        _annotationColorArgb.value = annotation.color
+        _showAnnotationCreator.value = true
     }
 
     // ── Lifecycle ────────────────────────────────────────────────────────────

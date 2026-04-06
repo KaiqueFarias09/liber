@@ -1,6 +1,7 @@
 package com.example.liber.ui.reader
 
 import android.app.Application
+import android.content.Intent
 import android.view.ActionMode
 import android.view.Menu
 import android.view.MenuItem
@@ -88,6 +89,7 @@ import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.ArrowLeft
 import com.adamglin.phosphoricons.regular.Bookmark
+import com.adamglin.phosphoricons.regular.Export
 import com.adamglin.phosphoricons.regular.List
 import com.adamglin.phosphoricons.regular.MagnifyingGlass
 import com.adamglin.phosphoricons.regular.Minus
@@ -98,6 +100,7 @@ import com.example.liber.R
 import com.example.liber.data.AnnotationEntity
 import com.example.liber.data.BookmarkEntity
 import com.example.liber.ui.components.EmptyState
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import org.readium.r2.navigator.DecorableNavigator
@@ -123,6 +126,7 @@ import org.readium.r2.navigator.preferences.Color as ReadiumColor
 
 private const val ID_HIGHLIGHT = 9_001
 private const val ID_ADD_NOTE = 9_002
+private const val ID_SHARE = 9_003
 
 // Design constants
 internal val GreenAccent = Color(0xFF32D74B)
@@ -184,6 +188,11 @@ fun ReaderScreen(
     val fontSize by viewModel.fontSize.collectAsState()
     val showAnnotationCreator by viewModel.showAnnotationCreator.collectAsState()
     val showHighlightColorPicker by viewModel.showHighlightColorPicker.collectAsState()
+    val tappedAnnotationId by viewModel.tappedAnnotationId.collectAsState()
+    // Derive the full entity so the sheet re-renders if the annotation's note changes
+    val tappedAnnotation = remember(tappedAnnotationId, annotations) {
+        tappedAnnotationId?.let { id -> annotations.find { it.id == id } }
+    }
 
     val theme = findReaderTheme(themeId)
 
@@ -194,7 +203,7 @@ fun ReaderScreen(
     var showThemes by remember { mutableStateOf(false) }
 
     val isAnyModalOpen =
-        showContents || showSearch || showNotebook || showThemes || showAnnotationCreator || showHighlightColorPicker
+        showContents || showSearch || showNotebook || showThemes || showAnnotationCreator || showHighlightColorPicker || (tappedAnnotationId != null)
 
     // Bridge: highlights → inline color picker; notes → full sheet.
     LaunchedEffect(pendingAnnotationRequest) {
@@ -298,6 +307,29 @@ fun ReaderScreen(
         )
     }
 
+    // Listen for taps on highlight decorations so we can show the action sheet.
+    // Must mirror the withStarted pattern used for applyDecorations — the fragment
+    // is not yet attached when `navigator` is first set, so calling addDecorationListener
+    // immediately would throw "Fragment not attached to an activity".
+    LaunchedEffect(navigator) {
+        val dn = navigator as? DecorableNavigator ?: return@LaunchedEffect
+        val fragment = navigator as? Fragment ?: return@LaunchedEffect
+        val listener = object : DecorableNavigator.Listener {
+            override fun onDecorationActivated(event: DecorableNavigator.OnActivatedEvent): Boolean {
+                val annotationId = event.decoration.id.toLongOrNull() ?: return false
+                viewModel.onAnnotationTapped(annotationId)
+                return true
+            }
+        }
+        fragment.lifecycle.withStarted { } // suspend until the fragment is attached
+        dn.addDecorationListener("annotations", listener)
+        try {
+            awaitCancellation()            // hold until the effect is cancelled …
+        } finally {
+            dn.removeDecorationListener(listener) // … then clean up
+        }
+    }
+
     val handleBack = {
         currentLocator?.let { locator ->
             val prog = ((locator.locations.totalProgression ?: 0.0) * 100).toInt()
@@ -348,6 +380,13 @@ fun ReaderScreen(
                                 context.getString(R.string.action_add_note)
                             )
                                 .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
+                            menu.add(
+                                Menu.NONE,
+                                ID_SHARE,
+                                2,
+                                context.getString(R.string.action_share)
+                            )
+                                .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
                             return true
                         }
 
@@ -368,6 +407,14 @@ fun ReaderScreen(
                                     context.getString(R.string.action_add_note)
                                 )
                                     .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
+                            if (menu.findItem(ID_SHARE) == null)
+                                menu.add(
+                                    Menu.NONE,
+                                    ID_SHARE,
+                                    2,
+                                    context.getString(R.string.action_share)
+                                )
+                                    .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
                             return true
                         }
 
@@ -375,15 +422,31 @@ fun ReaderScreen(
                             mode: ActionMode,
                             item: MenuItem
                         ): Boolean {
-                            if (item.itemId != ID_HIGHLIGHT && item.itemId != ID_ADD_NOTE) return false
+                            if (item.itemId !in setOf(
+                                    ID_HIGHLIGHT,
+                                    ID_ADD_NOTE,
+                                    ID_SHARE
+                                )
+                            ) return false
                             val webView = findWebView(fragmentActivity.window.decorView)
                             webView?.evaluateJavascript("window.getSelection().toString()") { raw ->
                                 val text = raw?.removeSurrounding("\"")?.takeIf { it.isNotBlank() }
-                                val request = if (item.itemId == ID_HIGHLIGHT)
-                                    AnnotationRequest.Highlight(text)
-                                else
-                                    AnnotationRequest.Note(text)
-                                onRequestAnnotation(request)
+                                when (item.itemId) {
+                                    ID_HIGHLIGHT -> onRequestAnnotation(
+                                        AnnotationRequest.Highlight(
+                                            text
+                                        )
+                                    )
+
+                                    ID_ADD_NOTE -> onRequestAnnotation(AnnotationRequest.Note(text))
+                                    ID_SHARE -> if (text != null) {
+                                        val intent = Intent(Intent.ACTION_SEND).apply {
+                                            type = "text/plain"
+                                            putExtra(Intent.EXTRA_TEXT, text)
+                                        }
+                                        context.startActivity(Intent.createChooser(intent, null))
+                                    }
+                                }
                                 mode.finish()
                             } ?: mode.finish()
                             return true
@@ -823,25 +886,70 @@ fun ReaderScreen(
                 onColorChange = { viewModel.setAnnotationColor(it) },
                 onSave = {
                     coroutineScope.launch {
-                        val selectable = navigator as? SelectableNavigator
-                        val locator = selectable?.currentSelection()?.locator
-                            ?: navigator?.currentLocator?.value
-                            ?: return@launch
-                        onSaveAnnotation(
-                            AnnotationEntity(
-                                bookId = bookId,
-                                type = annotationType,
-                                color = selectedColor,
-                                locator = locator.toJSON().toString(),
-                                text = selectedText,
-                                note = noteText.ifBlank { null },
+                        val editingId = viewModel.editingAnnotationId.value
+                        if (editingId != null) {
+                            // Editing an existing annotation — REPLACE via same primary key
+                            val existing = annotations.find { it.id == editingId }
+                            if (existing != null) {
+                                onSaveAnnotation(
+                                    existing.copy(
+                                        note = noteText.ifBlank { null },
+                                        color = selectedColor,
+                                    )
+                                )
+                            }
+                        } else {
+                            // Brand-new annotation from the current text selection
+                            val selectable = navigator as? SelectableNavigator
+                            val locator = selectable?.currentSelection()?.locator
+                                ?: navigator?.currentLocator?.value
+                                ?: return@launch
+                            onSaveAnnotation(
+                                AnnotationEntity(
+                                    bookId = bookId,
+                                    type = annotationType,
+                                    color = selectedColor,
+                                    locator = locator.toJSON().toString(),
+                                    text = selectedText,
+                                    note = noteText.ifBlank { null },
+                                )
                             )
-                        )
-                        selectable?.clearSelection()
+                            selectable?.clearSelection()
+                        }
                         viewModel.cancelAnnotation()
                     }
                 },
                 onCancel = { viewModel.cancelAnnotation() },
+            )
+        }
+    }
+
+    // ── Annotation Action Sheet (tap on existing highlight) ───────────────────
+    val context = LocalContext.current
+    if (tappedAnnotation != null) {
+        ModalBottomSheet(
+            onDismissRequest = { viewModel.dismissAnnotationMenu() },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+        ) {
+            AnnotationActionsSheet(
+                annotation = tappedAnnotation,
+                onEditNote = { viewModel.startAnnotationEdit(tappedAnnotation) },
+                onShare = {
+                    val shareText = tappedAnnotation.text ?: return@AnnotationActionsSheet
+                    val intent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_TEXT, shareText)
+                    }
+                    context.startActivity(Intent.createChooser(intent, null))
+                    viewModel.dismissAnnotationMenu()
+                },
+                onDelete = {
+                    onDeleteAnnotation(tappedAnnotation.id)
+                    viewModel.dismissAnnotationMenu()
+                },
+                onDismiss = { viewModel.dismissAnnotationMenu() },
             )
         }
     }
@@ -1629,6 +1737,159 @@ private fun ThemePreviewTile(
                 color = theme.textColor.copy(alpha = 0.6f),
             )
         }
+    }
+}
+
+// ── AnnotationActionsSheet ────────────────────────────────────────────────────
+
+@Composable
+private fun AnnotationActionsSheet(
+    annotation: AnnotationEntity,
+    onEditNote: () -> Unit,
+    onShare: () -> Unit,
+    onDelete: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val highlightColor = Color(annotation.color.toLong() and 0xFFFFFFFFL).copy(alpha = 1f)
+    val hasNote = !annotation.note.isNullOrBlank()
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        DarkSheetHeader(
+            title = if (annotation.type == "highlight") "Highlight" else "Note",
+            onClose = onDismiss,
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        // Quoted text preview
+        if (!annotation.text.isNullOrBlank()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .background(highlightColor, RoundedCornerShape(8.dp))
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+            ) {
+                Text(
+                    text = "\"${annotation.text}\"",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic),
+                    color = Color.Black.copy(alpha = 0.82f),
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+
+        // Existing note preview
+        if (hasNote) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .background(
+                        MaterialTheme.colorScheme.surfaceContainer,
+                        RoundedCornerShape(8.dp)
+                    )
+                    .border(
+                        0.5.dp,
+                        MaterialTheme.colorScheme.outlineVariant,
+                        RoundedCornerShape(8.dp)
+                    )
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Icon(
+                    PhosphorIcons.Regular.NotePencil,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier
+                        .size(14.dp)
+                        .padding(top = 2.dp),
+                )
+                Text(
+                    text = annotation.note!!,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+
+        Spacer(Modifier.height(8.dp))
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(0.5.dp)
+                .background(MaterialTheme.colorScheme.outlineVariant)
+        )
+
+        // Action rows
+        AnnotationActionRow(
+            icon = PhosphorIcons.Regular.NotePencil,
+            label = if (hasNote) "Edit note" else "Add note",
+            onClick = onEditNote,
+        )
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(0.5.dp)
+                .padding(start = 56.dp)
+                .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        )
+
+        AnnotationActionRow(
+            icon = PhosphorIcons.Regular.Export,
+            label = "Share",
+            onClick = onShare,
+        )
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(0.5.dp)
+                .padding(start = 56.dp)
+                .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        )
+
+        AnnotationActionRow(
+            icon = PhosphorIcons.Regular.Trash,
+            label = "Remove highlight",
+            tint = MaterialTheme.colorScheme.error,
+            onClick = onDelete,
+        )
+
+        Spacer(Modifier.navigationBarsPadding())
+    }
+}
+
+@Composable
+private fun AnnotationActionRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    tint: Color = MaterialTheme.colorScheme.onSurface,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(20.dp),
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = tint,
+        )
     }
 }
 
