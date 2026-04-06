@@ -41,7 +41,7 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
 ) {
     LiberScrollableScreen(
-        title = null,
+        title = "Liber",
         modifier = modifier,
         contentPadding = PaddingValues(bottom = 32.dp),
     ) {

@@ -82,13 +82,15 @@ fun CollectionsListScreen(
     Scaffold(
         containerColor = Color.Transparent,
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showCreateDialog = true },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                shape = RoundedCornerShape(16.dp),
-            ) {
-                Icon(PhosphorIcons.Regular.Plus, contentDescription = "New collection")
+            if (collections.isNotEmpty()) {
+                FloatingActionButton(
+                    onClick = { showCreateDialog = true },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    shape = RoundedCornerShape(16.dp),
+                ) {
+                    Icon(PhosphorIcons.Regular.Plus, contentDescription = "New collection")
+                }
             }
         },
     ) { innerPadding ->

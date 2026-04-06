@@ -17,9 +17,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -40,14 +40,6 @@ fun EmptyState(
     modifier: Modifier = Modifier,
 ) {
     val isDarkTheme = MaterialTheme.extendedColors.isDark
-    val invertMatrix = ColorMatrix(
-        floatArrayOf(
-            -1f, 0f, 0f, 0f, 255f, // Red
-            0f, -1f, 0f, 0f, 255f, // Green
-            0f, 0f, -1f, 0f, 255f, // Blue
-            0f, 0f, 0f, 1f, 0f  // Alpha (keep original)
-        )
-    )
 
     Column(
         modifier = modifier
@@ -66,7 +58,10 @@ fun EmptyState(
                 painter = painterResource(image),
                 contentDescription = null,
                 modifier = Modifier.size(220.dp),
-                colorFilter = if (isDarkTheme) ColorFilter.colorMatrix(invertMatrix) else null
+                colorFilter = if (isDarkTheme) ColorFilter.tint(
+                    color = titleColor,
+                    blendMode = BlendMode.SrcIn
+                ) else null
             )
         }
 

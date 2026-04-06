@@ -12,8 +12,6 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SecondaryScrollableTabRow
 import androidx.compose.material3.Surface
@@ -43,9 +41,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.adamglin.PhosphorIcons
-import com.adamglin.phosphoricons.Regular
-import com.adamglin.phosphoricons.regular.Plus
 import com.example.liber.R
 import com.example.liber.data.Book
 import com.example.liber.data.ScanState
@@ -264,16 +259,7 @@ fun LibraryScreen(
                 }
         ) {
             LiberHeader(
-                title = "Library",
-                actions = {
-                    IconButton(onClick = onAddBooks) {
-                        Icon(
-                            imageVector = PhosphorIcons.Regular.Plus,
-                            contentDescription = "Add Books",
-                            tint = MaterialTheme.colorScheme.onBackground,
-                        )
-                    }
-                }
+                title = "Library"
             )
         }
 
