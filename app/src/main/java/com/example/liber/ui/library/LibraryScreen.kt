@@ -24,10 +24,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -80,18 +78,19 @@ fun LibraryScreen(
     onViewModeChange: (LibraryViewMode) -> Unit = {},
     sortOption: LibrarySortOption = LibrarySortOption.RECENT,
     onSortOptionChange: (LibrarySortOption) -> Unit = {},
+    selectedCollectionId: Long? = null,
+    onCollectionClick: (Long?) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val pagerState = rememberPagerState { 2 }
     val scope = rememberCoroutineScope()
-    var selectedCollectionId by remember { mutableStateOf<Long?>(null) }
     val selectedCollection = collections.find { it.id == selectedCollectionId }
 
     val selectedTabIndex = pagerState.currentPage
 
     LaunchedEffect(selectedTabIndex) {
         if (selectedTabIndex == 0) {
-            selectedCollectionId = null
+            onCollectionClick(null)
         }
     }
 
@@ -114,9 +113,11 @@ fun LibraryScreen(
         }
     }
 
-    Box(modifier = modifier
-        .fillMaxSize()
-        .nestedScroll(nestedScrollConnection)) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .nestedScroll(nestedScrollConnection)
+    ) {
         // Main content column — the spacer at the top shrinks as the header collapses,
         // pulling the tab row up to the screen edge.
         Column(modifier = Modifier.fillMaxSize()) {
@@ -237,7 +238,7 @@ fun LibraryScreen(
                     1 -> {
                         CollectionsListScreen(
                             collections = collections,
-                            onCollectionClick = { selectedCollectionId = it.id },
+                            onCollectionClick = { onCollectionClick(it.id) },
                             onCreateCollection = onCreateCollection,
                         )
                     }
@@ -271,11 +272,11 @@ fun LibraryScreen(
                 CollectionDetailScreen(
                     collection = selectedCollection,
                     allBooks = books,
-                    onBack = { selectedCollectionId = null },
+                    onBack = { onCollectionClick(null) },
                     onRename = { onRenameCollection(selectedCollection.id, it) },
                     onDelete = {
                         onDeleteCollection(selectedCollection.id)
-                        selectedCollectionId = null
+                        onCollectionClick(null)
                     },
                     onAddBook = { onAddBookToCollection(selectedCollection.id, it) },
                     onRemoveBook = {
@@ -308,6 +309,8 @@ fun LibraryScreen(
     onAddBooks: () -> Unit,
     onShareBook: (Book) -> Unit,
     collectionsViewModel: CollectionsViewModel,
+    selectedCollectionId: Long? = null,
+    onCollectionClick: (Long?) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val books by viewModel.books.collectAsState()
@@ -325,7 +328,12 @@ fun LibraryScreen(
         scanState = scanState,
         onDismissScanBanner = { viewModel.dismissScanBanner() },
         onToggleWantToRead = { book -> viewModel.toggleWantToRead(book.id, book.wantToRead) },
-        onToggleFinished = { book -> viewModel.toggleFinished(book.id, book.readingProgress == 100) },
+        onToggleFinished = { book ->
+            viewModel.toggleFinished(
+                book.id,
+                book.readingProgress == 100
+            )
+        },
         onRenameBook = { book, newTitle -> viewModel.renameBook(book.id, newTitle) },
         onDeleteBook = { book -> viewModel.deleteBook(book.id) },
         onShareBook = onShareBook,
@@ -346,6 +354,8 @@ fun LibraryScreen(
         onViewModeChange = { viewModel.setLibraryViewMode(it) },
         sortOption = sortOption,
         onSortOptionChange = { viewModel.setLibrarySortOption(it) },
+        selectedCollectionId = selectedCollectionId,
+        onCollectionClick = onCollectionClick,
         modifier = modifier,
     )
 }

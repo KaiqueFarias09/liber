@@ -19,8 +19,15 @@ class LiberAppViewModel(application: Application) : AndroidViewModel(application
     private val _activePublication = MutableStateFlow<Publication?>(null)
     val activePublication: StateFlow<Publication?> = _activePublication
 
+    private val _selectedCollectionId = MutableStateFlow<Long?>(null)
+    val selectedCollectionId: StateFlow<Long?> = _selectedCollectionId
+
     fun setActiveTab(tab: AppTab) {
         _activeTab.value = tab
+    }
+
+    fun setSelectedCollectionId(id: Long?) {
+        _selectedCollectionId.value = id
     }
 
     fun openEpub(book: Book, publication: Publication) {

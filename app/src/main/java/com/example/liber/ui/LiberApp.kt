@@ -65,7 +65,12 @@ fun LiberApp(
     val activeBook by liberAppViewModel.activeBook.collectAsState()
     val activePublication by liberAppViewModel.activePublication.collectAsState()
     val activeTab by liberAppViewModel.activeTab.collectAsState()
+    val selectedCollectionId by liberAppViewModel.selectedCollectionId.collectAsState()
     val scanSources by viewModel.scanSources.collectAsState()
+
+    androidx.activity.compose.BackHandler(enabled = selectedCollectionId != null) {
+        liberAppViewModel.setSelectedCollectionId(null)
+    }
 
     val bookLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments(),
@@ -250,6 +255,8 @@ fun LiberApp(
                                     context.startActivity(Intent.createChooser(intent, "Share Book"))
                                 },
                                 collectionsViewModel = collectionsViewModel,
+                                selectedCollectionId = selectedCollectionId,
+                                onCollectionClick = { liberAppViewModel.setSelectedCollectionId(it) },
                                 modifier = Modifier.fillMaxSize()
                             )
 
