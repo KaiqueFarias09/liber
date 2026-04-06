@@ -6,6 +6,7 @@ import android.graphics.Path
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
 import android.net.Uri
+import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
 import androidx.activity.compose.BackHandler
@@ -209,6 +210,22 @@ fun PdfReaderScreen(
                     frag.onPageLocationsChanged = { locations -> pageLocations.value = locations }
                     fragmentActivity.supportFragmentManager.commit { replace(id, frag) }
                     pdfFragment = frag
+
+                    // Detect single taps to toggle the chrome bars; pass all events through.
+                    val tapDetector = GestureDetector(
+                        ctx,
+                        object : GestureDetector.SimpleOnGestureListener() {
+                            override fun onSingleTapUp(e: MotionEvent): Boolean {
+                                viewModel.toggleUI()
+                                return true
+                            }
+                        },
+                    )
+                    setOnTouchListener { v, event ->
+                        tapDetector.onTouchEvent(event)
+                        // Always return false so the PDF fragment receives all events.
+                        false
+                    }
                 }
             },
             update = { _ ->
@@ -872,53 +889,56 @@ private fun InkDrawingOverlay(
         }
 
         // ── Layer 3: InProgressStrokesView — captures touch, renders live strokes ──
-        AndroidView(
-            factory = { ctx ->
-                InProgressStrokesView(ctx).apply {
-                    addFinishedStrokesListener(object : InProgressStrokesFinishedListener {
-                        override fun onStrokesFinished(strokes: Map<InProgressStrokeId, Stroke>) {
-                            finishedStrokes.addAll(strokes.values)
-                            removeFinishedStrokes(strokes.keys)
-                            strokes.values.forEach { stroke ->
-                                currentOnStrokeCompleted.value(stroke, currentInkConfig.value)
+        // Only composed when drawing mode is active; otherwise it would sit on top of
+        // the PDF fragment and block all scroll/zoom/tap gestures.
+        if (drawMode) {
+            AndroidView(
+                factory = { ctx ->
+                    InProgressStrokesView(ctx).apply {
+                        addFinishedStrokesListener(object : InProgressStrokesFinishedListener {
+                            override fun onStrokesFinished(strokes: Map<InProgressStrokeId, Stroke>) {
+                                finishedStrokes.addAll(strokes.values)
+                                removeFinishedStrokes(strokes.keys)
+                                strokes.values.forEach { stroke ->
+                                    currentOnStrokeCompleted.value(stroke, currentInkConfig.value)
+                                }
                             }
-                        }
-                    })
-                }.also { inProgressView.value = it }
-            },
-            modifier = Modifier
-                .fillMaxSize()
-                .pointerInteropFilter { event ->
-                    if (!drawMode) return@pointerInteropFilter false
-                    val view = inProgressView.value ?: return@pointerInteropFilter false
-                    val activeBrush = brush ?: return@pointerInteropFilter false
-
-                    when (event.actionMasked) {
-                        MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
-                            val pointerId = event.getPointerId(event.actionIndex)
-                            view.startStroke(event, pointerId, activeBrush)
-                        }
-
-                        MotionEvent.ACTION_MOVE -> {
-                            for (i in 0 until event.pointerCount) {
-                                view.addToStroke(event, event.getPointerId(i))
-                            }
-                        }
-
-                        MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {
-                            val pointerId = event.getPointerId(event.actionIndex)
-                            view.finishStroke(event, pointerId)
-                        }
-
-                        MotionEvent.ACTION_CANCEL -> {
-                            for (i in 0 until event.pointerCount) {
-                                view.cancelStroke(event, event.getPointerId(i))
-                            }
-                        }
-                    }
-                    true
+                        })
+                    }.also { inProgressView.value = it }
                 },
-        )
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInteropFilter { event ->
+                        val view = inProgressView.value ?: return@pointerInteropFilter false
+                        val activeBrush = brush ?: return@pointerInteropFilter false
+
+                        when (event.actionMasked) {
+                            MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
+                                val pointerId = event.getPointerId(event.actionIndex)
+                                view.startStroke(event, pointerId, activeBrush)
+                            }
+
+                            MotionEvent.ACTION_MOVE -> {
+                                for (i in 0 until event.pointerCount) {
+                                    view.addToStroke(event, event.getPointerId(i))
+                                }
+                            }
+
+                            MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {
+                                val pointerId = event.getPointerId(event.actionIndex)
+                                view.finishStroke(event, pointerId)
+                            }
+
+                            MotionEvent.ACTION_CANCEL -> {
+                                for (i in 0 until event.pointerCount) {
+                                    view.cancelStroke(event, event.getPointerId(i))
+                                }
+                            }
+                        }
+                        true
+                    },
+            )
+        }
     }
 }
 
