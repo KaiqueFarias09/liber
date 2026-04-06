@@ -97,18 +97,7 @@ fun BookGrid(
 
         val chunkedBooks = remember(sortedBooks, columns) { sortedBooks.chunked(columns) }
 
-        Column(modifier = Modifier.fillMaxSize()) {
-            BooksToolbar(
-                bookCount = books.size,
-                sortOption = sortOption,
-                onSortChange = onSortOptionChange,
-                viewMode = viewMode,
-                onViewModeChange = onViewModeChange,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 4.dp),
-            )
-
+        Box(modifier = Modifier.fillMaxSize()) {
             AnimatedContent(
                 targetState = viewMode,
                 transitionSpec = { fadeIn() togetherWith fadeOut() },
@@ -121,6 +110,18 @@ fun BookGrid(
                         verticalArrangement = Arrangement.spacedBy(32.dp),
                         modifier = Modifier.fillMaxSize(),
                     ) {
+                        item {
+                            BooksToolbar(
+                                bookCount = books.size,
+                                sortOption = sortOption,
+                                onSortChange = onSortOptionChange,
+                                viewMode = viewMode,
+                                onViewModeChange = onViewModeChange,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                            )
+                        }
                         items(chunkedBooks, key = { it.first().id }) { rowBooks ->
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -159,6 +160,18 @@ fun BookGrid(
                         verticalArrangement = Arrangement.spacedBy(2.dp),
                         modifier = Modifier.fillMaxSize(),
                     ) {
+                        item {
+                            BooksToolbar(
+                                bookCount = books.size,
+                                sortOption = sortOption,
+                                onSortChange = onSortOptionChange,
+                                viewMode = viewMode,
+                                onViewModeChange = onViewModeChange,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                            )
+                        }
                         items(sortedBooks, key = { it.id }) { book ->
                             BookListItem(
                                 book = book,

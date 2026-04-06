@@ -24,13 +24,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -91,21 +100,40 @@ fun LibraryScreen(
         }
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            LiberHeader(
-                title = "Library",
-                actions = {
-                    IconButton(onClick = onAddBooks) {
-                        Icon(
-                            imageVector = PhosphorIcons.Regular.Plus,
-                            contentDescription = "Add Books",
-                            tint = MaterialTheme.colorScheme.onBackground,
-                        )
-                    }
-                }
+    val density = LocalDensity.current
+    val headerHeightState = remember { mutableIntStateOf(0) }
+    val scrolledPxState = remember { mutableFloatStateOf(0f) }
+
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                val delta = available.y
+                val maxScroll = headerHeightState.intValue.toFloat()
+                val oldScrolled = scrolledPxState.floatValue
+                scrolledPxState.floatValue = (oldScrolled - delta).coerceIn(0f, maxScroll)
+                // Return the portion consumed by the header so the inner list doesn't
+                // also scroll while the header is collapsing/expanding.
+                val consumed = -(scrolledPxState.floatValue - oldScrolled)
+                return Offset(0f, consumed)
+            }
+        }
+    }
+
+    Box(modifier = modifier
+        .fillMaxSize()
+        .nestedScroll(nestedScrollConnection)) {
+        // Main content column — the spacer at the top shrinks as the header collapses,
+        // pulling the tab row up to the screen edge.
+        Column(modifier = Modifier.fillMaxSize()) {
+            Spacer(
+                Modifier
+                    .fillMaxWidth()
+                    .height(
+                        with(density) {
+                            (headerHeightState.intValue.toFloat() - scrolledPxState.floatValue)
+                                .coerceAtLeast(0f).toDp()
+                        }
+                    )
             )
 
             ScanProgressBanner(
@@ -220,6 +248,33 @@ fun LibraryScreen(
                     }
                 }
             }
+        }
+
+        // Header overlay — slides up and fades out as the user scrolls down.
+        // Uses graphicsLayer so the animation runs at draw time, not composition time.
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .onSizeChanged { headerHeightState.intValue = it.height }
+                .graphicsLayer {
+                    val scrolled = scrolledPxState.floatValue
+                    val maxScroll = headerHeightState.intValue.toFloat().coerceAtLeast(1f)
+                    translationY = -scrolled
+                    alpha = (1f - scrolled / maxScroll).coerceIn(0f, 1f)
+                }
+        ) {
+            LiberHeader(
+                title = "Library",
+                actions = {
+                    IconButton(onClick = onAddBooks) {
+                        Icon(
+                            imageVector = PhosphorIcons.Regular.Plus,
+                            contentDescription = "Add Books",
+                            tint = MaterialTheme.colorScheme.onBackground,
+                        )
+                    }
+                }
+            )
         }
 
         if (selectedCollectionId != null && selectedCollection != null) {
