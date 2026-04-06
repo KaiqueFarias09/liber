@@ -141,6 +141,7 @@ fun PdfReaderScreen(
     // Fragment reference for programmatic control
     var pdfFragment by remember { mutableStateOf<LibPdfViewerFragment?>(null) }
     var hasRestoredPage by remember { mutableStateOf(false) }
+    val appliedUri = remember { mutableStateOf<Uri?>(null) }
 
     // Pending scroll request (set by TOC / jump-to-page)
     var pendingScrollPage by remember { mutableStateOf<Int?>(null) }
@@ -195,7 +196,10 @@ fun PdfReaderScreen(
             update = { _ ->
                 val wu = currentWritableUri ?: return@AndroidView
                 val frag = pdfFragment ?: return@AndroidView
-                if (frag.documentUri != wu) frag.documentUri = wu
+                if (appliedUri.value != wu) {
+                    frag.setDocumentUriWhenReady(wu)
+                    appliedUri.value = wu
+                }
             },
         )
 

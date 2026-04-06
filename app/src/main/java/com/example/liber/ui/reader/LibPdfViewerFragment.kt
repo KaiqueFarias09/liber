@@ -1,6 +1,8 @@
 package com.example.liber.ui.reader
 
+import android.content.Context
 import android.graphics.RectF
+import android.net.Uri
 import android.util.SparseArray
 import androidx.pdf.ExperimentalPdfApi
 import androidx.pdf.PdfDocument
@@ -20,8 +22,30 @@ class LibPdfViewerFragment : androidx.pdf.viewer.fragment.PdfViewerFragment() {
     /** Invoked whenever the first visible page index (0-indexed) changes. */
     var onPageChanged: ((page: Int) -> Unit)? = null
 
+    private var pendingDocumentUri: Uri? = null
     private var pdfViewRef: PdfView? = null
     private var viewportListener: PdfView.OnViewportChangedListener? = null
+
+    /**
+     * Sets [documentUri] if the fragment is already attached, otherwise queues it
+     * to be applied in [onAttach]. This avoids crashes when Compose's update block
+     * runs before the fragment transaction completes.
+     */
+    fun setDocumentUriWhenReady(uri: Uri) {
+        if (isAdded) {
+            documentUri = uri
+        } else {
+            pendingDocumentUri = uri
+        }
+    }
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        pendingDocumentUri?.let { uri ->
+            documentUri = uri
+            pendingDocumentUri = null
+        }
+    }
 
     @OptIn(ExperimentalPdfApi::class)
     override fun onPdfViewCreated(pdfView: PdfView) {
