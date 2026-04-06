@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,8 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -35,7 +34,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -60,15 +58,14 @@ import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.ArrowLeft
 import com.adamglin.phosphoricons.regular.CaretRight
-import com.adamglin.phosphoricons.regular.DotsThree
 import com.adamglin.phosphoricons.regular.DotsThreeVertical
 import com.adamglin.phosphoricons.regular.PencilSimple
 import com.adamglin.phosphoricons.regular.Plus
 import com.adamglin.phosphoricons.regular.Trash
 import com.example.liber.R
 import com.example.liber.data.Book
-import com.example.liber.ui.components.BookActionMenu
 import com.example.liber.ui.components.BookCover
+import com.example.liber.ui.components.BookGrid
 import com.example.liber.ui.components.CoverStyle
 import com.example.liber.ui.components.EmptyState
 
@@ -324,7 +321,7 @@ fun CollectionDetailScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showAddBooksSheet by remember { mutableStateOf(false) }
 
-    val chunkedBooks = remember(collection.books) { collection.books.chunked(2) }
+    remember(collection.books) { collection.books.chunked(2) }
 
     Column(
         modifier = Modifier
@@ -441,41 +438,19 @@ fun CollectionDetailScreen(
                 )
             }
         } else {
-            LazyColumn(
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                    horizontal = 16.dp,
-                    vertical = 8.dp,
-                ),
-                verticalArrangement = Arrangement.spacedBy(20.dp),
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                items(chunkedBooks, key = { it.first().id }) { rowBooks ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalAlignment = Alignment.Bottom,
-                    ) {
-                        rowBooks.forEach { book ->
-                            Box(
-                                modifier = Modifier.weight(1f),
-                                contentAlignment = Alignment.BottomStart
-                            ) {
-                                DetailBookItem(
-                                    book = book,
-                                    onClick = { onOpenBook(book) },
-                                    onRemoveFromCollection = { onRemoveBook(book.id) },
-                                    onShare = { onShareBook(book) },
-                                    onToggleWantToRead = { onToggleWantToRead(book) },
-                                    onToggleFinished = { onToggleFinished(book) },
-                                    onRename = { newTitle -> onRenameBook(book, newTitle) },
-                                )
-                            }
-                        }
-                        if (rowBooks.size == 1) Spacer(Modifier.weight(1f))
-                    }
-                }
-                item { Spacer(Modifier.height(16.dp)) }
-            }
+            BookGrid(
+                books = collection.books,
+                onBookClick = onOpenBook,
+                onToggleWantToRead = onToggleWantToRead,
+                onToggleFinished = onToggleFinished,
+                onRenameBook = onRenameBook,
+                onDeleteBook = { onRemoveBook(it.id) },
+                onShareBook = onShareBook,
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
+                deleteLabel = "Remove from collection",
+                showAddToCollection = false,
+            )
         }
     }
 
@@ -509,92 +484,6 @@ fun CollectionDetailScreen(
             onAddBook = onAddBook,
             onDismiss = { showAddBooksSheet = false },
         )
-    }
-}
-
-@Composable
-private fun DetailBookItem(
-    book: Book,
-    onClick: () -> Unit,
-    onRemoveFromCollection: () -> Unit,
-    onShare: () -> Unit,
-    onToggleWantToRead: () -> Unit,
-    onToggleFinished: () -> Unit,
-    onRename: (String) -> Unit,
-) {
-    var showMenu by remember { mutableStateOf(false) }
-
-    Column(
-        modifier = Modifier
-            .widthIn(max = 180.dp)
-            .clickable(onClick = onClick),
-    ) {
-        BookCover(
-            coverUri = book.coverUri,
-            contentDescription = book.title,
-            style = CoverStyle.LARGE,
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentHeight(),
-        )
-
-        Spacer(Modifier.height(8.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            val progressText = when {
-                book.readingProgress == 100 -> "FINISHED"
-                book.lastOpenedAt == null && book.readingProgress == 0 -> "NEW"
-                else -> "${book.readingProgress}%"
-            }
-            if (progressText == "NEW") {
-                Surface(
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                    shape = RoundedCornerShape(4.dp),
-                ) {
-                    Text(
-                        text = progressText,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                    )
-                }
-            } else {
-                Text(
-                    text = progressText,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            Box {
-                IconButton(
-                    onClick = { showMenu = true },
-                    modifier = Modifier.size(24.dp),
-                ) {
-                    Icon(
-                        imageVector = PhosphorIcons.Regular.DotsThree,
-                        contentDescription = "More options",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                BookActionMenu(
-                    expanded = showMenu,
-                    book = book,
-                    onDismiss = { showMenu = false },
-                    onShare = onShare,
-                    onToggleWantToRead = onToggleWantToRead,
-                    onToggleFinished = onToggleFinished,
-                    onRename = { showMenu = false },
-                    onDelete = onRemoveFromCollection,
-                    deleteLabel = "Remove from collection",
-                    showAddToCollection = false,
-                )
-            }
-        }
     }
 }
 

@@ -1,11 +1,15 @@
 package com.example.liber.ui.components
 
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Fill
 import com.adamglin.phosphoricons.Regular
@@ -76,6 +80,7 @@ fun BookActionMenu(
             leadingIcon = { Icon(PhosphorIcons.Regular.PencilSimple, null) },
             onClick = { onRename(); onDismiss() },
         )
+        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
         DropdownMenuItem(
             text = { Text(deleteLabel, color = MaterialTheme.colorScheme.error) },
             leadingIcon = {
