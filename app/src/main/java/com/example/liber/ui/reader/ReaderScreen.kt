@@ -150,15 +150,18 @@ private const val ID_SHARE = 9_003
 internal val GreenAccent = Color(0xFF32D74B)
 internal val RedAccent = Color(0xFFFF3B30)
 
-/** Recursively finds the first [WebView] in the view hierarchy, or null. */
-private fun findWebView(view: View?): WebView? {
-    if (view is WebView) return view
+/** Recursively finds all [WebView]s in the view hierarchy. */
+private fun findAllWebViews(view: View?): List<WebView> {
+    if (view == null) return emptyList()
+    if (view is WebView) return listOf(view)
+
+    val webViews = mutableListOf<WebView>()
     if (view is ViewGroup) {
         for (i in 0 until view.childCount) {
-            findWebView(view.getChildAt(i))?.let { return it }
+            webViews.addAll(findAllWebViews(view.getChildAt(i)))
         }
     }
-    return null
+    return webViews
 }
 
 // Highlight color options (ARGB Int) — semi-transparent so they're visible on both
@@ -170,6 +173,40 @@ internal val AnnotationColorOptions = listOf(
     0x800A84FF.toInt(), // Blue
     0x80BF5AF2.toInt(), // Purple
 )
+
+private fun formatShareText(text: String, publication: Publication): String {
+    val title = publication.metadata.title
+    val author = publication.metadata.authors.firstOrNull()?.name
+    val publisher = publication.metadata.publishers.firstOrNull()?.name
+    val publishedDate = publication.metadata.published
+
+    return buildString {
+        append("“").append(text).append("”")
+        append("\n\n")
+        append("Excerpt From: ")
+        if (author != null) {
+            append(author).append(". ")
+        }
+        append("“").append(title ?: "Unknown Title").append(".”")
+
+        val metadataParts = mutableListOf<String>()
+        if (publisher != null) metadataParts.add(publisher)
+        if (publishedDate != null) {
+            val yearFormat = SimpleDateFormat("yyyy", Locale.getDefault())
+            metadataParts.add(yearFormat.format(publishedDate.toJavaDate()))
+        }
+
+        if (metadataParts.isNotEmpty()) {
+            append(" ")
+            append(metadataParts.joinToString(", "))
+            append(".")
+        }
+
+        append(" Liber.")
+        append("\n\n")
+        append("This material may be protected by copyright.")
+    }
+}
 
 /**
  * Full-screen EPUB reader with a design matching the app's iOS-inspired aesthetic.
@@ -292,9 +329,7 @@ fun ReaderScreen(
         val selCss = t.selectionColorCss
         // Wait briefly for the iframe's content to finish loading after a page turn.
         delay(300)
-        val webView = findWebView(fragmentActivity.window.decorView) ?: return@LaunchedEffect
-
-        @Suppress("StringShouldBeRawString")
+        val webViews = findAllWebViews(fragmentActivity.window.decorView)
         val js = """
             (function injectSelectionStyle() {
                 var selColor = '$selCss';
@@ -324,7 +359,7 @@ fun ReaderScreen(
                 }
             })();
         """.trimIndent()
-        webView.evaluateJavascript(js, null)
+        webViews.forEach { it.evaluateJavascript(js, null) }
     }
 
     // Continuous vertical scroll: when scroll mode is on, inject a JS listener into Readium's
@@ -335,7 +370,7 @@ fun ReaderScreen(
         val epubFrag = navigator as? EpubNavigatorFragment ?: return@LaunchedEffect
         // Wait for the page to finish loading after a chapter transition.
         delay(400)
-        val webView = findWebView(fragmentActivity.window.decorView) ?: return@LaunchedEffect
+        val webViews = findAllWebViews(fragmentActivity.window.decorView)
 
         @Suppress("StringShouldBeRawString")
         val js = """
@@ -373,25 +408,25 @@ fun ReaderScreen(
                 }
             })();
         """.trimIndent()
-        webView.evaluateJavascript(js, null)
 
-        // Register the native callback so JS can call window._liberGoForward().
-        // We use addJavascriptInterface at the WebView level (safe — called from main thread).
-        webView.post {
-            webView.addJavascriptInterface(object {
-                @android.webkit.JavascriptInterface
-                fun invoke() {
-                    webView.post {
-                        epubFrag.goForward(animated = false)
+        // Register the native callback and script on all webviews
+        webViews.forEach { wv ->
+            wv.evaluateJavascript(js, null)
+            wv.post {
+                wv.addJavascriptInterface(object {
+                    @android.webkit.JavascriptInterface
+                    fun invoke() {
+                        wv.post {
+                            epubFrag.goForward(animated = false)
+                        }
                     }
-                }
-            }, "_liberGoForwardBridge")
+                }, "_liberGoForwardBridge")
 
-            // Expose the bridge as a plain JS function so the injected script can call it.
-            webView.evaluateJavascript(
-                "window._liberGoForward = function() { _liberGoForwardBridge.invoke(); };",
-                null
-            )
+                wv.evaluateJavascript(
+                    "window._liberGoForward = function() { _liberGoForwardBridge.invoke(); };",
+                    null
+                )
+            }
         }
     }
 
@@ -594,33 +629,49 @@ fun ReaderScreen(
                                     ID_SHARE
                                 )
                             ) return false
-                            val webView = findWebView(fragmentActivity.window.decorView)
-                            webView?.evaluateJavascript("window.getSelection().toString()") { raw ->
-                                // Use JSONTokener to correctly unescape the JS result so that
-                                // embedded \n sequences become real newlines instead of literals.
-                                val text = raw?.let {
-                                    runCatching {
-                                        org.json.JSONTokener(it).nextValue()?.toString()
-                                    }.getOrNull() ?: it.removeSurrounding("\"")
-                                }?.takeIf { it.isNotBlank() }
-                                when (item.itemId) {
-                                    ID_HIGHLIGHT -> onRequestAnnotation(
-                                        AnnotationRequest.Highlight(
-                                            text
+                            val wvs = findAllWebViews(fragmentActivity.window.decorView)
+                            wvs.forEach { wv ->
+                                wv.evaluateJavascript("window.getSelection().toString()") { raw ->
+                                    // Use JSONTokener to correctly unescape the JS result so that
+                                    // embedded \n sequences become real newlines instead of literals.
+                                    val text = raw?.let {
+                                        runCatching {
+                                            org.json.JSONTokener(it).nextValue()?.toString()
+                                        }.getOrNull() ?: it.removeSurrounding("\"")
+                                    }?.takeIf { it.isNotBlank() }
+                                    when (item.itemId) {
+                                        ID_HIGHLIGHT -> onRequestAnnotation(
+                                            AnnotationRequest.Highlight(
+                                                text
+                                            )
                                         )
-                                    )
 
-                                    ID_ADD_NOTE -> onRequestAnnotation(AnnotationRequest.Note(text))
-                                    ID_SHARE -> if (text != null) {
-                                        val intent = Intent(Intent.ACTION_SEND).apply {
-                                            type = "text/plain"
-                                            putExtra(Intent.EXTRA_TEXT, text)
+                                        ID_ADD_NOTE -> onRequestAnnotation(
+                                            AnnotationRequest.Note(
+                                                text
+                                            )
+                                        )
+
+                                        ID_SHARE -> if (text != null) {
+                                            val shareText = formatShareText(text, publication)
+                                            val intent = Intent(Intent.ACTION_SEND).apply {
+                                                type = "text/plain"
+                                                putExtra(Intent.EXTRA_TEXT, shareText)
+                                            }
+                                            context.startActivity(
+                                                Intent.createChooser(
+                                                    intent,
+                                                    null
+                                                )
+                                            )
                                         }
-                                        context.startActivity(Intent.createChooser(intent, null))
                                     }
+                                    mode.finish()
                                 }
+                            }
+                            if (wvs.isEmpty()) {
                                 mode.finish()
-                            } ?: mode.finish()
+                            }
                             return true
                         }
 
@@ -1128,8 +1179,9 @@ fun ReaderScreen(
                 annotation = tappedAnnotation,
                 onEditNote = { viewModel.startAnnotationEdit(tappedAnnotation) },
                 onShare = {
-                    val shareText = tappedAnnotation.text
-                    if (!shareText.isNullOrBlank()) {
+                    val text = tappedAnnotation.text
+                    if (!text.isNullOrBlank()) {
+                        val shareText = formatShareText(text, publication)
                         val intent = Intent(Intent.ACTION_SEND).apply {
                             type = "text/plain"
                             putExtra(Intent.EXTRA_TEXT, shareText)
