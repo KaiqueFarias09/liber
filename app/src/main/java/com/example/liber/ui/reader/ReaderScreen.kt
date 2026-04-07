@@ -40,6 +40,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -112,6 +114,7 @@ import com.example.liber.R
 import com.example.liber.data.AnnotationEntity
 import com.example.liber.data.BookmarkEntity
 import com.example.liber.ui.components.EmptyState
+import com.example.liber.ui.components.LiberTabBar
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -323,6 +326,75 @@ fun ReaderScreen(
         """.trimIndent()
         webView.evaluateJavascript(js, null)
     }
+
+    // Continuous vertical scroll: when scroll mode is on, inject a JS listener into Readium's
+    // iframe that detects scroll-to-end and calls goForward() automatically, so the user can
+    // scroll all the way from chapter 1 to the last chapter without any manual gesture.
+    LaunchedEffect(currentLocator?.href, pageScroll, navigator) {
+        if (!pageScroll) return@LaunchedEffect
+        val epubFrag = navigator as? EpubNavigatorFragment ?: return@LaunchedEffect
+        // Wait for the page to finish loading after a chapter transition.
+        delay(400)
+        val webView = findWebView(fragmentActivity.window.decorView) ?: return@LaunchedEffect
+
+        @Suppress("StringShouldBeRawString")
+        val js = """
+            (function setupContinuousScroll() {
+                var THRESHOLD = 8; // px from bottom that counts as "end"
+                var advancing = false;
+
+                function atEnd(scrollable) {
+                    return (scrollable.scrollTop + scrollable.clientHeight) >= (scrollable.scrollHeight - THRESHOLD);
+                }
+
+                // Try the top-level window first (single-doc mode), then each iframe.
+                function attachListener(win) {
+                    if (!win || !win.document) return;
+                    var root = win.document.scrollingElement || win.document.documentElement;
+                    if (!root) return;
+                    win.addEventListener('scroll', function() {
+                        if (advancing) return;
+                        if (atEnd(root)) {
+                            advancing = true;
+                            // Small debounce so a momentary glitch doesn't double-fire.
+                            setTimeout(function() { advancing = false; }, 1000);
+                            window._liberGoForward && window._liberGoForward();
+                        }
+                    }, { passive: true });
+                }
+
+                // The outer shell
+                attachListener(window);
+
+                // All inner iframes (Readium per-spine-item webviews)
+                var iframes = document.querySelectorAll('iframe');
+                for (var i = 0; i < iframes.length; i++) {
+                    try { attachListener(iframes[i].contentWindow); } catch(e) {}
+                }
+            })();
+        """.trimIndent()
+        webView.evaluateJavascript(js, null)
+
+        // Register the native callback so JS can call window._liberGoForward().
+        // We use addJavascriptInterface at the WebView level (safe — called from main thread).
+        webView.post {
+            webView.addJavascriptInterface(object {
+                @android.webkit.JavascriptInterface
+                fun invoke() {
+                    webView.post {
+                        epubFrag.goForward(animated = false)
+                    }
+                }
+            }, "_liberGoForwardBridge")
+
+            // Expose the bridge as a plain JS function so the injected script can call it.
+            webView.evaluateJavascript(
+                "window._liberGoForward = function() { _liberGoForwardBridge.invoke(); };",
+                null
+            )
+        }
+    }
+
 
     val progress = currentLocator?.locations?.totalProgression?.toFloat() ?: 0f
 
@@ -1379,57 +1451,30 @@ fun NotebookView(
     onDeleteNote: (AnnotationEntity) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val tabs = listOf(
-        "bookmarks" to "Bookmarks",
-        "highlights" to "Highlights",
-        "notes" to "Notes"
-    )
-    var activeTab by remember { mutableStateOf("bookmarks") }
+    val tabs = listOf("Bookmarks", "Highlights", "Notes")
+    val pagerState = rememberPagerState { tabs.size }
+    val scope = rememberCoroutineScope()
 
     Column(modifier = modifier.fillMaxWidth()) {
-        // Filter tabs (Pill style to match React design)
-        Surface(
-            modifier = Modifier
-                .padding(horizontal = 20.dp)
-                .fillMaxWidth(),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
-            shape = RoundedCornerShape(14.dp)
-        ) {
-            Row(
-                modifier = Modifier.padding(4.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                tabs.forEach { (id, label) ->
-                    val selected = activeTab == id
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(34.dp)
-                            .background(
-                                if (selected) MaterialTheme.colorScheme.surfaceContainerHighest
-                                else Color.Transparent,
-                                RoundedCornerShape(10.dp)
-                            )
-                            .clickable { activeTab = id },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                            color = if (selected) MaterialTheme.colorScheme.onSurface
-                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                        )
-                    }
+        LiberTabBar(
+            tabs = tabs,
+            selectedTabIndex = pagerState.currentPage,
+            onTabSelected = { index ->
+                scope.launch {
+                    pagerState.animateScrollToPage(index)
                 }
             }
-        }
+        )
 
         Spacer(Modifier.height(16.dp))
 
-        Box(modifier = Modifier.weight(1f)) {
-            when (activeTab) {
-                "bookmarks" -> {
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.Top
+        ) { page ->
+            when (page) {
+                0 -> {
                     BookmarksView(
                         bookmarks = bookmarks,
                         onBookmarkClick = onBookmarkClick,
@@ -1437,7 +1482,7 @@ fun NotebookView(
                     )
                 }
 
-                "highlights" -> {
+                1 -> {
                     val highlights =
                         remember(annotations) { annotations.filter { it.type == "highlight" } }
                     AnnotationList(
@@ -1449,7 +1494,7 @@ fun NotebookView(
                     )
                 }
 
-                "notes" -> {
+                2 -> {
                     val notes = remember(annotations) { annotations.filter { it.type == "note" } }
                     AnnotationList(
                         annotations = notes,
