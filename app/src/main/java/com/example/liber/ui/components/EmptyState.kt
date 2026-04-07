@@ -34,9 +34,12 @@ fun EmptyState(
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
     showImage: Boolean = true,
-    containerColor: Color = MaterialTheme.colorScheme.primaryContainer,
-    titleColor: Color = MaterialTheme.colorScheme.onPrimaryContainer,
-    subtitleColor: Color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+    showBackground: Boolean = true,
+    containerColor: Color = if (showBackground) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+    titleColor: Color = if (showBackground) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+    subtitleColor: Color = (if (showBackground) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface).copy(
+        alpha = 0.7f
+    ),
     modifier: Modifier = Modifier,
 ) {
     val isDarkTheme = MaterialTheme.extendedColors.isDark
@@ -44,11 +47,15 @@ fun EmptyState(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
+            .then(if (showBackground) Modifier.clip(RoundedCornerShape(24.dp)) else Modifier)
             .background(containerColor)
             .padding(
                 horizontal = 32.dp,
-                vertical = if (showImage && image != null) 40.dp else 24.dp
+                vertical = if (showBackground) {
+                    if (showImage && image != null) 40.dp else 24.dp
+                } else {
+                    if (showImage && image != null) 24.dp else 16.dp
+                }
             ),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,

@@ -94,8 +94,6 @@ import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.ArrowLeft
 import com.adamglin.phosphoricons.regular.Bookmark
-import com.adamglin.phosphoricons.regular.CaretDown
-import com.adamglin.phosphoricons.regular.Check
 import com.adamglin.phosphoricons.regular.Export
 import com.adamglin.phosphoricons.regular.FrameCorners
 import com.adamglin.phosphoricons.regular.LineSegments
@@ -110,8 +108,6 @@ import com.example.liber.R
 import com.example.liber.data.AnnotationEntity
 import com.example.liber.data.BookmarkEntity
 import com.example.liber.ui.components.EmptyState
-import com.example.liber.ui.components.LiberContextMenuItem
-import com.example.liber.ui.components.LiberDropdownMenu
 import com.example.liber.ui.components.LiberSearchField
 import com.example.liber.ui.components.LiberTabBar
 import com.example.liber.ui.components.LiberTextField
@@ -1389,9 +1385,7 @@ fun SearchView(
                 subtitle = "Try a different search term.",
                 image = R.drawable.want_to_read_empty,
                 showImage = false,
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                titleColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                subtitleColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                showBackground = false,
                 modifier = Modifier.padding(horizontal = 20.dp)
             )
         } else {
@@ -1538,9 +1532,7 @@ fun BookmarksView(
         EmptyState(
             title = "No bookmarks.",
             image = R.drawable.bookmarks_empty,
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            titleColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            subtitleColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+            showBackground = false,
             modifier = modifier.padding(horizontal = 20.dp),
         )
     } else {
@@ -1622,9 +1614,7 @@ fun AnnotationList(
         EmptyState(
             title = emptyMessage,
             image = emptyImage,
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            titleColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            subtitleColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+            showBackground = false,
             modifier = modifier.padding(horizontal = 20.dp),
         )
     } else {
@@ -1791,70 +1781,6 @@ private fun ThemesSheet(
             .verticalScroll(scrollState)
             .padding(horizontal = 20.dp),
     ) {
-        Spacer(Modifier.height(16.dp))
-
-        // ── Page Flipping segment ─────────────────────────────────────────────
-        Text(
-            text = "PAGE FLIPPING",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            letterSpacing = 0.8.sp,
-        )
-        Spacer(Modifier.height(8.dp))
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp)),
-        ) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .background(
-                        if (!pageScroll) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                        else Color.Transparent,
-                        RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp)
-                    )
-                    .clickable { onPageScrollChange(false) }
-                    .padding(vertical = 14.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    "Default",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = if (!pageScroll) FontWeight.SemiBold else FontWeight.Normal,
-                    color = if (!pageScroll) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .width(0.5.dp)
-                    .height(48.dp)
-                    .background(MaterialTheme.colorScheme.outlineVariant)
-                    .align(Alignment.CenterVertically)
-            )
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .background(
-                        if (pageScroll) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                        else Color.Transparent,
-                        RoundedCornerShape(topEnd = 12.dp, bottomEnd = 12.dp)
-                    )
-                    .clickable { onPageScrollChange(true) }
-                    .padding(vertical = 14.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    "Vertical",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = if (pageScroll) FontWeight.SemiBold else FontWeight.Normal,
-                    color = if (pageScroll) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-
         Spacer(Modifier.height(16.dp))
 
         // ── Font size row ─────────────────────────────────────────────────────
@@ -2054,97 +1980,7 @@ private fun ThemesSheet(
                 )
             }
         }
-
-        Spacer(Modifier.height(8.dp))
-
-        // ── Columns dropdown ──────────────────────────────────────────────────
-        var showColumnsDropdown by remember { mutableStateOf(false) }
-        val columnsLabel = when (columnCount) {
-            "one" -> "1"
-            "two" -> "2"
-            else -> "Auto Set"
-        }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp))
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                "Columns",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Box {
-                Row(
-                    modifier = Modifier
-                        .background(
-                            MaterialTheme.colorScheme.surfaceContainerHigh,
-                            RoundedCornerShape(8.dp)
-                        )
-                        .clickable { showColumnsDropdown = true }
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Text(
-                        columnsLabel,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Icon(
-                        PhosphorIcons.Regular.CaretDown,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                LiberDropdownMenu(
-                    expanded = showColumnsDropdown,
-                    onDismissRequest = { showColumnsDropdown = false },
-                ) {
-                    listOf(
-                        "auto" to "Auto Set",
-                        "one" to "1",
-                        "two" to "2"
-                    ).forEach { (key, label) ->
-                        LiberContextMenuItem(
-                            label = label,
-                            icon = if (columnCount == key) PhosphorIcons.Regular.Check else null,
-                            onClick = { onColumnCountChange(key); showColumnsDropdown = false },
-                        )
-                    }
-                }
-            }
-        }
-
-        Spacer(Modifier.height(8.dp))
-
-        // ── Justify Text ──────────────────────────────────────────────────────
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp))
-                .padding(horizontal = 16.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                "Justify Text",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Switch(
-                checked = justifyText,
-                onCheckedChange = onJustifyTextChange,
-            )
-        }
-
         Spacer(Modifier.height(16.dp))
-
-        // ── Reset Theme button ────────────────────────────────────────────────
         Button(
             onClick = onResetSettings,
             modifier = Modifier.fillMaxWidth(),
