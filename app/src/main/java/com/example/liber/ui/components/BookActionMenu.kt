@@ -1,15 +1,6 @@
 package com.example.liber.ui.components
 
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Fill
 import com.adamglin.phosphoricons.Regular
@@ -37,59 +28,42 @@ fun BookActionMenu(
     showAddToCollection: Boolean = false,
     onAddToCollection: (() -> Unit)? = null,
 ) {
-    DropdownMenu(
+    LiberDropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
     ) {
-        DropdownMenuItem(
-            text = { Text("Share") },
-            leadingIcon = { Icon(PhosphorIcons.Regular.ShareNetwork, null) },
+        LiberContextMenuItem(
+            label = "Share",
+            icon = PhosphorIcons.Regular.ShareNetwork,
             onClick = { onShare(); onDismiss() },
         )
-        DropdownMenuItem(
-            text = { Text(if (book.wantToRead) "Remove from Want to Read" else "Add to Want to Read") },
-            leadingIcon = {
-                Icon(
-                    if (book.wantToRead) PhosphorIcons.Fill.BookmarkFill
-                    else PhosphorIcons.Regular.PlusCircle,
-                    null,
-                )
-            },
+        LiberContextMenuItem(
+            label = if (book.wantToRead) "Remove from Want to Read" else "Add to Want to Read",
+            icon = if (book.wantToRead) PhosphorIcons.Fill.BookmarkFill else PhosphorIcons.Regular.PlusCircle,
             onClick = { onToggleWantToRead(); onDismiss() },
         )
         if (showAddToCollection && onAddToCollection != null) {
-            DropdownMenuItem(
-                text = { Text("Add to Collection") },
-                leadingIcon = { Icon(PhosphorIcons.Regular.ListPlus, null) },
+            LiberContextMenuItem(
+                label = "Add to Collection",
+                icon = PhosphorIcons.Regular.ListPlus,
                 onClick = { onAddToCollection(); onDismiss() },
             )
         }
-        DropdownMenuItem(
-            text = { Text(if (book.readingProgress == 100) "Mark as still reading" else "Mark as Finished") },
-            leadingIcon = {
-                Icon(
-                    if (book.readingProgress == 100) PhosphorIcons.Regular.BookOpen
-                    else PhosphorIcons.Regular.CheckCircle,
-                    null,
-                )
-            },
+        LiberContextMenuItem(
+            label = if (book.readingProgress == 100) "Mark as still reading" else "Mark as Finished",
+            icon = if (book.readingProgress == 100) PhosphorIcons.Regular.BookOpen else PhosphorIcons.Regular.CheckCircle,
             onClick = { onToggleFinished(); onDismiss() },
         )
-        DropdownMenuItem(
-            text = { Text("Rename…") },
-            leadingIcon = { Icon(PhosphorIcons.Regular.PencilSimple, null) },
+        LiberContextMenuItem(
+            label = "Rename…",
+            icon = PhosphorIcons.Regular.PencilSimple,
             onClick = { onRename(); onDismiss() },
         )
-        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-        DropdownMenuItem(
-            text = { Text(deleteLabel, color = MaterialTheme.colorScheme.error) },
-            leadingIcon = {
-                Icon(
-                    PhosphorIcons.Regular.Trash,
-                    null,
-                    tint = MaterialTheme.colorScheme.error
-                )
-            },
+        LiberContextMenuDivider()
+        LiberContextMenuItem(
+            label = deleteLabel,
+            icon = PhosphorIcons.Regular.Trash,
+            destructive = true,
             onClick = { onDelete(); onDismiss() },
         )
     }

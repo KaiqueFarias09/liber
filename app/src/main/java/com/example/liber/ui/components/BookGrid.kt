@@ -24,8 +24,6 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
@@ -254,33 +252,15 @@ private fun BooksToolbar(
                     )
                 }
 
-                DropdownMenu(
+                LiberDropdownMenu(
                     expanded = sortMenuExpanded,
                     onDismissRequest = { sortMenuExpanded = false },
                 ) {
                     LibrarySortOption.entries.forEach { option ->
                         val isActive = sortOption == option
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    text = option.label,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = if (isActive) MaterialTheme.colorScheme.onBackground
-                                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            },
-                            leadingIcon = {
-                                if (isActive) {
-                                    Icon(
-                                        imageVector = PhosphorIcons.Regular.Check,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp),
-                                        tint = MaterialTheme.colorScheme.primary,
-                                    )
-                                } else {
-                                    Spacer(modifier = Modifier.size(16.dp))
-                                }
-                            },
+                        LiberContextMenuItem(
+                            label = option.label,
+                            icon = if (isActive) PhosphorIcons.Regular.Check else null,
                             onClick = {
                                 onSortChange(option)
                                 sortMenuExpanded = false

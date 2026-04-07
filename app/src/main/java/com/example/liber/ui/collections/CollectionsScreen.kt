@@ -24,19 +24,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -69,6 +63,12 @@ import com.example.liber.ui.components.BookCover
 import com.example.liber.ui.components.BookGrid
 import com.example.liber.ui.components.CoverStyle
 import com.example.liber.ui.components.EmptyState
+import com.example.liber.ui.components.LiberContextMenuDivider
+import com.example.liber.ui.components.LiberContextMenuItem
+import com.example.liber.ui.components.LiberDialog
+import com.example.liber.ui.components.LiberDropdownMenu
+import com.example.liber.ui.components.LiberFAB
+import com.example.liber.ui.components.LiberTextField
 import com.example.liber.ui.library.LibrarySortOption
 import com.example.liber.ui.library.LibraryViewMode
 
@@ -87,14 +87,11 @@ fun CollectionsListScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
             if (collections.isNotEmpty()) {
-                FloatingActionButton(
+                LiberFAB(
                     onClick = { showCreateDialog = true },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                    shape = RoundedCornerShape(16.dp),
-                ) {
-                    Icon(PhosphorIcons.Regular.Plus, contentDescription = "New collection")
-                }
+                    icon = PhosphorIcons.Regular.Plus,
+                    contentDescription = "New collection",
+                )
             }
         },
     ) { innerPadding ->
@@ -379,34 +376,25 @@ fun CollectionDetailScreen(
                         tint = MaterialTheme.colorScheme.onBackground,
                     )
                 }
-                DropdownMenu(
+                LiberDropdownMenu(
                     expanded = showMenu,
                     onDismissRequest = { showMenu = false },
                 ) {
-                    DropdownMenuItem(
-                        text = { Text("Add books") },
-                        leadingIcon = { Icon(PhosphorIcons.Regular.Plus, null) },
+                    LiberContextMenuItem(
+                        label = "Add books",
+                        icon = PhosphorIcons.Regular.Plus,
                         onClick = { showMenu = false; showAddBooksSheet = true },
                     )
-                    DropdownMenuItem(
-                        text = { Text("Rename") },
-                        leadingIcon = { Icon(PhosphorIcons.Regular.PencilSimple, null) },
+                    LiberContextMenuItem(
+                        label = "Rename",
+                        icon = PhosphorIcons.Regular.PencilSimple,
                         onClick = { showMenu = false; showRenameDialog = true },
                     )
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                "Delete collection",
-                                color = MaterialTheme.colorScheme.error,
-                            )
-                        },
-                        leadingIcon = {
-                            Icon(
-                                PhosphorIcons.Regular.Trash,
-                                null,
-                                tint = MaterialTheme.colorScheme.error,
-                            )
-                        },
+                    LiberContextMenuDivider()
+                    LiberContextMenuItem(
+                        label = "Delete collection",
+                        icon = PhosphorIcons.Regular.Trash,
+                        destructive = true,
                         onClick = { showMenu = false; showDeleteDialog = true },
                     )
                 }
@@ -497,33 +485,28 @@ private fun CollectionNameDialog(
     var name by remember { mutableStateOf(initialName) }
     val focusRequester = remember { FocusRequester() }
 
-    AlertDialog(
+    LiberDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text("Name") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { if (name.isNotBlank()) onConfirm(name) }),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(focusRequester)
-                    .onGloballyPositioned { focusRequester.requestFocus() },
-            )
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onConfirm(name) },
-                enabled = name.isNotBlank(),
-            ) { Text("Save") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        },
-    )
+        title = title,
+        confirmLabel = "Save",
+        onConfirm = { if (name.isNotBlank()) onConfirm(name) },
+        confirmEnabled = name.isNotBlank(),
+        dismissLabel = "Cancel",
+        onDismiss = onDismiss,
+    ) {
+        LiberTextField(
+            value = name,
+            onValueChange = { name = it },
+            label = "Name",
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { if (name.isNotBlank()) onConfirm(name) }),
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(focusRequester)
+                .onGloballyPositioned { focusRequester.requestFocus() },
+        )
+    }
 }
 
 @Composable
@@ -532,25 +515,21 @@ private fun DeleteCollectionDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
+    LiberDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Delete collection?") },
-        text = {
-            Text(
-                "\"$collectionName\" will be permanently removed. " +
-                        "The books inside will remain in your library.",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-        },
-        confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text("Delete", color = MaterialTheme.colorScheme.error)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        },
-    )
+        title = "Delete collection?",
+        confirmLabel = "Delete",
+        onConfirm = onConfirm,
+        dismissLabel = "Cancel",
+        onDismiss = onDismiss,
+    ) {
+        Text(
+            "\"$collectionName\" will be permanently removed. " +
+                    "The books inside will remain in your library.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
 }
 
 @Composable
@@ -565,60 +544,60 @@ private fun AddBooksDialog(
         allBooks.filter { it.id !in collectionBookIds }
     }
 
-    AlertDialog(
+    LiberDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add books") },
-        text = {
-            if (availableBooks.isEmpty()) {
-                Text(
-                    "All your library books are already in this collection.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else {
-                LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                    items(availableBooks, key = { it.id }) { book ->
-                        Row(
+        title = "Add books",
+        confirmLabel = null,
+        onConfirm = null,
+        dismissLabel = "Done",
+        onDismiss = onDismiss,
+    ) {
+        if (availableBooks.isEmpty()) {
+            Text(
+                "All your library books are already in this collection.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                items(availableBooks, key = { it.id }) { book ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onAddBook(book.id)
+                                onDismiss()
+                            }
+                            .padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        BookCover(
+                            coverUri = book.coverUri,
+                            contentDescription = book.title,
+                            style = CoverStyle.SMALL,
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    onAddBook(book.id)
-                                    onDismiss()
-                                }
-                                .padding(vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            BookCover(
-                                coverUri = book.coverUri,
-                                contentDescription = book.title,
-                                style = CoverStyle.SMALL,
-                                modifier = Modifier
-                                    .width(36.dp)
-                                    .height(54.dp)
-                                    .clip(RoundedCornerShape(3.dp)),
+                                .width(36.dp)
+                                .height(54.dp)
+                                .clip(RoundedCornerShape(3.dp)),
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = book.title,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
                             )
-                            Spacer(Modifier.width(12.dp))
-                            Column(modifier = Modifier.weight(1f)) {
+                            book.author?.let {
                                 Text(
-                                    text = book.title,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurface,
+                                    text = it,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
-                                book.author?.let {
-                                    Text(
-                                        text = it,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
                             }
                         }
                     }
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Done") }
-        },
-    )
+        }
+    }
 }

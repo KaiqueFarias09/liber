@@ -44,7 +44,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -100,6 +99,7 @@ import com.example.liber.data.AnnotationEntity
 import com.example.liber.data.BookmarkEntity
 import com.example.liber.data.InkStrokeEntity
 import com.example.liber.ui.components.LiberModalBottomSheet
+import com.example.liber.ui.components.LiberTextField
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -544,10 +544,10 @@ fun PdfReaderScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            OutlinedTextField(
+                            LiberTextField(
                                 value = jumpInput,
                                 onValueChange = { jumpInput = it.filter { c -> c.isDigit() } },
-                                label = { Text("Page") },
+                                placeholder = "Page number",
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 singleLine = true,
                                 modifier = Modifier.weight(1f),
@@ -746,10 +746,10 @@ fun PdfReaderScreen(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                OutlinedTextField(
+                LiberTextField(
                     value = noteText,
                     onValueChange = { viewModel.setNoteText(it) },
-                    label = { Text("Note") },
+                    placeholder = "Write your note…",
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3,
                 )

@@ -1,10 +1,6 @@
 package com.example.liber.ui.components
 
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -19,25 +15,21 @@ fun RenameBookDialog(
     onDismiss: () -> Unit,
 ) {
     var title by remember { mutableStateOf(currentTitle) }
-    AlertDialog(
+    LiberDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Rename book") },
-        text = {
-            OutlinedTextField(
-                value = title,
-                onValueChange = { title = it },
-                label = { Text("Title") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        },
-        confirmButton = {
-            TextButton(onClick = { onConfirm(title) }, enabled = title.isNotBlank()) {
-                Text("Save")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        },
-    )
+        title = "Rename book",
+        confirmLabel = "Save",
+        onConfirm = { onConfirm(title) },
+        confirmEnabled = title.isNotBlank(),
+        dismissLabel = "Cancel",
+        onDismiss = onDismiss,
+    ) {
+        LiberTextField(
+            value = title,
+            onValueChange = { title = it },
+            label = "Title",
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }

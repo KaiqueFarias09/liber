@@ -49,15 +49,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -114,7 +110,11 @@ import com.example.liber.R
 import com.example.liber.data.AnnotationEntity
 import com.example.liber.data.BookmarkEntity
 import com.example.liber.ui.components.EmptyState
+import com.example.liber.ui.components.LiberContextMenuItem
+import com.example.liber.ui.components.LiberDropdownMenu
+import com.example.liber.ui.components.LiberSearchField
 import com.example.liber.ui.components.LiberTabBar
+import com.example.liber.ui.components.LiberTextField
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -1366,48 +1366,14 @@ fun SearchView(
     val isSearching by viewModel.isSearching.collectAsState()
 
     Column(modifier = modifier.fillMaxSize()) {
-        OutlinedTextField(
+        LiberSearchField(
             value = searchQuery,
             onValueChange = { viewModel.search(it) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 8.dp),
-            placeholder = {
-                Text(
-                    "Search in book...",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            },
-            leadingIcon = {
-                Icon(
-                    PhosphorIcons.Regular.MagnifyingGlass,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
-                )
-            },
-            trailingIcon = {
-                if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { viewModel.search("") }) {
-                        Text(
-                            "✕",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            },
-            singleLine = true,
-            shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-            ),
+            placeholder = "Search in book…",
+            onClear = { viewModel.search("") },
         )
 
         if (isSearching && searchResults.isEmpty()) {
@@ -2135,7 +2101,7 @@ private fun ThemesSheet(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                DropdownMenu(
+                LiberDropdownMenu(
                     expanded = showColumnsDropdown,
                     onDismissRequest = { showColumnsDropdown = false },
                 ) {
@@ -2144,18 +2110,10 @@ private fun ThemesSheet(
                         "one" to "1",
                         "two" to "2"
                     ).forEach { (key, label) ->
-                        DropdownMenuItem(
-                            text = { Text(label) },
+                        LiberContextMenuItem(
+                            label = label,
+                            icon = if (columnCount == key) PhosphorIcons.Regular.Check else null,
                             onClick = { onColumnCountChange(key); showColumnsDropdown = false },
-                            trailingIcon = if (columnCount == key) {
-                                {
-                                    Icon(
-                                        PhosphorIcons.Regular.Check,
-                                        null,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                            } else null,
                         )
                     }
                 }
@@ -2533,28 +2491,14 @@ fun CreateAnnotationSheet(
             }
         }
 
-        OutlinedTextField(
+        LiberTextField(
             value = noteText,
             onValueChange = onNoteTextChange,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(120.dp),
-            placeholder = {
-                Text(
-                    if (isHighlight) "Add a note… (optional)" else "Write your note…",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            },
+            placeholder = if (isHighlight) "Add a note… (optional)" else "Write your note…",
             maxLines = 5,
-            shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-            ),
         )
 
         Spacer(Modifier.height(16.dp))
