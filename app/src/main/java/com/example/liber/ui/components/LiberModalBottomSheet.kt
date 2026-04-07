@@ -55,7 +55,7 @@ fun LiberModalBottomSheet(
             Box(
                 modifier = Modifier
                     .size(28.dp)
-                    .background(MaterialTheme.colorScheme.surfaceContainer, CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceContainerLow, CircleShape)
                     .clickable(onClick = onDismissRequest),
                 contentAlignment = Alignment.Center,
             ) {
