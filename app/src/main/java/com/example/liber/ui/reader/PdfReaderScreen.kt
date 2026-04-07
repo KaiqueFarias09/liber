@@ -43,13 +43,11 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -101,6 +99,7 @@ import com.adamglin.phosphoricons.regular.PencilSimple
 import com.example.liber.data.AnnotationEntity
 import com.example.liber.data.BookmarkEntity
 import com.example.liber.data.InkStrokeEntity
+import com.example.liber.ui.components.LiberModalBottomSheet
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -138,7 +137,7 @@ fun PdfReaderScreen(
     var showDrawPanel by remember { mutableStateOf(false) }
 
     // Hoisted here so strokes survive drawing-mode toggles
-    val finishedStrokes = remember { mutableStateListOf<androidx.ink.strokes.Stroke>() }
+    val finishedStrokes = remember { mutableStateListOf<Stroke>() }
 
     // Tracks the screen rect of each visible page; updated by the fragment on every scroll/zoom.
     val pageLocations = remember { mutableStateOf(emptyMap<Int, android.graphics.RectF>()) }
@@ -473,14 +472,11 @@ fun PdfReaderScreen(
 
     // ── Contents Sheet ────────────────────────────────────────────────────────
     if (showContents) {
-        ModalBottomSheet(
+        LiberModalBottomSheet(
+            title = "Contents",
             onDismissRequest = { showContents = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface,
+            skipPartiallyExpanded = true,
         ) {
-            DarkSheetHeader(title = "Contents", onClose = { showContents = false })
-
             var contentsTab by remember { mutableStateOf("bookmarks") }
             Row(
                 modifier = Modifier
@@ -576,14 +572,11 @@ fun PdfReaderScreen(
 
     // ── Notebook Sheet ────────────────────────────────────────────────────────
     if (showNotebook) {
-        ModalBottomSheet(
+        LiberModalBottomSheet(
+            title = "Notebook",
             onDismissRequest = { showNotebook = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface,
+            skipPartiallyExpanded = true,
         ) {
-            DarkSheetHeader(title = "Notebook", onClose = { showNotebook = false })
-
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -647,14 +640,11 @@ fun PdfReaderScreen(
 
     // ── Draw Panel Sheet ──────────────────────────────────────────────────────
     if (showDrawPanel) {
-        ModalBottomSheet(
+        LiberModalBottomSheet(
+            title = "Drawing Tools",
             onDismissRequest = { showDrawPanel = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface,
+            skipPartiallyExpanded = false,
         ) {
-            DarkSheetHeader(title = "Drawing Tools", onClose = { showDrawPanel = false })
-
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -740,13 +730,11 @@ fun PdfReaderScreen(
     // ── Note Creator Sheet ────────────────────────────────────────────────────
     if (showNoteCreator) {
         val noteText by viewModel.pendingNoteText.collectAsState()
-        ModalBottomSheet(
+        LiberModalBottomSheet(
+            title = "Add Note",
             onDismissRequest = { viewModel.dismissNoteCreator() },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface,
+            skipPartiallyExpanded = true,
         ) {
-            DarkSheetHeader(title = "Add Note", onClose = { viewModel.dismissNoteCreator() })
             Column(
                 modifier = Modifier
                     .fillMaxWidth()

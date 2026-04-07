@@ -11,13 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SecondaryScrollableTabRow
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRowDefaults
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -29,14 +24,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.liber.R
@@ -49,6 +42,7 @@ import com.example.liber.ui.collections.CollectionsViewModel
 import com.example.liber.ui.components.BookGrid
 import com.example.liber.ui.components.EmptyState
 import com.example.liber.ui.components.LiberHeader
+import com.example.liber.ui.components.LiberTabBar
 import com.example.liber.ui.components.ScanProgressBanner
 import com.example.liber.ui.home.HomeViewModel
 import com.example.liber.ui.theme.LiberTheme
@@ -137,59 +131,15 @@ fun LibraryScreen(
                 onDismiss = onDismissScanBanner,
             )
 
-            SecondaryScrollableTabRow(
+            LiberTabBar(
+                tabs = listOf("Books", "Collections"),
                 selectedTabIndex = selectedTabIndex,
-                containerColor = Color.Transparent,
-                edgePadding = 24.dp,
-                indicator = {
-                    TabRowDefaults.SecondaryIndicator(
-                        modifier = Modifier.tabIndicatorOffset(selectedTabIndex),
-                        color = MaterialTheme.colorScheme.primary,
-                        height = 1.dp
-                    )
-                },
-                divider = {
-                    HorizontalDivider(
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
-                    )
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Tab(
-                    selected = selectedTabIndex == 0,
-                    onClick = {
-                        scope.launch {
-                            pagerState.animateScrollToPage(0)
-                        }
-                    },
-                    selectedContentColor = MaterialTheme.colorScheme.onBackground,
-                    unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    text = {
-                        Text(
-                            text = "Books",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = if (selectedTabIndex == 0) FontWeight.Bold else FontWeight.Normal
-                        )
+                onTabSelected = { index ->
+                    scope.launch {
+                        pagerState.animateScrollToPage(index)
                     }
-                )
-                Tab(
-                    selected = selectedTabIndex == 1,
-                    onClick = {
-                        scope.launch {
-                            pagerState.animateScrollToPage(1)
-                        }
-                    },
-                    selectedContentColor = MaterialTheme.colorScheme.onBackground,
-                    unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    text = {
-                        Text(
-                            text = "Collections",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = if (selectedTabIndex == 1) FontWeight.Bold else FontWeight.Normal
-                        )
-                    }
-                )
-            }
+                }
+            )
 
             Spacer(Modifier.height(8.dp))
 

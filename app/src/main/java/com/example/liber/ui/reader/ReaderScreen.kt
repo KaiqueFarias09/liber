@@ -46,13 +46,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -100,6 +98,7 @@ import com.example.liber.R
 import com.example.liber.data.AnnotationEntity
 import com.example.liber.data.BookmarkEntity
 import com.example.liber.ui.components.EmptyState
+import com.example.liber.ui.components.LiberTabBar
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.launch
 import org.json.JSONObject
@@ -549,15 +548,8 @@ fun ReaderScreen(
                         }
                     }
 
-                    // Theme + Bookmark
+                    // Bookmark
                     Row {
-                        IconButton(onClick = { showThemes = true }) {
-                            Icon(
-                                PhosphorIcons.Regular.TextAa,
-                                contentDescription = "Themes",
-                                tint = chromeIcon,
-                            )
-                        }
                         IconButton(
                             onClick = {
                                 if (isCurrentPageBookmarked) {
@@ -754,6 +746,18 @@ fun ReaderScreen(
                             labelColor = chromeLabel,
                             onClick = { showNotebook = true },
                         )
+                        ReaderNavItem(
+                            icon = {
+                                Icon(
+                                    PhosphorIcons.Regular.TextAa,
+                                    contentDescription = null,
+                                    tint = chromeIcon
+                                )
+                            },
+                            label = "Themes",
+                            labelColor = chromeLabel,
+                            onClick = { showThemes = true },
+                        )
                     }
                 }
             }
@@ -762,13 +766,10 @@ fun ReaderScreen(
 
     // ── Table of Contents ─────────────────────────────────────────────────────
     if (showContents) {
-        ModalBottomSheet(
+        com.example.liber.ui.components.LiberModalBottomSheet(
             onDismissRequest = { showContents = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface,
+            title = "Contents",
         ) {
-            DarkSheetHeader(title = "Contents", onClose = { showContents = false })
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -790,13 +791,10 @@ fun ReaderScreen(
 
     // ── Search ────────────────────────────────────────────────────────────────
     if (showSearch) {
-        ModalBottomSheet(
+        com.example.liber.ui.components.LiberModalBottomSheet(
             onDismissRequest = { showSearch = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface,
+            title = "Search in Book",
         ) {
-            DarkSheetHeader(title = "Search in Book", onClose = { showSearch = false })
             SearchView(
                 viewModel = viewModel,
                 modifier = Modifier.weight(1f),
@@ -811,13 +809,10 @@ fun ReaderScreen(
 
     // ── Notebook (Bookmarks, Highlights & Notes) ─────────────────────────────
     if (showNotebook) {
-        ModalBottomSheet(
+        com.example.liber.ui.components.LiberModalBottomSheet(
             onDismissRequest = { showNotebook = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface,
+            title = "Notebook",
         ) {
-            DarkSheetHeader(title = "Notebook", onClose = { showNotebook = false })
             NotebookView(
                 bookmarks = bookmarks,
                 annotations = annotations,
@@ -846,11 +841,9 @@ fun ReaderScreen(
 
     // ── Themes & Settings ─────────────────────────────────────────────────────
     if (showThemes) {
-        ModalBottomSheet(
+        com.example.liber.ui.components.LiberModalBottomSheet(
             onDismissRequest = { showThemes = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface,
+            title = "Themes & Settings",
         ) {
             ThemesSheet(
                 currentThemeId = themeId,
@@ -868,12 +861,11 @@ fun ReaderScreen(
         val selectedColor by viewModel.annotationColorArgb.collectAsState()
         val selectedText by viewModel.pendingSelectedText.collectAsState()
         val annotationType by viewModel.pendingAnnotationType.collectAsState()
+        val title = if (annotationType == "highlight") "Highlight" else "New Note"
 
-        ModalBottomSheet(
+        com.example.liber.ui.components.LiberModalBottomSheet(
             onDismissRequest = { viewModel.cancelAnnotation() },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface,
+            title = title,
         ) {
             CreateAnnotationSheet(
                 annotationType = annotationType,
@@ -929,11 +921,10 @@ fun ReaderScreen(
     // ── Annotation Action Sheet (tap on existing highlight) ───────────────────
     LocalContext.current
     if (tappedAnnotation != null) {
-        ModalBottomSheet(
+        val sheetTitle = if (tappedAnnotation.type == "highlight") "Highlight" else "Note"
+        com.example.liber.ui.components.LiberModalBottomSheet(
             onDismissRequest = { viewModel.dismissAnnotationMenu() },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface,
+            title = sheetTitle,
         ) {
             AnnotationActionsSheet(
                 annotation = tappedAnnotation,
@@ -1069,46 +1060,6 @@ internal fun ReaderNavItem(
             fontSize = 10.sp,
         )
     }
-}
-
-// ── DarkSheetHeader ───────────────────────────────────────────────────────────
-
-@Composable
-internal fun DarkSheetHeader(title: String, onClose: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Box(
-            modifier = Modifier
-                .size(28.dp)
-                .background(MaterialTheme.colorScheme.surfaceContainer, CircleShape)
-                .clickable(onClick = onClose),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                "✕",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-    }
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(0.5.dp)
-            .background(MaterialTheme.colorScheme.outlineVariant)
-    )
 }
 
 // ── ContentsView ──────────────────────────────────────────────────────────────
@@ -1302,42 +1253,20 @@ fun NotebookView(
     onDeleteNote: (AnnotationEntity) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val tabs = listOf(
+        "bookmarks" to "Bookmarks",
+        "highlights" to "Highlights",
+        "notes" to "Notes"
+    )
     var activeTab by remember { mutableStateOf("bookmarks") }
 
     Column(modifier = modifier.fillMaxWidth()) {
-        // Filter tabs: Bookmarks, Highlights, Notes
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(10.dp))
-                .padding(4.dp),
-        ) {
-            listOf(
-                "bookmarks" to "Bookmarks",
-                "highlights" to "Highlights",
-                "notes" to "Notes"
-            ).forEach { (id, label) ->
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .background(
-                            if (activeTab == id) MaterialTheme.colorScheme.surface else Color.Transparent,
-                            RoundedCornerShape(8.dp)
-                        )
-                        .clickable { activeTab = id }
-                        .padding(vertical = 8.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = if (activeTab == id) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
+        // Filter tabs
+        LiberTabBar(
+            tabs = tabs.map { it.second },
+            selectedTabIndex = tabs.indexOfFirst { it.first == activeTab }.coerceAtLeast(0),
+            onTabSelected = { index -> activeTab = tabs[index].first },
+        )
 
         Spacer(Modifier.height(16.dp))
 
@@ -1600,36 +1529,6 @@ private fun ThemesSheet(
             .fillMaxWidth()
             .padding(horizontal = 20.dp),
     ) {
-        // Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                "Themes & Settings",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .background(MaterialTheme.colorScheme.surfaceContainer, CircleShape)
-                    .clickable(onClick = onClose),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    "✕",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-
         Spacer(Modifier.height(16.dp))
 
         // Font size row
@@ -1758,11 +1657,6 @@ private fun AnnotationActionsSheet(
     val hasNote = !annotation.note.isNullOrBlank()
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        DarkSheetHeader(
-            title = if (annotation.type == "highlight") "Highlight" else "Note",
-            onClose = onDismiss,
-        )
-
         Spacer(Modifier.height(16.dp))
 
         // Quoted text preview
@@ -1961,7 +1855,7 @@ fun CreateAnnotationSheet(
     onCancel: () -> Unit,
 ) {
     val isHighlight = annotationType == "highlight"
-    val title = if (isHighlight) "Highlight" else "New Note"
+    if (isHighlight) "Highlight" else "New Note"
     val saveLabel = if (isHighlight) "Save highlight" else "Save note"
 
     Column(
@@ -1969,13 +1863,7 @@ fun CreateAnnotationSheet(
             .fillMaxWidth()
             .padding(horizontal = 20.dp),
     ) {
-        Text(
-            title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(bottom = 4.dp),
-        )
+        Spacer(Modifier.height(8.dp))
 
         currentChapter?.let { chapter ->
             Text(
