@@ -11,6 +11,8 @@ import android.webkit.WebView
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Canvas
@@ -26,6 +28,7 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -37,11 +40,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -49,7 +56,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -87,18 +96,22 @@ import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.ArrowLeft
 import com.adamglin.phosphoricons.regular.Bookmark
+import com.adamglin.phosphoricons.regular.CaretDown
+import com.adamglin.phosphoricons.regular.Check
 import com.adamglin.phosphoricons.regular.Export
+import com.adamglin.phosphoricons.regular.FrameCorners
+import com.adamglin.phosphoricons.regular.LineSegments
 import com.adamglin.phosphoricons.regular.List
 import com.adamglin.phosphoricons.regular.MagnifyingGlass
 import com.adamglin.phosphoricons.regular.Minus
 import com.adamglin.phosphoricons.regular.NotePencil
+import com.adamglin.phosphoricons.regular.Paragraph
 import com.adamglin.phosphoricons.regular.TextAa
 import com.adamglin.phosphoricons.regular.Trash
 import com.example.liber.R
 import com.example.liber.data.AnnotationEntity
 import com.example.liber.data.BookmarkEntity
 import com.example.liber.ui.components.EmptyState
-import com.example.liber.ui.components.LiberTabBar
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -114,6 +127,8 @@ import org.readium.r2.navigator.epub.EpubPreferences
 import org.readium.r2.navigator.html.HtmlDecorationTemplates
 import org.readium.r2.navigator.input.InputListener
 import org.readium.r2.navigator.input.TapEvent
+import org.readium.r2.navigator.preferences.ColumnCount
+import org.readium.r2.navigator.preferences.TextAlign
 import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.shared.publication.Link
 import org.readium.r2.shared.publication.Locator
@@ -193,6 +208,16 @@ fun ReaderScreen(
     val tappedAnnotation = remember(tappedAnnotationId, annotations) {
         tappedAnnotationId?.let { id -> annotations.find { it.id == id } }
     }
+
+    // New layout / typography settings
+    val pageScroll by viewModel.pageScroll.collectAsState()
+    val customizeLayout by viewModel.customizeLayout.collectAsState()
+    val lineSpacing by viewModel.lineSpacing.collectAsState()
+    val characterSpacing by viewModel.characterSpacing.collectAsState()
+    val wordSpacing by viewModel.wordSpacing.collectAsState()
+    val margins by viewModel.margins.collectAsState()
+    val columnCount by viewModel.columnCount.collectAsState()
+    val justifyText by viewModel.justifyText.collectAsState()
 
     val theme = findReaderTheme(themeId)
 
@@ -333,20 +358,45 @@ fun ReaderScreen(
         dn.applyDecorations(decorations, "annotations")
     }
 
-    // Apply theme + font size preferences whenever they change or the navigator becomes available.
+    // Apply theme + font size + layout preferences whenever they change or the navigator becomes available.
     // Keys include `navigator` so this re-runs when the fragment is first created.
     // `withStarted {}` mirrors the decoration pattern — it suspends until the fragment is STARTED
     // (i.e. attached to the activity), preventing the "not attached" crash.
-    LaunchedEffect(navigator, themeId, fontSize) {
+    LaunchedEffect(
+        navigator,
+        themeId,
+        fontSize,
+        pageScroll,
+        customizeLayout,
+        lineSpacing,
+        characterSpacing,
+        wordSpacing,
+        margins,
+        columnCount,
+        justifyText
+    ) {
         val epubFrag = navigator as? EpubNavigatorFragment ?: return@LaunchedEffect
         epubFrag.lifecycle.withStarted { }
         val t = findReaderTheme(themeId)
+        val colCount = when (columnCount) {
+            "one" -> ColumnCount.ONE
+            "two" -> ColumnCount.TWO
+            else -> ColumnCount.AUTO
+        }
         epubFrag.submitPreferences(
             EpubPreferences(
                 backgroundColor = ReadiumColor(t.background.toArgb()),
                 textColor = ReadiumColor(t.textColor.toArgb()),
                 publisherStyles = false,
                 fontSize = fontSize,
+                scroll = pageScroll,
+                lineHeight = if (customizeLayout) lineSpacing else null,
+                // Readium requires letterSpacing >= 0; clamp negative UI values to 0
+                letterSpacing = if (customizeLayout) maxOf(0.0, characterSpacing / 100.0) else null,
+                wordSpacing = if (customizeLayout) maxOf(0.0, wordSpacing / 100.0) else null,
+                pageMargins = if (customizeLayout) maxOf(0.0, 1.0 + margins / 100.0) else null,
+                columnCount = colCount,
+                textAlign = if (justifyText) TextAlign.JUSTIFY else null,
             )
         )
     }
@@ -506,11 +556,19 @@ fun ReaderScreen(
                     }
 
                     val initialTheme = findReaderTheme(viewModel.themeId.value)
+                    val initialColCount = when (viewModel.columnCount.value) {
+                        "one" -> ColumnCount.ONE
+                        "two" -> ColumnCount.TWO
+                        else -> ColumnCount.AUTO
+                    }
                     val initialPrefs = EpubPreferences(
                         backgroundColor = ReadiumColor(initialTheme.background.toArgb()),
                         textColor = ReadiumColor(initialTheme.textColor.toArgb()),
                         publisherStyles = false,
                         fontSize = viewModel.fontSize.value,
+                        scroll = viewModel.pageScroll.value,
+                        columnCount = initialColCount,
+                        textAlign = if (viewModel.justifyText.value) TextAlign.JUSTIFY else null,
                     )
 
                     val navigatorFactory = EpubNavigatorFactory(publication)
@@ -901,6 +959,23 @@ fun ReaderScreen(
                 onThemeChange = { id -> viewModel.setTheme(id) },
                 onDecreaseFontSize = { viewModel.adjustFontSize(-0.1) },
                 onIncreaseFontSize = { viewModel.adjustFontSize(+0.1) },
+                pageScroll = pageScroll,
+                onPageScrollChange = { viewModel.setPageScroll(it) },
+                customizeLayout = customizeLayout,
+                onCustomizeLayoutChange = { viewModel.setCustomizeLayout(it) },
+                lineSpacing = lineSpacing,
+                onLineSpacingChange = { viewModel.setLineSpacing(it) },
+                characterSpacing = characterSpacing,
+                onCharacterSpacingChange = { viewModel.setCharacterSpacing(it) },
+                wordSpacing = wordSpacing,
+                onWordSpacingChange = { viewModel.setWordSpacing(it) },
+                margins = margins,
+                onMarginsChange = { viewModel.setMargins(it) },
+                columnCount = columnCount,
+                onColumnCountChange = { viewModel.setColumnCount(it) },
+                justifyText = justifyText,
+                onJustifyTextChange = { viewModel.setJustifyText(it) },
+                onResetSettings = { viewModel.resetLayoutSettings() },
                 onClose = { showThemes = false },
             )
         }
@@ -1312,12 +1387,43 @@ fun NotebookView(
     var activeTab by remember { mutableStateOf("bookmarks") }
 
     Column(modifier = modifier.fillMaxWidth()) {
-        // Filter tabs
-        LiberTabBar(
-            tabs = tabs.map { it.second },
-            selectedTabIndex = tabs.indexOfFirst { it.first == activeTab }.coerceAtLeast(0),
-            onTabSelected = { index -> activeTab = tabs[index].first },
-        )
+        // Filter tabs (Pill style to match React design)
+        Surface(
+            modifier = Modifier
+                .padding(horizontal = 20.dp)
+                .fillMaxWidth(),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.4f),
+            shape = RoundedCornerShape(14.dp)
+        ) {
+            Row(
+                modifier = Modifier.padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                tabs.forEach { (id, label) ->
+                    val selected = activeTab == id
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(34.dp)
+                            .background(
+                                if (selected) MaterialTheme.colorScheme.surfaceContainerHighest
+                                else Color.Transparent,
+                                RoundedCornerShape(10.dp)
+                            )
+                            .clickable { activeTab = id },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                            color = if (selected) MaterialTheme.colorScheme.onSurface
+                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+            }
+        }
 
         Spacer(Modifier.height(16.dp))
 
@@ -1462,7 +1568,7 @@ fun AnnotationList(
         LazyColumn(
             modifier = modifier,
             contentPadding = PaddingValues(bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             items(annotations, key = { it.id }) { annotation ->
                 DarkAnnotationItem(
@@ -1485,82 +1591,105 @@ internal fun DarkAnnotationItem(
         SimpleDateFormat("MMM d", Locale.getDefault()).format(Date(annotation.createdAt))
     }
 
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(start = 12.dp, end = 20.dp),
+            .padding(horizontal = 20.dp, vertical = 4.dp),
     ) {
-        // Highlight color left accent border
-        Box(
-            modifier = Modifier
-                .width(3.dp)
-                .height(IntrinsicSize.Min)
-                .background(
-                    Color(annotation.color.toLong() and 0xFFFFFFFFL),
-                    RoundedCornerShape(2.dp)
-                )
-        )
-        Spacer(Modifier.width(5.dp))
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(top = 2.dp, bottom = 4.dp)
+        // Header Row: Chapter & Date + Trash Icon
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = "Chapter • $dateStr",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                letterSpacing = 0.5.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             )
-            Spacer(Modifier.height(6.dp))
-            if (!annotation.text.isNullOrBlank()) {
-                Text(
-                    text = "\"${annotation.text}\"",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic),
-                    color = MaterialTheme.colorScheme.onSurface,
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    PhosphorIcons.Regular.Trash,
+                    contentDescription = "Delete",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier.size(14.dp),
                 )
-                Spacer(Modifier.height(8.dp))
-            }
-            if (!annotation.note.isNullOrBlank()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.6f),
-                            RoundedCornerShape(8.dp)
-                        )
-                        .border(
-                            0.5.dp,
-                            MaterialTheme.colorScheme.outlineVariant,
-                            RoundedCornerShape(8.dp)
-                        )
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Icon(
-                        PhosphorIcons.Regular.NotePencil,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier
-                            .size(14.dp)
-                            .padding(top = 1.dp),
-                    )
-                    Text(
-                        text = annotation.note,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
             }
         }
-        IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
-            Icon(
-                PhosphorIcons.Regular.Trash,
-                contentDescription = "Delete",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(16.dp),
+
+        Spacer(Modifier.height(4.dp))
+
+        // Content Row: Color Border + (Quote & Note)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min)
+        ) {
+            // Left Accent Border (Highlight Color)
+            Box(
+                modifier = Modifier
+                    .width(3.dp)
+                    .fillMaxHeight()
+                    .background(
+                        Color(annotation.color).copy(alpha = 1f),
+                        RoundedCornerShape(2.dp)
+                    )
             )
+
+            Spacer(Modifier.width(16.dp))
+
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                if (!annotation.text.isNullOrBlank()) {
+                    Text(
+                        text = "\"${annotation.text}\"",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontStyle = FontStyle.Italic,
+                            lineHeight = 22.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+
+                if (!annotation.note.isNullOrBlank()) {
+                    Spacer(Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
+                                RoundedCornerShape(12.dp)
+                            )
+                            .border(
+                                0.5.dp,
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
+                                RoundedCornerShape(12.dp)
+                            )
+                            .padding(14.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Icon(
+                            PhosphorIcons.Regular.NotePencil,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                            modifier = Modifier
+                                .size(14.dp)
+                                .padding(top = 2.dp),
+                        )
+                        Text(
+                            text = annotation.note,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -1573,22 +1702,104 @@ private fun ThemesSheet(
     onThemeChange: (String) -> Unit,
     onDecreaseFontSize: () -> Unit,
     onIncreaseFontSize: () -> Unit,
+    pageScroll: Boolean,
+    onPageScrollChange: (Boolean) -> Unit,
+    customizeLayout: Boolean,
+    onCustomizeLayoutChange: (Boolean) -> Unit,
+    lineSpacing: Double,
+    onLineSpacingChange: (Double) -> Unit,
+    characterSpacing: Double,
+    onCharacterSpacingChange: (Double) -> Unit,
+    wordSpacing: Double,
+    onWordSpacingChange: (Double) -> Unit,
+    margins: Double,
+    onMarginsChange: (Double) -> Unit,
+    columnCount: String,
+    onColumnCountChange: (String) -> Unit,
+    justifyText: Boolean,
+    onJustifyTextChange: (Boolean) -> Unit,
+    onResetSettings: () -> Unit,
     onClose: () -> Unit,
 ) {
+    val scrollState = rememberScrollState()
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .verticalScroll(scrollState)
             .padding(horizontal = 20.dp),
     ) {
         Spacer(Modifier.height(16.dp))
 
-        // Font size row
+        // ── Page Flipping segment ─────────────────────────────────────────────
+        Text(
+            text = "PAGE FLIPPING",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            letterSpacing = 0.8.sp,
+        )
+        Spacer(Modifier.height(8.dp))
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp)),
         ) {
-            // Decrease
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .background(
+                        if (!pageScroll) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                        else Color.Transparent,
+                        RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp)
+                    )
+                    .clickable { onPageScrollChange(false) }
+                    .padding(vertical = 14.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    "Default",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = if (!pageScroll) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (!pageScroll) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .width(0.5.dp)
+                    .height(48.dp)
+                    .background(MaterialTheme.colorScheme.outlineVariant)
+                    .align(Alignment.CenterVertically)
+            )
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .background(
+                        if (pageScroll) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                        else Color.Transparent,
+                        RoundedCornerShape(topEnd = 12.dp, bottomEnd = 12.dp)
+                    )
+                    .clickable { onPageScrollChange(true) }
+                    .padding(vertical = 14.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    "Vertical",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = if (pageScroll) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (pageScroll) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // ── Font size row ─────────────────────────────────────────────────────
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp)),
+        ) {
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -1608,7 +1819,6 @@ private fun ThemesSheet(
                     .background(MaterialTheme.colorScheme.outlineVariant)
                     .align(Alignment.CenterVertically)
             )
-            // Increase
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -1625,7 +1835,7 @@ private fun ThemesSheet(
 
         Spacer(Modifier.height(16.dp))
 
-        // Theme grid (3 columns × 2 rows)
+        // ── Theme grid (3 columns × 2 rows) ───────────────────────────────────
         ReaderThemes.chunked(3).forEach { rowThemes ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1639,13 +1849,264 @@ private fun ThemesSheet(
                         modifier = Modifier.weight(1f),
                     )
                 }
-                // Fill remaining cells if row is incomplete
                 repeat(3 - rowThemes.size) { Spacer(Modifier.weight(1f)) }
             }
             Spacer(Modifier.height(12.dp))
         }
 
+        // ── Accessibility & Layout Options ────────────────────────────────────
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(0.5.dp)
+                .background(MaterialTheme.colorScheme.outlineVariant)
+        )
+        Spacer(Modifier.height(16.dp))
+
+        Text(
+            text = "Accessibility & Layout Options",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Spacer(Modifier.height(12.dp))
+
+        // Customize toggle row
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp))
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                "Customize",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Switch(
+                checked = customizeLayout,
+                onCheckedChange = onCustomizeLayoutChange,
+            )
+        }
+
+        // Animated sliders section
+        AnimatedVisibility(
+            visible = customizeLayout,
+            enter = expandVertically(),
+            exit = shrinkVertically(),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+                    .background(
+                        MaterialTheme.colorScheme.surfaceContainer,
+                        RoundedCornerShape(12.dp)
+                    )
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                // LINE SPACING
+                LayoutSliderRow(
+                    label = "LINE SPACING",
+                    icon = {
+                        Icon(
+                            PhosphorIcons.Regular.LineSegments,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
+                    value = lineSpacing.toFloat(),
+                    valueText = "${"%,.2f".format(lineSpacing)}",
+                    valueRange = 0.8f..2.5f,
+                    onValueChange = { onLineSpacingChange(it.toDouble()) },
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(0.5.dp)
+                        .background(MaterialTheme.colorScheme.outlineVariant)
+                )
+                // CHARACTER SPACING
+                LayoutSliderRow(
+                    label = "CHARACTER SPACING",
+                    icon = {
+                        Text(
+                            "Abc",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
+                    value = characterSpacing.toFloat(),
+                    valueText = if (characterSpacing == 0.0) "0%" else "${characterSpacing.toInt()}%",
+                    valueRange = -10f..10f,
+                    onValueChange = { onCharacterSpacingChange(it.toDouble()) },
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(0.5.dp)
+                        .background(MaterialTheme.colorScheme.outlineVariant)
+                )
+                // WORD SPACING
+                LayoutSliderRow(
+                    label = "WORD SPACING",
+                    icon = {
+                        Icon(
+                            PhosphorIcons.Regular.Paragraph,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
+                    value = wordSpacing.toFloat(),
+                    valueText = if (wordSpacing == 0.0) "0%" else "${wordSpacing.toInt()}%",
+                    valueRange = -20f..20f,
+                    onValueChange = { onWordSpacingChange(it.toDouble()) },
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(0.5.dp)
+                        .background(MaterialTheme.colorScheme.outlineVariant)
+                )
+                // MARGINS
+                LayoutSliderRow(
+                    label = "MARGINS",
+                    icon = {
+                        Icon(
+                            PhosphorIcons.Regular.FrameCorners,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
+                    value = margins.toFloat(),
+                    valueText = if (margins == 0.0) "0%" else "${margins.toInt()}%",
+                    valueRange = -10f..10f,
+                    onValueChange = { onMarginsChange(it.toDouble()) },
+                )
+            }
+        }
+
         Spacer(Modifier.height(8.dp))
+
+        // ── Columns dropdown ──────────────────────────────────────────────────
+        var showColumnsDropdown by remember { mutableStateOf(false) }
+        val columnsLabel = when (columnCount) {
+            "one" -> "1"
+            "two" -> "2"
+            else -> "Auto Set"
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp))
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                "Columns",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Box {
+                Row(
+                    modifier = Modifier
+                        .background(
+                            MaterialTheme.colorScheme.surfaceContainerHigh,
+                            RoundedCornerShape(8.dp)
+                        )
+                        .clickable { showColumnsDropdown = true }
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        columnsLabel,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Icon(
+                        PhosphorIcons.Regular.CaretDown,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                DropdownMenu(
+                    expanded = showColumnsDropdown,
+                    onDismissRequest = { showColumnsDropdown = false },
+                ) {
+                    listOf(
+                        "auto" to "Auto Set",
+                        "one" to "1",
+                        "two" to "2"
+                    ).forEach { (key, label) ->
+                        DropdownMenuItem(
+                            text = { Text(label) },
+                            onClick = { onColumnCountChange(key); showColumnsDropdown = false },
+                            trailingIcon = if (columnCount == key) {
+                                {
+                                    Icon(
+                                        PhosphorIcons.Regular.Check,
+                                        null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            } else null,
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        // ── Justify Text ──────────────────────────────────────────────────────
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp))
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                "Justify Text",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Switch(
+                checked = justifyText,
+                onCheckedChange = onJustifyTextChange,
+            )
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // ── Reset Theme button ────────────────────────────────────────────────
+        Button(
+            onClick = onResetSettings,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+            ),
+            shape = RoundedCornerShape(12.dp),
+        ) {
+            Text(
+                "Reset Theme",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(vertical = 4.dp),
+            )
+        }
+
+        Spacer(Modifier.height(24.dp))
     }
 }
 
@@ -2026,6 +2487,51 @@ fun CreateAnnotationSheet(
         }
 
         Spacer(Modifier.height(16.dp))
+    }
+}
+
+// ── Layout slider row ─────────────────────────────────────────────────────────
+
+@Composable
+private fun LayoutSliderRow(
+    label: String,
+    icon: @Composable () -> Unit,
+    value: Float,
+    valueText: String,
+    valueRange: ClosedFloatingPointRange<Float>,
+    onValueChange: (Float) -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                letterSpacing = 0.5.sp,
+            )
+            Text(
+                text = valueText,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Spacer(Modifier.height(2.dp))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            icon()
+            Slider(
+                value = value,
+                onValueChange = onValueChange,
+                valueRange = valueRange,
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 }
 

@@ -21,6 +21,19 @@ private val DEFAULT_ANNOTATION_COLOR = 0x80FFD60A.toInt()
 private const val PREFS_NAME = "reader_prefs"
 private const val KEY_THEME = "theme_id"
 private const val KEY_FONT = "font_size"
+private const val KEY_SCROLL = "page_scroll"
+private const val KEY_CUSTOMIZE = "customize_layout"
+private const val KEY_LINE_SPACING = "line_spacing"
+private const val KEY_CHAR_SPACING = "char_spacing"
+private const val KEY_WORD_SPACING = "word_spacing"
+private const val KEY_MARGINS = "margins"
+private const val KEY_COLUMNS = "column_count"
+private const val KEY_JUSTIFY = "justify_text"
+
+private const val DEFAULT_LINE_SPACING = 1.4f
+private const val DEFAULT_CHAR_SPACING = 0.0f
+private const val DEFAULT_WORD_SPACING = 0.0f
+private const val DEFAULT_MARGINS = 0.0f
 
 @OptIn(ExperimentalReadiumApi::class)
 class ReaderViewModel(
@@ -56,6 +69,96 @@ class ReaderViewModel(
         val next = (_fontSize.value + delta).coerceIn(0.5, 2.0)
         _fontSize.value = next
         prefs.edit().putFloat(KEY_FONT, next.toFloat()).apply()
+    }
+
+    // ── Page flipping (scroll mode) ──────────────────────────────────────────
+
+    private val _pageScroll = MutableStateFlow(prefs.getBoolean(KEY_SCROLL, false))
+    val pageScroll: StateFlow<Boolean> = _pageScroll
+
+    fun setPageScroll(scrollMode: Boolean) {
+        _pageScroll.value = scrollMode
+        prefs.edit().putBoolean(KEY_SCROLL, scrollMode).apply()
+    }
+
+    // ── Layout customization (persisted) ─────────────────────────────────────
+
+    private val _customizeLayout = MutableStateFlow(prefs.getBoolean(KEY_CUSTOMIZE, false))
+    val customizeLayout: StateFlow<Boolean> = _customizeLayout
+
+    fun setCustomizeLayout(enabled: Boolean) {
+        _customizeLayout.value = enabled
+        prefs.edit().putBoolean(KEY_CUSTOMIZE, enabled).apply()
+    }
+
+    private val _lineSpacing =
+        MutableStateFlow(prefs.getFloat(KEY_LINE_SPACING, DEFAULT_LINE_SPACING).toDouble())
+    val lineSpacing: StateFlow<Double> = _lineSpacing
+
+    fun setLineSpacing(value: Double) {
+        _lineSpacing.value = value.coerceIn(0.8, 2.5)
+        prefs.edit().putFloat(KEY_LINE_SPACING, _lineSpacing.value.toFloat()).apply()
+    }
+
+    private val _characterSpacing =
+        MutableStateFlow(prefs.getFloat(KEY_CHAR_SPACING, DEFAULT_CHAR_SPACING).toDouble())
+    val characterSpacing: StateFlow<Double> = _characterSpacing
+
+    fun setCharacterSpacing(value: Double) {
+        _characterSpacing.value = value.coerceIn(-10.0, 10.0)
+        prefs.edit().putFloat(KEY_CHAR_SPACING, _characterSpacing.value.toFloat()).apply()
+    }
+
+    private val _wordSpacing =
+        MutableStateFlow(prefs.getFloat(KEY_WORD_SPACING, DEFAULT_WORD_SPACING).toDouble())
+    val wordSpacing: StateFlow<Double> = _wordSpacing
+
+    fun setWordSpacing(value: Double) {
+        _wordSpacing.value = value.coerceIn(-20.0, 20.0)
+        prefs.edit().putFloat(KEY_WORD_SPACING, _wordSpacing.value.toFloat()).apply()
+    }
+
+    private val _margins =
+        MutableStateFlow(prefs.getFloat(KEY_MARGINS, DEFAULT_MARGINS).toDouble())
+    val margins: StateFlow<Double> = _margins
+
+    fun setMargins(value: Double) {
+        _margins.value = value.coerceIn(-10.0, 10.0)
+        prefs.edit().putFloat(KEY_MARGINS, _margins.value.toFloat()).apply()
+    }
+
+    // "auto" | "one" | "two"
+    private val _columnCount =
+        MutableStateFlow(prefs.getString(KEY_COLUMNS, "auto") ?: "auto")
+    val columnCount: StateFlow<String> = _columnCount
+
+    fun setColumnCount(value: String) {
+        _columnCount.value = value
+        prefs.edit().putString(KEY_COLUMNS, value).apply()
+    }
+
+    private val _justifyText = MutableStateFlow(prefs.getBoolean(KEY_JUSTIFY, false))
+    val justifyText: StateFlow<Boolean> = _justifyText
+
+    fun setJustifyText(value: Boolean) {
+        _justifyText.value = value
+        prefs.edit().putBoolean(KEY_JUSTIFY, value).apply()
+    }
+
+    /** Resets all layout / typography settings to their defaults. */
+    fun resetLayoutSettings() {
+        setPageScroll(false)
+        setCustomizeLayout(false)
+        _lineSpacing.value = DEFAULT_LINE_SPACING.toDouble()
+        prefs.edit().putFloat(KEY_LINE_SPACING, DEFAULT_LINE_SPACING).apply()
+        _characterSpacing.value = DEFAULT_CHAR_SPACING.toDouble()
+        prefs.edit().putFloat(KEY_CHAR_SPACING, DEFAULT_CHAR_SPACING).apply()
+        _wordSpacing.value = DEFAULT_WORD_SPACING.toDouble()
+        prefs.edit().putFloat(KEY_WORD_SPACING, DEFAULT_WORD_SPACING).apply()
+        _margins.value = DEFAULT_MARGINS.toDouble()
+        prefs.edit().putFloat(KEY_MARGINS, DEFAULT_MARGINS).apply()
+        setColumnCount("auto")
+        setJustifyText(false)
     }
 
     // ── Search ───────────────────────────────────────────────────────────────
