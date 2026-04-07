@@ -100,6 +100,7 @@ import com.example.liber.data.BookmarkEntity
 import com.example.liber.ui.components.EmptyState
 import com.example.liber.ui.components.LiberTabBar
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import org.readium.r2.navigator.DecorableNavigator
@@ -252,6 +253,50 @@ fun ReaderScreen(
     var currentLocator by remember { mutableStateOf<Locator?>(null) }
     LaunchedEffect(navigator) {
         navigator?.currentLocator?.collect { currentLocator = it }
+    }
+
+    // Re-inject selection color CSS into Readium's inner iframes on every page turn and theme change.
+    // Readium renders each spine item inside a separate <iframe> whose document is replaced on
+    // navigation, so a one-time injection is lost. Targeting the iframe's contentDocument via JS
+    // ensures the style is applied to the actual EPUB content, not just the outer shell.
+    LaunchedEffect(currentLocator?.href, themeId) {
+        val t = findReaderTheme(themeId)
+        val selCss = t.selectionColorCss
+        // Wait briefly for the iframe's content to finish loading after a page turn.
+        delay(300)
+        val webView = findWebView(fragmentActivity.window.decorView) ?: return@LaunchedEffect
+
+        @Suppress("StringShouldBeRawString")
+        val js = """
+            (function injectSelectionStyle() {
+                var selColor = '$selCss';
+                var styleId = '__liber_sel_style__';
+                var rule = '::selection { background-color: ' + selColor + ' !important; color: inherit !important; }';
+
+                // Helper: inject/replace style in a given document
+                function applyTo(doc) {
+                    if (!doc || !doc.head) return;
+                    var old = doc.getElementById(styleId);
+                    if (old) old.remove();
+                    var s = doc.createElement('style');
+                    s.id = styleId;
+                    s.textContent = rule;
+                    doc.head.appendChild(s);
+                }
+
+                // Apply to outer document (may not be needed but harmless)
+                applyTo(document);
+
+                // Apply to every iframe's inner document — Readium uses iframes per spine item
+                var iframes = document.querySelectorAll('iframe');
+                for (var i = 0; i < iframes.length; i++) {
+                    try {
+                        applyTo(iframes[i].contentDocument);
+                    } catch (e) { /* cross-origin guard */ }
+                }
+            })();
+        """.trimIndent()
+        webView.evaluateJavascript(js, null)
     }
 
     val progress = currentLocator?.locations?.totalProgression?.toFloat() ?: 0f
@@ -429,7 +474,13 @@ fun ReaderScreen(
                             ) return false
                             val webView = findWebView(fragmentActivity.window.decorView)
                             webView?.evaluateJavascript("window.getSelection().toString()") { raw ->
-                                val text = raw?.removeSurrounding("\"")?.takeIf { it.isNotBlank() }
+                                // Use JSONTokener to correctly unescape the JS result so that
+                                // embedded \n sequences become real newlines instead of literals.
+                                val text = raw?.let {
+                                    runCatching {
+                                        org.json.JSONTokener(it).nextValue()?.toString()
+                                    }.getOrNull() ?: it.removeSurrounding("\"")
+                                }?.takeIf { it.isNotBlank() }
                                 when (item.itemId) {
                                     ID_HIGHLIGHT -> onRequestAnnotation(
                                         AnnotationRequest.Highlight(
