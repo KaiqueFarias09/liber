@@ -891,9 +891,11 @@ fun ReaderScreen(
                             // Editing an existing annotation — REPLACE via same primary key
                             val existing = annotations.find { it.id == editingId }
                             if (existing != null) {
+                                val updatedNote = noteText.ifBlank { null }
                                 onSaveAnnotation(
                                     existing.copy(
-                                        note = noteText.ifBlank { null },
+                                        type = if (updatedNote != null) "note" else "highlight",
+                                        note = updatedNote,
                                         color = selectedColor,
                                     )
                                 )
@@ -925,7 +927,7 @@ fun ReaderScreen(
     }
 
     // ── Annotation Action Sheet (tap on existing highlight) ───────────────────
-    val context = LocalContext.current
+    LocalContext.current
     if (tappedAnnotation != null) {
         ModalBottomSheet(
             onDismissRequest = { viewModel.dismissAnnotationMenu() },
@@ -937,12 +939,14 @@ fun ReaderScreen(
                 annotation = tappedAnnotation,
                 onEditNote = { viewModel.startAnnotationEdit(tappedAnnotation) },
                 onShare = {
-                    val shareText = tappedAnnotation.text ?: return@AnnotationActionsSheet
-                    val intent = Intent(Intent.ACTION_SEND).apply {
-                        type = "text/plain"
-                        putExtra(Intent.EXTRA_TEXT, shareText)
+                    val shareText = tappedAnnotation.text
+                    if (!shareText.isNullOrBlank()) {
+                        val intent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, shareText)
+                        }
+                        fragmentActivity.startActivity(Intent.createChooser(intent, null))
                     }
-                    context.startActivity(Intent.createChooser(intent, null))
                     viewModel.dismissAnnotationMenu()
                 },
                 onDelete = {
