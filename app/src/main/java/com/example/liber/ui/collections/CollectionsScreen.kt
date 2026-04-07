@@ -384,6 +384,11 @@ fun CollectionDetailScreen(
                     onDismissRequest = { showMenu = false },
                 ) {
                     DropdownMenuItem(
+                        text = { Text("Add books") },
+                        leadingIcon = { Icon(PhosphorIcons.Regular.Plus, null) },
+                        onClick = { showMenu = false; showAddBooksSheet = true },
+                    )
+                    DropdownMenuItem(
                         text = { Text("Rename") },
                         leadingIcon = { Icon(PhosphorIcons.Regular.PencilSimple, null) },
                         onClick = { showMenu = false; showRenameDialog = true },
@@ -408,41 +413,7 @@ fun CollectionDetailScreen(
             }
         }
 
-        // Info
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 8.dp),
-        ) {
-            Spacer(Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "${collection.books.size} ${if (collection.books.size == 1) "book" else "books"}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.width(12.dp))
-                TextButton(
-                    onClick = { showAddBooksSheet = true },
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
-                ) {
-                    Icon(
-                        PhosphorIcons.Regular.Plus,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        text = "Add books",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-        }
 
-        Spacer(Modifier.height(8.dp))
 
         // Book grid
         if (collection.books.isEmpty()) {
