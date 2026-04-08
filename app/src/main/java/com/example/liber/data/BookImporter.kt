@@ -2,11 +2,13 @@ package com.example.liber.data
 
 import android.app.Application
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.graphics.pdf.PdfRenderer
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.text.Layout
 import android.text.StaticLayout
@@ -15,10 +17,25 @@ import androidx.documentfile.provider.DocumentFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.readium.r2.shared.ExperimentalReadiumApi
+import org.readium.r2.shared.InternalReadiumApi
+import org.readium.r2.shared.publication.Href
+import org.readium.r2.shared.publication.Link
+import org.readium.r2.shared.publication.LocalizedString
+import org.readium.r2.shared.publication.Manifest
+import org.readium.r2.shared.publication.Metadata
 import org.readium.r2.shared.publication.Publication
 import org.readium.r2.shared.publication.services.cover
+import org.readium.r2.shared.util.AbsoluteUrl
+import org.readium.r2.shared.util.Try
+import org.readium.r2.shared.util.Url
 import org.readium.r2.shared.util.asset.AssetRetriever
+import org.readium.r2.shared.util.content.ContentResolverError
+import org.readium.r2.shared.util.data.Container
+import org.readium.r2.shared.util.data.ReadError
 import org.readium.r2.shared.util.http.DefaultHttpClient
+import org.readium.r2.shared.util.mediatype.MediaType
+import org.readium.r2.shared.util.resource.FailureResource
+import org.readium.r2.shared.util.resource.Resource
 import org.readium.r2.shared.util.toUrl
 import org.readium.r2.streamer.PublicationOpener
 import org.readium.r2.streamer.parser.DefaultPublicationParser
@@ -27,7 +44,7 @@ import java.io.FileOutputStream
 import java.security.MessageDigest
 import java.util.UUID
 
-@OptIn(ExperimentalReadiumApi::class)
+@OptIn(ExperimentalReadiumApi::class, InternalReadiumApi::class)
 class BookImporter(private val application: Application) {
 
     private val httpClient = DefaultHttpClient()
@@ -41,13 +58,31 @@ class BookImporter(private val application: Application) {
         )
     )
 
-    suspend fun openPublication(uri: Uri): Publication? = try {
-        val tempFile = copyToTempFile(uri)
-        val asset = assetRetriever.retrieve(tempFile.toUrl()).getOrNull() ?: return null
-        publicationOpener.open(asset, allowUserInteraction = false).getOrNull()
-    } catch (e: Exception) {
-        e.printStackTrace()
-        null
+    suspend fun openPublication(uri: Uri): Publication? = withContext(Dispatchers.IO) {
+        try {
+            val file = if (uri.toString().contains("tree")) {
+                DocumentFile.fromTreeUri(application, uri)
+            } else {
+                DocumentFile.fromSingleUri(application, uri)
+            } ?: return@withContext null
+
+            if (file.isDirectory) {
+                return@withContext createAudiobookPublication(file)
+            }
+
+            val extension = file.name?.substringAfterLast('.', "").orEmpty().lowercase()
+            if (isAudioFile(extension)) {
+                return@withContext createAudiobookPublication(file)
+            }
+
+            val tempFile = copyToTempFile(uri)
+            val asset =
+                assetRetriever.retrieve(tempFile.toUrl()).getOrNull() ?: return@withContext null
+            publicationOpener.open(asset, allowUserInteraction = false).getOrNull()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
     }
 
     suspend fun parseBook(file: DocumentFile): Book? {
@@ -68,7 +103,7 @@ class BookImporter(private val application: Application) {
     private suspend fun parseAudiobookFolder(dir: DocumentFile): Book {
         val title = dir.name ?: "Unknown Audiobook"
         val author = "Audiobook"
-        val coverUri = saveBitmapToCache(generateFallbackCover(title, author), dir.name ?: "audio")
+        val coverUri = getBestAudiobookCover(dir, title, author)
 
         return Book(
             id = UUID.randomUUID().toString(),
@@ -77,14 +112,158 @@ class BookImporter(private val application: Application) {
             coverUri = coverUri,
             fileUri = dir.uri,
             contentId = dir.uri.toString(), // URI acts as content ID for folders
-            mediaType = "audio/mpeg", // Or readium audiobook manifest type?
+            mediaType = "audio/mpeg",
         )
+    }
+
+    private suspend fun createAudiobookPublication(file: DocumentFile): Publication? {
+        val audioFiles = if (file.isDirectory) {
+            file.listFiles()
+                .filter {
+                    it.isFile && isAudioFile(
+                        it.name?.substringAfterLast('.', "").orEmpty().lowercase()
+                    )
+                }
+                .sortedBy { it.name }
+        } else {
+            listOf(file)
+        }
+
+        if (audioFiles.isEmpty()) return null
+
+        val links = audioFiles.mapNotNull { f ->
+            f.name?.let { name ->
+                Url.fromDecodedPath("/$name")?.let { url ->
+                    Link(
+                        href = Href(url),
+                        mediaType = MediaType("audio/mpeg")
+                    )
+                }
+            }
+        }
+
+        val manifest = Manifest(
+            metadata = Metadata(
+                localizedTitle = LocalizedString(
+                    file.name?.substringBeforeLast('.') ?: "Unknown Audiobook"
+                )
+            ),
+            readingOrder = links
+        )
+
+        val container = object : Container<Resource> {
+            override val sourceUrl: AbsoluteUrl? = null
+
+            override val entries: Set<Url> = audioFiles.mapNotNull { f ->
+                f.name?.let { Url.fromDecodedPath("/$it") }
+            }.toSet()
+
+            override fun get(url: Url): Resource? {
+                val fileName = url.path?.removePrefix("/")
+                val targetFile = audioFiles.find { it.name == fileName }
+                return if (targetFile != null) {
+                    ContentResolverResource(application.contentResolver, targetFile.uri)
+                } else {
+                    FailureResource(ReadError.Access(ContentResolverError.FileNotFound()))
+                }
+            }
+
+            override fun close() {}
+        }
+
+        return Publication(manifest = manifest, container = container)
+    }
+
+    private suspend fun getBestAudiobookCover(
+        dir: DocumentFile,
+        title: String,
+        author: String?
+    ): Uri? {
+        return findCoverImageInFolder(dir)
+            ?: run {
+                val firstAudio = dir.listFiles().find { file ->
+                    isAudioFile(file.name?.substringAfterLast('.', "").orEmpty().lowercase())
+                }
+                firstAudio?.let { extractEmbeddedCover(it, title) }
+            }
+            ?: saveBitmapToCache(generateFallbackCover(title, author), dir.name ?: "audio")
+    }
+
+    private fun findCoverImageInFolder(dir: DocumentFile): Uri? {
+        val imageExtensions = setOf("jpg", "jpeg", "png")
+        val coverNames = setOf("cover", "folder", "front", "album")
+
+        return dir.listFiles().find { file ->
+            val name = file.name?.substringBeforeLast('.')?.lowercase() ?: ""
+            val ext = file.name?.substringAfterLast('.', "")?.lowercase() ?: ""
+            file.isFile && name in coverNames && ext in imageExtensions
+        }?.uri
+    }
+
+    private fun extractEmbeddedCover(file: DocumentFile, cacheName: String): Uri? {
+        val retriever = MediaMetadataRetriever()
+        return try {
+            retriever.setDataSource(application, file.uri)
+            val art = retriever.embeddedPicture
+            if (art != null) {
+                val bitmap = BitmapFactory.decodeByteArray(art, 0, art.size)
+                saveBitmapToCache(bitmap, cacheName)
+            } else null
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        } finally {
+            retriever.release()
+        }
+    }
+
+    /**
+     * Minimal Resource implementation for ContentResolver URIs.
+     * In a production Readium app, you'd use their built-in ContentResolverFetcher / Resource if available.
+     */
+    private class ContentResolverResource(
+        private val contentResolver: android.content.ContentResolver,
+        private val uri: Uri,
+    ) : Resource {
+        override val sourceUrl: AbsoluteUrl? = null
+
+        override suspend fun properties(): Try<Resource.Properties, ReadError> =
+            Try.success(Resource.Properties())
+
+        override suspend fun length(): Try<Long, ReadError> = try {
+            contentResolver.openFileDescriptor(uri, "r")?.use {
+                Try.success(it.statSize)
+            } ?: Try.failure(ReadError.Access(ContentResolverError.FileNotFound()))
+        } catch (e: Exception) {
+            Try.failure(ReadError.Access(ContentResolverError.IO(e)))
+        }
+
+        override suspend fun read(range: LongRange?): Try<ByteArray, ReadError> = try {
+            contentResolver.openInputStream(uri)?.use { input ->
+                if (range != null) {
+                    input.skip(range.first)
+                    val length = (range.last - range.first + 1).toInt()
+                    val bytes = ByteArray(length)
+                    val bytesRead = input.read(bytes)
+                    val finalBytes =
+                        if (bytesRead < length) bytes.copyOf(maxOf(0, bytesRead)) else bytes
+                    Try.success(finalBytes)
+                } else {
+                    Try.success(input.readBytes())
+                }
+            } ?: Try.failure(ReadError.Access(ContentResolverError.FileNotFound()))
+        } catch (e: Exception) {
+            Try.failure(ReadError.Access(ContentResolverError.IO(e)))
+        }
+
+        override fun close() {}
     }
 
     private suspend fun parseSingleAudioFile(file: DocumentFile): Book {
         val title = file.name?.substringBeforeLast('.') ?: "Unknown Audio"
         val author = "Audiobook"
-        val coverUri = saveBitmapToCache(generateFallbackCover(title, author), file.name ?: "audio")
+        val coverUri = extractEmbeddedCover(file, title)
+            ?: saveBitmapToCache(generateFallbackCover(title, author), file.name ?: "audio")
         val contentId = computeFileHash(file.uri) ?: file.uri.toString()
 
         return Book(

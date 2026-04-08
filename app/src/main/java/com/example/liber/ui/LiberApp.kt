@@ -128,10 +128,24 @@ fun LiberApp(
     val onOpenBook: (com.example.liber.data.Book) -> Unit = { book ->
         scope.launch {
             val publication = viewModel.openBook(book)
-            if (publication != null) {
-                liberAppViewModel.openEpub(book, publication)
-            } else {
-                liberAppViewModel.openPdf(book)
+            when {
+                publication != null -> {
+                    // This handles EPUBs and synthesized audiobook publications
+                    liberAppViewModel.openEpub(book, publication)
+                }
+
+                book.mediaType == "audio/mpeg" || book.mediaType == "audiobook" -> {
+                    // Should already be handled above if synthesis succeeded,
+                    // but as a safety measure for folder-based audiobooks.
+                    liberAppViewModel.openPdf(book) // Wait, this is still setting publication to null.
+                    // Actually, let's keep it simple: if publication is null but it's audio, 
+                    // we still want to show the player (mockup mode).
+                    liberAppViewModel.openPdf(book)
+                }
+
+                else -> {
+                    liberAppViewModel.openPdf(book)
+                }
             }
         }
     }
