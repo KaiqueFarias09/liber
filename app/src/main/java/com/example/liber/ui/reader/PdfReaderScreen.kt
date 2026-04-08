@@ -27,9 +27,10 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -37,7 +38,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -118,12 +119,12 @@ fun PdfReaderScreen(
     bookId: String,
     initialPage: Int,
     bookmarks: List<BookmarkEntity>,
-    notes: List<AnnotationEntity>,
+    annotations: List<AnnotationEntity>,
     onSaveLocator: (json: String, progress: Int) -> Unit,
     onSaveBookmark: (BookmarkEntity) -> Unit,
     onDeleteBookmark: (Long) -> Unit,
-    onSaveNote: (AnnotationEntity) -> Unit,
-    onDeleteNote: (Long) -> Unit,
+    onSaveAnnotation: (AnnotationEntity) -> Unit,
+    onDeleteAnnotation: (Long) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -136,6 +137,9 @@ fun PdfReaderScreen(
     val inkConfig by viewModel.inkConfig.collectAsState()
     val drawMode by viewModel.drawingModeActive.collectAsState()
     val showNoteCreator by viewModel.showNoteCreator.collectAsState()
+    val pendingNoteSelectedText by viewModel.pendingNoteSelectedText.collectAsState()
+    val pendingHighlight by viewModel.pendingHighlight.collectAsState()
+    val highlightColor by viewModel.highlightColor.collectAsState()
     val writableUri by viewModel.writableUri.collectAsState()
     val persistedStrokes by viewModel.persistedStrokes.collectAsState()
 
@@ -149,7 +153,8 @@ fun PdfReaderScreen(
     // Tracks the screen rect of each visible page; updated by the fragment on every scroll/zoom.
     val pageLocations = remember { mutableStateOf(emptyMap<Int, android.graphics.RectF>()) }
 
-    val isAnyModalOpen = showContents || showNotebook || showDrawPanel || showNoteCreator
+    val isAnyModalOpen = showContents || showNotebook || showDrawPanel ||
+            showNoteCreator || pendingHighlight != null
 
     // Page-based bookmark detection
     val isCurrentPageBookmarked = bookmarks.any { bm ->
@@ -231,6 +236,14 @@ fun PdfReaderScreen(
                     }
                     frag.onPageChanged = { page -> viewModel.onPageChanged(page) }
                     frag.onPageLocationsChanged = { locations -> pageLocations.value = locations }
+                    frag.getCurrentPage = { viewModel.currentPage.value }
+                    frag.onTextSelectionAction = { action, text, page ->
+                        when (action) {
+                            PdfTextAction.HIGHLIGHT -> viewModel.startHighlight(text, page)
+                            PdfTextAction.NOTE -> viewModel.openNoteCreatorWithSelection(text)
+                            PdfTextAction.SHARE -> Unit // handled inline in the fragment
+                        }
+                    }
                     fragmentActivity.supportFragmentManager.commit { replace(id, frag) }
                     pdfFragment = frag
 
@@ -463,7 +476,7 @@ fun PdfReaderScreen(
                                         contentDescription = null,
                                         tint = chromeIcon
                                     )
-                                    if (bookmarks.isNotEmpty() || notes.isNotEmpty()) {
+                                    if (bookmarks.isNotEmpty() || annotations.isNotEmpty()) {
                                         Box(
                                             modifier = Modifier
                                                 .size(8.dp)
@@ -601,63 +614,24 @@ fun PdfReaderScreen(
             onDismissRequest = { showNotebook = false },
             skipPartiallyExpanded = true,
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "Notes",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Button(
-                    onClick = {
-                        showNotebook = false
-                        viewModel.openNoteCreator()
-                    },
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                ) { Text("Add Note") }
-            }
-
-            if (notes.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(120.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = "No notes yet",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f, fill = false),
-                    contentPadding = PaddingValues(vertical = 8.dp),
-                ) {
-                    items(notes, key = { it.id }) { note ->
-                        DarkAnnotationItem(
-                            annotation = note,
-                            onClick = {
-                                val page =
-                                    runCatching { JSONObject(note.locator).getInt("page") }.getOrDefault(
-                                        0
-                                    )
-                                pendingScrollPage = page
-                                showNotebook = false
-                            },
-                            onDelete = { onDeleteNote(note.id) },
-                        )
-                    }
-                }
-            }
+            NotebookView(
+                bookmarks = bookmarks,
+                annotations = annotations,
+                modifier = Modifier.weight(1f),
+                onBookmarkClick = { bm ->
+                    val page = runCatching { JSONObject(bm.locator).getInt("page") }.getOrDefault(0)
+                    pendingScrollPage = page
+                    showNotebook = false
+                },
+                onDeleteBookmark = { bm -> onDeleteBookmark(bm.id) },
+                onNoteClick = { annotation ->
+                    val page =
+                        runCatching { JSONObject(annotation.locator).getInt("page") }.getOrDefault(0)
+                    pendingScrollPage = page
+                    showNotebook = false
+                },
+                onDeleteNote = { annotation -> onDeleteAnnotation(annotation.id) },
+            )
             Spacer(Modifier.height(24.dp))
         }
     }
@@ -770,6 +744,33 @@ fun PdfReaderScreen(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                // Show selected text quote when note was triggered from a text selection
+                if (!pendingNoteSelectedText.isNullOrBlank()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(IntrinsicSize.Min),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .width(3.dp)
+                                .fillMaxHeight()
+                                .background(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                                    androidx.compose.foundation.shape.RoundedCornerShape(2.dp),
+                                )
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            text = "\"$pendingNoteSelectedText\"",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
                 LiberTextField(
                     value = noteText,
                     onValueChange = { viewModel.setNoteText(it) },
@@ -784,13 +785,14 @@ fun PdfReaderScreen(
                     ) { Text("Cancel") }
                     Button(
                         onClick = {
-                            onSaveNote(
+                            onSaveAnnotation(
                                 AnnotationEntity(
                                     bookId = bookId,
                                     type = "note",
                                     color = 0xFFFFF8DC.toInt(),
                                     locator = """{"page":$currentPage}""",
-                                    text = "Page ${currentPage + 1}",
+                                    text = pendingNoteSelectedText?.takeIf { it.isNotBlank() }
+                                        ?: "Page ${currentPage + 1}",
                                     note = noteText.ifBlank { null },
                                 )
                             )
@@ -798,6 +800,104 @@ fun PdfReaderScreen(
                         },
                         modifier = Modifier.weight(1f),
                         enabled = noteText.isNotBlank(),
+                    ) { Text("Save") }
+                }
+                Spacer(Modifier.height(24.dp))
+            }
+        }
+    }
+
+    // ── Highlight Color Picker Sheet ──────────────────────────────────────────
+    val highlight = pendingHighlight
+    if (highlight != null) {
+        LiberModalBottomSheet(
+            title = "Highlight",
+            onDismissRequest = { viewModel.dismissHighlight() },
+            skipPartiallyExpanded = false,
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Text(
+                    text = "Page ${highlight.page + 1}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (!highlight.text.isNullOrBlank()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(IntrinsicSize.Min),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .width(3.dp)
+                                .fillMaxHeight()
+                                .background(
+                                    Color(highlightColor.toLong() and 0xFFFFFFFFL).copy(alpha = 1f),
+                                    androidx.compose.foundation.shape.RoundedCornerShape(2.dp),
+                                )
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            text = "\"${highlight.text}\"",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1f),
+                            maxLines = 4,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                Text(
+                    text = "Color",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    AnnotationColorOptions.forEach { colorArgb ->
+                        val selected = highlightColor == colorArgb
+                        val hue = Color(colorArgb.toLong() and 0xFFFFFFFFL).copy(alpha = 1f)
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(hue)
+                                .border(
+                                    width = if (selected) 3.dp else 1.dp,
+                                    color = if (selected) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.outlineVariant,
+                                    shape = CircleShape,
+                                )
+                                .clickable { viewModel.setHighlightColor(colorArgb) },
+                        )
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(
+                        onClick = { viewModel.dismissHighlight() },
+                        modifier = Modifier.weight(1f),
+                    ) { Text("Cancel") }
+                    Button(
+                        onClick = {
+                            onSaveAnnotation(
+                                AnnotationEntity(
+                                    bookId = bookId,
+                                    type = "highlight",
+                                    color = highlightColor,
+                                    locator = """{"page":${highlight.page}}""",
+                                    text = highlight.text?.takeIf { it.isNotBlank() },
+                                    note = null,
+                                )
+                            )
+                            viewModel.dismissHighlight()
+                        },
+                        modifier = Modifier.weight(1f),
                     ) { Text("Save") }
                 }
                 Spacer(Modifier.height(24.dp))

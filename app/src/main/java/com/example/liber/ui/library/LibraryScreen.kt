@@ -199,7 +199,7 @@ fun LibraryScreen(
                                 EmptyState(
                                     title = "No audiobooks",
                                     subtitle = "Add a folder with mp3 files to listen",
-                                    image = R.drawable.library_empty, // Consider using a different icon
+                                    image = R.drawable.audiobooks_empty, // Consider using a different icon
                                     actionLabel = "Import Folder",
                                     onAction = onAddBooks, // Assume + is also used for folders
                                     modifier = Modifier.padding(horizontal = 24.dp),

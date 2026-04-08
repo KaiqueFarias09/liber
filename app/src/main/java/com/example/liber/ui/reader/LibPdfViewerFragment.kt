@@ -163,7 +163,7 @@ private const val MENU_ID_NOTE      = 0xBEEF_02
 private const val MENU_ID_SHARE_PDF = 0xBEEF_03
 
 /**
- * Wraps the Activity's [Window.Callback] to intercept [startActionMode] calls
+ * Wraps the Activity's [Window.Callback] to intercept ActionMode creation calls
  * originating from the PDF viewer's text selection. Injects "Highlight", "Add Note",
  * and "Share" items into the floating text selection menu.
  */
@@ -173,15 +173,15 @@ internal class PdfSelectionWindowCallbackWrapper(
     private val getContext: () -> Context,
 ) : Window.Callback by original {
 
-    override fun startActionMode(callback: ActionMode.Callback, type: Int): ActionMode? {
-        return original.startActionMode(
+    override fun onWindowStartingActionMode(callback: ActionMode.Callback, type: Int): ActionMode? {
+        return original.onWindowStartingActionMode(
             PdfActionModeCallbackWrapper(callback, onActionTriggered, getContext),
             type,
         )
     }
 
-    override fun startActionMode(callback: ActionMode.Callback): ActionMode? {
-        return original.startActionMode(
+    override fun onWindowStartingActionMode(callback: ActionMode.Callback): ActionMode? {
+        return original.onWindowStartingActionMode(
             PdfActionModeCallbackWrapper(callback, onActionTriggered, getContext),
         )
     }

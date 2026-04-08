@@ -163,12 +163,12 @@ fun LiberApp(
             bookId = book.id,
             initialPage = initialPage,
             bookmarks = bookmarks,
-            notes = annotations.filter { it.type == "note" },
+            annotations = annotations,
             onSaveLocator = { json, progress -> viewModel.saveLocator(book.id, json, progress) },
             onSaveBookmark = { bookmark -> viewModel.saveBookmark(bookmark) },
             onDeleteBookmark = { bookmarkId -> viewModel.deleteBookmark(bookmarkId) },
-            onSaveNote = { annotation -> viewModel.saveAnnotation(annotation) },
-            onDeleteNote = { annotationId -> viewModel.deleteAnnotation(annotationId) },
+            onSaveAnnotation = { annotation -> viewModel.saveAnnotation(annotation) },
+            onDeleteAnnotation = { annotationId -> viewModel.deleteAnnotation(annotationId) },
             onBack = { liberAppViewModel.closeReader() },
         )
     } else if (publication != null && book != null) {

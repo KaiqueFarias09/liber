@@ -21,6 +21,12 @@ data class PdfInkConfig(
     val thickness: Float = 5f
 )
 
+/**
+ * Holds the state for a pending PDF text-selection highlight (before the user picks a color).
+ * [text] is the selected text (null if extraction failed), [page] is the 0-indexed page.
+ */
+data class PdfPendingHighlight(val text: String?, val page: Int)
+
 class PdfReaderViewModel(application: Application) : AndroidViewModel(application) {
 
     private val db = AppDatabase.getDatabase(application)
@@ -86,7 +92,18 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
     private val _pendingNoteText = MutableStateFlow("")
     val pendingNoteText: StateFlow<String> = _pendingNoteText.asStateFlow()
 
+    /** Text pre-filled from a text selection (the "quoted" excerpt). */
+    private val _pendingNoteSelectedText = MutableStateFlow<String?>(null)
+    val pendingNoteSelectedText: StateFlow<String?> = _pendingNoteSelectedText.asStateFlow()
+
     fun openNoteCreator() {
+        _pendingNoteSelectedText.value = null
+        _showNoteCreator.value = true
+    }
+
+    /** Opens the note creator pre-filled with text selected in the PDF. */
+    fun openNoteCreatorWithSelection(selectedText: String?) {
+        _pendingNoteSelectedText.value = selectedText?.takeIf { it.isNotBlank() }
         _showNoteCreator.value = true
     }
 
@@ -97,6 +114,27 @@ class PdfReaderViewModel(application: Application) : AndroidViewModel(applicatio
     fun dismissNoteCreator() {
         _showNoteCreator.value = false
         _pendingNoteText.value = ""
+        _pendingNoteSelectedText.value = null
+    }
+
+    // ── Highlight (text selection) flow ──────────────────────────────────────
+    private val _pendingHighlight = MutableStateFlow<PdfPendingHighlight?>(null)
+    val pendingHighlight: StateFlow<PdfPendingHighlight?> = _pendingHighlight.asStateFlow()
+
+    private val _highlightColor = MutableStateFlow(AnnotationColorOptions[0])
+    val highlightColor: StateFlow<Int> = _highlightColor.asStateFlow()
+
+    fun startHighlight(text: String?, page: Int) {
+        _highlightColor.value = AnnotationColorOptions[0]
+        _pendingHighlight.value = PdfPendingHighlight(text, page)
+    }
+
+    fun setHighlightColor(colorArgb: Int) {
+        _highlightColor.value = colorArgb
+    }
+
+    fun dismissHighlight() {
+        _pendingHighlight.value = null
     }
 
     // ── Writable URI (internal-storage copy for EditablePdfViewerFragment) ───
