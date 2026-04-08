@@ -1431,7 +1431,14 @@ private fun SearchResultRow(
 
         Text(
             text = buildAnnotatedString {
-                append(locator.text.before ?: "")
+                val before = locator.text.before ?: ""
+                if (before.length > 80) {
+                    append("… ")
+                    append(before.takeLast(77))
+                } else {
+                    append(before)
+                }
+
                 withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = Color.Unspecified)) {
                     append(locator.text.highlight ?: "")
                 }
