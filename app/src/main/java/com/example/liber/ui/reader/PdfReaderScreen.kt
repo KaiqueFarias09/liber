@@ -1,5 +1,6 @@
 package com.example.liber.ui.reader
 
+import android.app.Activity
 import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Path
@@ -48,6 +49,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -70,12 +72,14 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.view.WindowCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentContainerView
 import androidx.fragment.app.commit
@@ -180,6 +184,23 @@ fun PdfReaderScreen(
             viewModel.showUI()
         } else {
             handleBack()
+        }
+    }
+
+    // Ensure status bar icons have enough contrast (always dark for PDF)
+    val view = LocalView.current
+    DisposableEffect(Unit) {
+        val window = (view.context as Activity).window
+        val insets = WindowCompat.getInsetsController(window, view)
+        val originalStatus = insets.isAppearanceLightStatusBars
+        val originalNav = insets.isAppearanceLightNavigationBars
+
+        insets.isAppearanceLightStatusBars = true
+        insets.isAppearanceLightNavigationBars = true
+
+        onDispose {
+            insets.isAppearanceLightStatusBars = originalStatus
+            insets.isAppearanceLightNavigationBars = originalNav
         }
     }
 

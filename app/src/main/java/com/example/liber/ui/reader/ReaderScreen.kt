@@ -1,5 +1,6 @@
 package com.example.liber.ui.reader
 
+import android.app.Activity
 import android.app.Application
 import android.content.Intent
 import android.view.ActionMode
@@ -60,7 +61,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -76,6 +79,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
@@ -85,6 +89,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.view.WindowCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentContainerView
@@ -257,6 +262,27 @@ fun ReaderScreen(
     val justifyText by viewModel.justifyText.collectAsState()
 
     val theme = findReaderTheme(themeId)
+
+    // Ensure status bar icons have enough contrast against the reader theme.
+    // SideEffect handles theme changes within the reader, while DisposableEffect
+    // captures and restores the app's global status bar state on exit.
+    val view = LocalView.current
+    SideEffect {
+        val window = (view.context as Activity).window
+        val insets = WindowCompat.getInsetsController(window, view)
+        insets.isAppearanceLightStatusBars = !theme.isDark
+        insets.isAppearanceLightNavigationBars = !theme.isDark
+    }
+    DisposableEffect(Unit) {
+        val window = (view.context as Activity).window
+        val insets = WindowCompat.getInsetsController(window, view)
+        val originalStatus = insets.isAppearanceLightStatusBars
+        val originalNav = insets.isAppearanceLightNavigationBars
+        onDispose {
+            insets.isAppearanceLightStatusBars = originalStatus
+            insets.isAppearanceLightNavigationBars = originalNav
+        }
+    }
 
     // Modal visibility state
     var showContents by remember { mutableStateOf(false) }
