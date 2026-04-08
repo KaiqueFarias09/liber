@@ -1,5 +1,6 @@
 package com.example.liber.ui.reader
 
+import android.app.Application
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -29,20 +30,18 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Fill
@@ -50,8 +49,9 @@ import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.fill.Pause
 import com.adamglin.phosphoricons.fill.Play
 import com.adamglin.phosphoricons.regular.ArrowLeft
+import com.adamglin.phosphoricons.regular.SkipBack
+import com.adamglin.phosphoricons.regular.SkipForward
 import com.example.liber.data.Book
-import kotlinx.coroutines.delay
 import org.readium.r2.shared.publication.Publication
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -62,12 +62,20 @@ fun AudioPlayerScreen(
     onBack: () -> Unit,
     onSaveLocator: (String, Int) -> Unit
 ) {
-    // For now, mockup states since we need Readium's AudioNavigator which requires exo-player
-    var isPlaying by remember { mutableStateOf(false) }
-    var progress by remember { mutableFloatStateOf(0f) }
+    val application = LocalContext.current.applicationContext as Application
+    val playerViewModel: AudiobookPlayerViewModel = viewModel(
+        key = book.id,
+        factory = AudiobookPlayerViewModel.Factory(application, book)
+    )
 
-    // Vinyl rotation animation
-    val infiniteTransition = rememberInfiniteTransition()
+    val isPlaying by playerViewModel.isPlaying.collectAsState()
+    val positionMs by playerViewModel.positionMs.collectAsState()
+    val durationMs by playerViewModel.durationMs.collectAsState()
+    val currentTrackIndex by playerViewModel.currentTrackIndex.collectAsState()
+    val tracks by playerViewModel.tracks.collectAsState()
+    val isPrepared by playerViewModel.isPrepared.collectAsState()
+
+    val infiniteTransition = rememberInfiniteTransition(label = "vinyl")
     val rotation by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
@@ -111,7 +119,6 @@ fun AudioPlayerScreen(
                     .clip(CircleShape)
                     .background(Color.DarkGray)
             ) {
-                // Outer texture
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -119,7 +126,6 @@ fun AudioPlayerScreen(
                         .clip(CircleShape)
                         .background(Color.Black)
                 ) {
-                    // Actual Cover
                     AsyncImage(
                         model = book.coverUri,
                         contentDescription = "Cover",
@@ -131,8 +137,6 @@ fun AudioPlayerScreen(
                             .rotate(if (isPlaying) rotation else 0f)
                     )
                 }
-
-                // Center hole
                 Box(
                     modifier = Modifier
                         .size(16.dp)
@@ -142,29 +146,39 @@ fun AudioPlayerScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-            // Title & Author
             Text(
                 text = book.title,
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = book.author ?: "Unknown Author",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
+            if (tracks.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Track ${currentTrackIndex + 1} of ${tracks.size}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-            // Progress Bar (Mocked)
             Slider(
-                value = progress,
-                onValueChange = { progress = it },
+                value = if (durationMs > 0) positionMs / durationMs.toFloat() else 0f,
+                onValueChange = { fraction ->
+                    playerViewModel.seekTo((fraction * durationMs).toLong())
+                },
+                enabled = isPrepared,
                 modifier = Modifier.fillMaxWidth(),
                 colors = SliderDefaults.colors(
                     thumbColor = MaterialTheme.colorScheme.primary,
@@ -177,12 +191,12 @@ fun AudioPlayerScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    "0:00",
+                    formatTime(positionMs),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    "End",
+                    formatTime(durationMs),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -190,20 +204,38 @@ fun AudioPlayerScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Controls
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "1x",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+                IconButton(
+                    onClick = { playerViewModel.playPrevTrack() },
+                    enabled = isPrepared
+                ) {
+                    Icon(
+                        PhosphorIcons.Regular.SkipBack,
+                        contentDescription = "Previous track",
+                        tint = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
 
                 IconButton(
-                    onClick = { isPlaying = !isPlaying },
+                    onClick = { playerViewModel.skipBackward(30) },
+                    enabled = isPrepared
+                ) {
+                    Text(
+                        text = "-30s",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = if (isPrepared) MaterialTheme.colorScheme.onBackground
+                        else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                IconButton(
+                    onClick = { playerViewModel.togglePlayPause() },
+                    enabled = isPrepared,
                     modifier = Modifier
                         .size(72.dp)
                         .background(MaterialTheme.colorScheme.primary, CircleShape)
@@ -216,23 +248,44 @@ fun AudioPlayerScreen(
                     )
                 }
 
-                Text(
-                    text = "+15s",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+                IconButton(
+                    onClick = { playerViewModel.skipForward(30) },
+                    enabled = isPrepared
+                ) {
+                    Text(
+                        text = "+30s",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = if (isPrepared) MaterialTheme.colorScheme.onBackground
+                        else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                IconButton(
+                    onClick = { playerViewModel.playNextTrack() },
+                    enabled = isPrepared
+                ) {
+                    Icon(
+                        PhosphorIcons.Regular.SkipForward,
+                        contentDescription = "Next track",
+                        tint = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.weight(1f))
-
-            // Simulating progress
-            LaunchedEffect(isPlaying) {
-                while (isPlaying) {
-                    delay(1000)
-                    progress += 0.01f
-                    if (progress > 1f) progress = 0f
-                }
-            }
         }
+    }
+}
+
+private fun formatTime(ms: Long): String {
+    val totalSeconds = ms / 1000
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+    return if (hours > 0) {
+        "%d:%02d:%02d".format(hours, minutes, seconds)
+    } else {
+        "%d:%02d".format(minutes, seconds)
     }
 }

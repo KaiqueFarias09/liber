@@ -202,8 +202,11 @@ class BookImporter(private val application: Application) {
 
     private fun extractEmbeddedCover(file: DocumentFile, cacheName: String): Uri? {
         val retriever = MediaMetadataRetriever()
+        var pfd: android.os.ParcelFileDescriptor? = null
         return try {
-            retriever.setDataSource(application, file.uri)
+            pfd = application.contentResolver.openFileDescriptor(file.uri, "r")
+                ?: return null
+            retriever.setDataSource(pfd.fileDescriptor)
             val art = retriever.embeddedPicture
             if (art != null) {
                 val bitmap = BitmapFactory.decodeByteArray(art, 0, art.size)
@@ -214,6 +217,7 @@ class BookImporter(private val application: Application) {
             null
         } finally {
             retriever.release()
+            pfd?.close()
         }
     }
 
