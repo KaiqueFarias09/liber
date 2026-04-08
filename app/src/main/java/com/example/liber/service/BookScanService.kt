@@ -127,16 +127,27 @@ class BookScanService : Service() {
         val results = mutableListOf<DocumentFile>()
         val files = dir.listFiles()
 
-        // Check if directory itself is an audiobook (contains audio files)
-        val hasAudio = files.any { it.isFile && isSupportedAudioFile(it.name) }
-        if (hasAudio) {
+        // Consider it an audiobook folder if it contains multiple audio files directly.
+        val audioFiles = files.filter { it.isFile && isSupportedAudioFile(it.name) }
+        val isAudiobookFolder = audioFiles.size > 1
+
+        if (isAudiobookFolder) {
             results += dir
         }
 
         files.forEach { child ->
             when {
-                child.isDirectory && !hasAudio -> results += collectBookFiles(child)
-                child.isFile && isSupportedFile(child.name) -> results += child
+                // If it's an audiobook folder, we don't recurse into subdirectories.
+                child.isDirectory && !isAudiobookFolder -> results += collectBookFiles(child)
+                child.isFile -> {
+                    if (isSupportedFile(child.name)) {
+                        val isAudio = isSupportedAudioFile(child.name)
+                        // Add non-audio books (epub/pdf) OR audio files only if the folder isn't the book.
+                        if (!isAudio || !isAudiobookFolder) {
+                            results += child
+                        }
+                    }
+                }
             }
         }
         return results
