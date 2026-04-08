@@ -42,7 +42,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -78,7 +77,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -99,7 +97,6 @@ import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.ArrowLeft
 import com.adamglin.phosphoricons.regular.Bookmark
-import com.adamglin.phosphoricons.regular.List
 import com.adamglin.phosphoricons.regular.MagnifyingGlass
 import com.adamglin.phosphoricons.regular.NotePencil
 import com.adamglin.phosphoricons.regular.PencilSimple
@@ -143,7 +140,6 @@ fun PdfReaderScreen(
     val writableUri by viewModel.writableUri.collectAsState()
     val persistedStrokes by viewModel.persistedStrokes.collectAsState()
 
-    var showContents by remember { mutableStateOf(false) }
     var showNotebook by remember { mutableStateOf(false) }
     var showDrawPanel by remember { mutableStateOf(false) }
 
@@ -153,8 +149,8 @@ fun PdfReaderScreen(
     // Tracks the screen rect of each visible page; updated by the fragment on every scroll/zoom.
     val pageLocations = remember { mutableStateOf(emptyMap<Int, android.graphics.RectF>()) }
 
-    val isAnyModalOpen = showContents || showNotebook || showDrawPanel ||
-            showNoteCreator || pendingHighlight != null
+    val isAnyModalOpen =
+        showNotebook || showDrawPanel || showNoteCreator || pendingHighlight != null
 
     // Page-based bookmark detection
     val isCurrentPageBookmarked = bookmarks.any { bm ->
@@ -444,18 +440,6 @@ fun PdfReaderScreen(
                         ReaderNavItem(
                             icon = {
                                 Icon(
-                                    PhosphorIcons.Regular.List,
-                                    contentDescription = null,
-                                    tint = chromeIcon
-                                )
-                            },
-                            label = "Contents",
-                            labelColor = chromeLabel,
-                            onClick = { showContents = true },
-                        )
-                        ReaderNavItem(
-                            icon = {
-                                Icon(
                                     PhosphorIcons.Regular.MagnifyingGlass,
                                     contentDescription = null,
                                     tint = chromeIcon
@@ -504,106 +488,6 @@ fun PdfReaderScreen(
                     }
                 }
             }
-        }
-    }
-
-    // ── Contents Sheet ────────────────────────────────────────────────────────
-    if (showContents) {
-        LiberModalBottomSheet(
-            title = "Contents",
-            onDismissRequest = { showContents = false },
-            skipPartiallyExpanded = true,
-        ) {
-            var contentsTab by remember { mutableStateOf("bookmarks") }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                FilterChip(
-                    selected = contentsTab == "bookmarks",
-                    onClick = { contentsTab = "bookmarks" },
-                    label = { Text("Bookmarks") },
-                )
-                FilterChip(
-                    selected = contentsTab == "jump",
-                    onClick = { contentsTab = "jump" },
-                    label = { Text("Jump to Page") },
-                )
-            }
-
-            when (contentsTab) {
-                "bookmarks" -> {
-                    if (bookmarks.isEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(120.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                text = "No bookmarks yet",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    } else {
-                        BookmarksView(
-                            bookmarks = bookmarks,
-                            onBookmarkClick = { bm ->
-                                val page =
-                                    runCatching { JSONObject(bm.locator).getInt("page") }.getOrDefault(
-                                        0
-                                    )
-                                pendingScrollPage = page
-                                showContents = false
-                            },
-                            onDeleteBookmark = { bm -> onDeleteBookmark(bm.id) },
-                        )
-                    }
-                }
-
-                "jump" -> {
-                    var jumpInput by remember { mutableStateOf("") }
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        Text(
-                            text = "Enter a page number (1–$totalPages)",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            LiberTextField(
-                                value = jumpInput,
-                                onValueChange = { jumpInput = it.filter { c -> c.isDigit() } },
-                                placeholder = "Page number",
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                singleLine = true,
-                                modifier = Modifier.weight(1f),
-                            )
-                            Button(
-                                onClick = {
-                                    val page = jumpInput.toIntOrNull()?.minus(1)
-                                    if (page != null && page in 0 until totalPages) {
-                                        pendingScrollPage = page
-                                        showContents = false
-                                    }
-                                }
-                            ) { Text("Go") }
-                        }
-                        Spacer(Modifier.height(24.dp))
-                    }
-                }
-            }
-            Spacer(Modifier.height(24.dp))
         }
     }
 

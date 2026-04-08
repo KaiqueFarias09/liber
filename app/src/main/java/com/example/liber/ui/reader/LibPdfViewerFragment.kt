@@ -9,9 +9,12 @@ import android.graphics.RectF
 import android.net.Uri
 import android.util.SparseArray
 import android.view.ActionMode
+import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
-import android.view.Window
+import android.view.View
+import android.view.ViewGroup
+import android.widget.FrameLayout
 import androidx.pdf.ExperimentalPdfApi
 import androidx.pdf.PdfDocument
 import androidx.pdf.view.PdfView
@@ -25,6 +28,13 @@ enum class PdfTextAction { HIGHLIGHT, NOTE, SHARE }
  * Thin subclass of [PdfViewerFragment] that bridges page-change and document-load
  * events back to Compose via simple lambda callbacks, and intercepts text selection
  * to expose Highlight, Add Note, and Share actions.
+ *
+ * The text-selection interception works by wrapping the view returned by
+ * [onCreateView] in a [PdfSelectionInterceptorLayout] that overrides
+ * [ViewGroup.startActionModeForChild]. This ensures our callback wrapper is
+ * in place before [android.view.PhoneWindow] creates the [ActionMode.TYPE_FLOATING]
+ * — which bypasses [android.view.Window.Callback.onWindowStartingActionMode]
+ * when AppCompat returns null for floating modes.
  *
  * Named class (not anonymous) because FragmentManager requires a no-arg constructor.
  */
@@ -51,14 +61,29 @@ class LibPdfViewerFragment : androidx.pdf.viewer.fragment.PdfViewerFragment() {
 
     /**
      * Provides the current 0-indexed page number at the time of a text selection action.
-     * The PDF screen should assign this to return [PdfReaderViewModel.currentPage.value].
+     * The PDF screen should assign this to return the ViewModel's current page value.
      */
     var getCurrentPage: (() -> Int)? = null
 
     private var pendingDocumentUri: Uri? = null
     private var pdfViewRef: PdfView? = null
     private var viewportListener: PdfView.OnViewportChangedListener? = null
-    private var windowCallbackWrapper: PdfSelectionWindowCallbackWrapper? = null
+
+    /**
+     * Wraps the view produced by [PdfViewerFragment] in a [PdfSelectionInterceptorLayout]
+     * so we can intercept [startActionModeForChild] before the action mode is created.
+     */
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: android.os.Bundle?,
+    ): View? {
+        val pdfView = super.onCreateView(inflater, container, savedInstanceState) ?: return null
+        return PdfSelectionInterceptorLayout(requireContext(), pdfView) { action, text ->
+            val page = getCurrentPage?.invoke() ?: 0
+            onTextSelectionAction?.invoke(action, text, page)
+        }
+    }
 
     /**
      * Sets [documentUri] if the fragment is already attached, otherwise queues it
@@ -79,35 +104,6 @@ class LibPdfViewerFragment : androidx.pdf.viewer.fragment.PdfViewerFragment() {
             documentUri = uri
             pendingDocumentUri = null
         }
-    }
-
-    override fun onStart() {
-        super.onStart()
-        val window = requireActivity().window
-        // Only wrap if not already wrapped (e.g., fragment restart)
-        if (window.callback !is PdfSelectionWindowCallbackWrapper) {
-            val wrapper = PdfSelectionWindowCallbackWrapper(
-                original = window.callback,
-                onActionTriggered = { action, text ->
-                    val page = getCurrentPage?.invoke() ?: 0
-                    onTextSelectionAction?.invoke(action, text, page)
-                },
-                getContext = { requireContext() },
-            )
-            windowCallbackWrapper = wrapper
-            window.callback = wrapper
-        }
-    }
-
-    override fun onStop() {
-        // Restore the original Window.Callback so we don't leak
-        val window = activity?.window
-        val current = window?.callback
-        if (current === windowCallbackWrapper) {
-            window?.callback = windowCallbackWrapper?.original
-        }
-        windowCallbackWrapper = null
-        super.onStop()
     }
 
     @OptIn(ExperimentalPdfApi::class)
@@ -156,55 +152,67 @@ class LibPdfViewerFragment : androidx.pdf.viewer.fragment.PdfViewerFragment() {
     }
 }
 
-// ── Window.Callback wrapper ───────────────────────────────────────────────────
+// ── startActionModeForChild interceptor ──────────────────────────────────────
 
 private const val MENU_ID_HIGHLIGHT = 0xBEEF_01
-private const val MENU_ID_NOTE      = 0xBEEF_02
+private const val MENU_ID_NOTE = 0xBEEF_02
 private const val MENU_ID_SHARE_PDF = 0xBEEF_03
 
 /**
- * Wraps the Activity's [Window.Callback] to intercept ActionMode creation calls
- * originating from the PDF viewer's text selection. Injects "Highlight", "Add Note",
- * and "Share" items into the floating text selection menu.
+ * A transparent [FrameLayout] wrapper that intercepts [startActionModeForChild].
+ *
+ * When [android.view.PdfView] (or any descendant) starts a floating action mode for
+ * text selection, the call bubbles up through [startActionModeForChild] before
+ * [android.view.PhoneWindow] creates the [ActionMode]. By wrapping the callback here —
+ * before it reaches the Window — [PhoneWindow] will create the [ActionMode] with our
+ * wrapper, so our custom menu items are actually shown and handled.
  */
-internal class PdfSelectionWindowCallbackWrapper(
-    val original: Window.Callback,
+private class PdfSelectionInterceptorLayout(
+    context: Context,
+    child: View,
     private val onActionTriggered: (PdfTextAction, String?) -> Unit,
-    private val getContext: () -> Context,
-) : Window.Callback by original {
+) : FrameLayout(context) {
 
-    override fun onWindowStartingActionMode(callback: ActionMode.Callback, type: Int): ActionMode? {
-        return original.onWindowStartingActionMode(
-            PdfActionModeCallbackWrapper(callback, onActionTriggered, getContext),
-            type,
-        )
+    init {
+        addView(child, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
     }
 
-    override fun onWindowStartingActionMode(callback: ActionMode.Callback): ActionMode? {
-        return original.onWindowStartingActionMode(
-            PdfActionModeCallbackWrapper(callback, onActionTriggered, getContext),
-        )
-    }
+    override fun startActionModeForChild(
+        originalView: View,
+        callback: ActionMode.Callback,
+        type: Int,
+    ): ActionMode? = super.startActionModeForChild(
+        originalView,
+        PdfActionModeCallbackWrapper(callback, onActionTriggered, context),
+        type,
+    )
+
+    override fun startActionModeForChild(
+        originalView: View,
+        callback: ActionMode.Callback,
+    ): ActionMode? = super.startActionModeForChild(
+        originalView,
+        PdfActionModeCallbackWrapper(callback, onActionTriggered, context),
+    )
 }
 
 /**
  * Wraps an [ActionMode.Callback] to add custom items (Highlight, Add Note, Share)
- * to the PDF text selection menu, and handle their clicks by extracting the selected
- * text via the clipboard and delegating to [onActionTriggered].
+ * to the PDF text selection menu, and handle their clicks.
  */
 private class PdfActionModeCallbackWrapper(
     private val original: ActionMode.Callback,
     private val onActionTriggered: (PdfTextAction, String?) -> Unit,
-    private val getContext: () -> Context,
+    private val context: Context,
 ) : ActionMode.Callback {
 
     private var savedMenu: Menu? = null
 
     override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
         val result = original.onCreateActionMode(mode, menu)
-        menu.add(Menu.NONE, MENU_ID_HIGHLIGHT, 1, "Highlight")
-        menu.add(Menu.NONE, MENU_ID_NOTE,      2, "Add Note")
-        menu.add(Menu.NONE, MENU_ID_SHARE_PDF, 3, "Share")
+        menu.add(Menu.NONE, MENU_ID_HIGHLIGHT, 100, "Highlight")
+        menu.add(Menu.NONE, MENU_ID_NOTE, 101, "Add Note")
+        menu.add(Menu.NONE, MENU_ID_SHARE_PDF, 102, "Share")
         savedMenu = menu
         return result
     }
@@ -219,33 +227,30 @@ private class PdfActionModeCallbackWrapper(
             MENU_ID_HIGHLIGHT, MENU_ID_NOTE, MENU_ID_SHARE_PDF -> {
                 val action = when (item.itemId) {
                     MENU_ID_HIGHLIGHT -> PdfTextAction.HIGHLIGHT
-                    MENU_ID_NOTE      -> PdfTextAction.NOTE
-                    else              -> PdfTextAction.SHARE
+                    MENU_ID_NOTE -> PdfTextAction.NOTE
+                    else -> PdfTextAction.SHARE
                 }
 
-                // Trigger the system Copy action so the selected text lands on the clipboard,
-                // then read it back synchronously (copy runs on the same main-thread call stack).
+                // Trigger Copy to get selected text on the clipboard, then read it back.
+                // Copy runs synchronously on the main thread so the clipboard is ready immediately.
                 val text = extractSelectedText(mode)
 
                 if (action == PdfTextAction.SHARE) {
-                    // Handle share inline rather than routing through the ViewModel
                     val shareText = text ?: ""
                     if (shareText.isNotEmpty()) {
                         val intent = Intent(Intent.ACTION_SEND).apply {
                             type = "text/plain"
                             putExtra(Intent.EXTRA_TEXT, shareText)
                         }
-                        runCatching {
-                            getContext().startActivity(Intent.createChooser(intent, null))
-                        }
+                        runCatching { context.startActivity(Intent.createChooser(intent, null)) }
                     }
-                    mode.finish()
                 } else {
                     onActionTriggered(action, text)
-                    mode.finish()
                 }
+                mode.finish()
                 true
             }
+
             else -> original.onActionItemClicked(mode, item)
         }
     }
@@ -256,20 +261,14 @@ private class PdfActionModeCallbackWrapper(
     }
 
     /**
-     * Attempts to extract the selected text by triggering the standard Copy action on
-     * the original callback (which copies to clipboard synchronously on the main thread)
-     * and immediately reading back the clipboard.
-     *
-     * Returns null if there is no copy item or the clipboard is empty.
+     * Attempts to extract selected text by triggering the Copy item on the original
+     * callback (which copies to clipboard synchronously) and immediately reading back.
      */
     private fun extractSelectedText(mode: ActionMode): String? {
-        val ctx = runCatching { getContext() }.getOrNull() ?: return null
-        val clipboard = ctx.getSystemService(android.content.ClipboardManager::class.java)
+        val clipboard = context.getSystemService(android.content.ClipboardManager::class.java)
             ?: return null
-
         val copyItem = savedMenu?.findItem(android.R.id.copy) ?: return null
-        // Calling onActionItemClicked with the copy item copies text to clipboard synchronously.
         runCatching { original.onActionItemClicked(mode, copyItem) }
-        return clipboard.primaryClip?.getItemAt(0)?.coerceToText(ctx)?.toString()
+        return clipboard.primaryClip?.getItemAt(0)?.coerceToText(context)?.toString()
     }
 }
