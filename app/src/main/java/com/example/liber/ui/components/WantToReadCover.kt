@@ -4,10 +4,8 @@ import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.liber.data.Book
@@ -27,7 +25,6 @@ fun WantToReadCover(
         modifier = modifier
             .width(144.dp)
             .height(210.dp)
-            .shadow(elevation = 8.dp, shape = RoundedCornerShape(8.dp))
             .clickable(onClick = onClick),
     )
 }
@@ -39,7 +36,13 @@ fun WantToReadCover(
 private fun WantToReadCoverPreview() {
     LiberTheme {
         WantToReadCover(
-            book = Book(id = "1", title = "Sample Book", author = "Author", coverUri = null, fileUri = Uri.EMPTY),
+            book = Book(
+                id = "1",
+                title = "Sample Book",
+                author = "Author",
+                coverUri = null,
+                fileUri = Uri.EMPTY
+            ),
             onClick = {},
         )
     }

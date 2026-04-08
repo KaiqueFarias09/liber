@@ -1,6 +1,5 @@
 package com.example.liber.ui.collections
 
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -38,17 +37,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.ArrowLeft
@@ -221,14 +216,7 @@ private fun CollectionShelfRow(
 
 // ── Stacked covers ────────────────────────────────────────────────────────────
 
-private val spineGradient = Brush.horizontalGradient(
-    colorStops = arrayOf(
-        0.00f to Color(0x55FFFFFF),
-        0.04f to Color(0x55000000),
-        0.07f to Color(0x22FFFFFF),
-        0.12f to Color.Transparent,
-    ),
-)
+// redundant spineGradient removed as we now use BookCover style
 
 @Composable
 private fun StackedBookCovers(
@@ -258,8 +246,10 @@ private fun StackedBookCovers(
         contentAlignment = Alignment.BottomStart,
     ) {
         displayBooks.forEachIndexed { index, book ->
-            ShelfCoverItem(
+            BookCover(
                 coverUri = book.coverUri,
+                contentDescription = book.title,
+                style = CoverStyle.SMALL,
                 modifier = Modifier
                     .offset(x = step * index)
                     .width(coverWidth),
@@ -271,7 +261,6 @@ private fun StackedBookCovers(
                     .offset(x = step * displayBooks.size)
                     .width(coverWidth)
                     .height(120.dp)
-                    .clip(RoundedCornerShape(3.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center,
             ) {
@@ -285,31 +274,7 @@ private fun StackedBookCovers(
     }
 }
 
-@Composable
-private fun ShelfCoverItem(
-    coverUri: Uri?,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(3.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant),
-    ) {
-        // fillMaxWidth + FillWidth lets the image show at its natural aspect ratio —
-        // width is fixed by the modifier, height expands to match the image proportions.
-        AsyncImage(
-            model = coverUri,
-            contentDescription = null,
-            modifier = Modifier.fillMaxWidth(),
-            contentScale = ContentScale.FillWidth,
-        )
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .background(brush = spineGradient),
-        )
-    }
-}
+// ShelfCoverItem deleted in favor of BookCover
 
 // ── Detail screen ─────────────────────────────────────────────────────────────
 
@@ -400,7 +365,6 @@ fun CollectionDetailScreen(
                 }
             }
         }
-
 
 
         // Book grid
@@ -577,8 +541,7 @@ private fun AddBooksDialog(
                             style = CoverStyle.SMALL,
                             modifier = Modifier
                                 .width(36.dp)
-                                .height(54.dp)
-                                .clip(RoundedCornerShape(3.dp)),
+                                .height(54.dp),
                         )
                         Spacer(Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
