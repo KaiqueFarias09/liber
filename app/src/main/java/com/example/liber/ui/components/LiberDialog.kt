@@ -16,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
@@ -45,6 +46,7 @@ fun LiberDialog(
     modifier: Modifier = Modifier,
     confirmLabel: String? = "Save",
     onConfirm: (() -> Unit)? = null,
+    confirmLabelColor: Color? = null,
     dismissLabel: String? = "Cancel",
     onDismiss: (() -> Unit)? = null,
     confirmEnabled: Boolean = true,
@@ -106,7 +108,7 @@ fun LiberDialog(
                                     fontWeight = FontWeight.SemiBold,
                                 ),
                                 color = if (confirmEnabled)
-                                    MaterialTheme.colorScheme.onSurface
+                                    confirmLabelColor ?: MaterialTheme.colorScheme.onSurface
                                 else
                                     MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
                             )

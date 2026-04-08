@@ -66,7 +66,8 @@ fun BookGrid(
     onShareBook: (Book) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
-    deleteLabel: String = "Remove…",
+    deleteLabel: String = "Delete…",
+    confirmDelete: Boolean = true,
     showAddToCollection: Boolean = false,
     onAddToCollection: (Book, Long) -> Unit = { _, _ -> },
     collections: List<CollectionUiState> = emptyList(),
@@ -136,6 +137,7 @@ fun BookGrid(
                                         onDeleteBook = { onDeleteBook(book) },
                                         onShareBook = { onShareBook(book) },
                                         deleteLabel = deleteLabel,
+                                        confirmDelete = confirmDelete,
                                         showAddToCollection = showAddToCollection,
                                         onAddToCollection = { collectionId ->
                                             onAddToCollection(book, collectionId)
@@ -180,6 +182,7 @@ fun BookGrid(
                                 onDeleteBook = { onDeleteBook(book) },
                                 onShareBook = { onShareBook(book) },
                                 deleteLabel = deleteLabel,
+                                confirmDelete = confirmDelete,
                                 showAddToCollection = showAddToCollection,
                                 onAddToCollection = { collectionId ->
                                     onAddToCollection(book, collectionId)
@@ -352,7 +355,8 @@ private fun BookListItem(
     onRenameBook: (String) -> Unit,
     onDeleteBook: () -> Unit,
     onShareBook: () -> Unit,
-    deleteLabel: String = "Remove…",
+    deleteLabel: String = "Delete…",
+    confirmDelete: Boolean = true,
     showAddToCollection: Boolean = false,
     onAddToCollection: (Long) -> Unit = {},
     collections: List<CollectionUiState> = emptyList(),
@@ -360,6 +364,7 @@ private fun BookListItem(
     var showMenu by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
     var showCollectionPicker by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     Row(
         modifier = Modifier
@@ -440,7 +445,13 @@ private fun BookListItem(
                 onToggleWantToRead = onToggleWantToRead,
                 onToggleFinished = onToggleFinished,
                 onRename = { showRenameDialog = true },
-                onDelete = onDeleteBook,
+                onDelete = {
+                    if (confirmDelete) {
+                        showDeleteDialog = true
+                    } else {
+                        onDeleteBook()
+                    }
+                },
                 deleteLabel = deleteLabel,
                 showAddToCollection = showAddToCollection,
                 onAddToCollection = { showCollectionPicker = true },
@@ -469,6 +480,18 @@ private fun BookListItem(
             onDismiss = { showRenameDialog = false },
         )
     }
+
+    if (showDeleteDialog) {
+        DeleteBookConfirmationDialog(
+            bookTitle = book.title,
+            actionLabel = deleteLabel,
+            onConfirm = {
+                showDeleteDialog = false
+                onDeleteBook()
+            },
+            onDismiss = { showDeleteDialog = false },
+        )
+    }
 }
 
 // ── Grid item ─────────────────────────────────────────────────────────────────
@@ -482,7 +505,8 @@ fun BookGridItem(
     onRenameBook: (String) -> Unit,
     onDeleteBook: () -> Unit,
     onShareBook: () -> Unit,
-    deleteLabel: String = "Remove…",
+    deleteLabel: String = "Delete…",
+    confirmDelete: Boolean = true,
     showAddToCollection: Boolean = false,
     onAddToCollection: (Long) -> Unit = {},
     collections: List<CollectionUiState> = emptyList(),
@@ -491,6 +515,7 @@ fun BookGridItem(
     var showMenu by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
     var showCollectionPicker by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier.clickable(onClick = onClick),
@@ -556,7 +581,13 @@ fun BookGridItem(
                     onToggleWantToRead = onToggleWantToRead,
                     onToggleFinished = onToggleFinished,
                     onRename = { showRenameDialog = true },
-                    onDelete = onDeleteBook,
+                    onDelete = {
+                        if (confirmDelete) {
+                            showDeleteDialog = true
+                        } else {
+                            onDeleteBook()
+                        }
+                    },
                     deleteLabel = deleteLabel,
                     showAddToCollection = showAddToCollection,
                     onAddToCollection = { showCollectionPicker = true },
@@ -584,6 +615,49 @@ fun BookGridItem(
                 showRenameDialog = false
             },
             onDismiss = { showRenameDialog = false },
+        )
+    }
+
+    if (showDeleteDialog) {
+        DeleteBookConfirmationDialog(
+            bookTitle = book.title,
+            actionLabel = deleteLabel,
+            onConfirm = {
+                showDeleteDialog = false
+                onDeleteBook()
+            },
+            onDismiss = { showDeleteDialog = false },
+        )
+    }
+}
+
+@Composable
+private fun DeleteBookConfirmationDialog(
+    bookTitle: String,
+    actionLabel: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val cleanAction = actionLabel.removeSuffix("…")
+    val title = if (cleanAction.contains("Remove", ignoreCase = true)) {
+        "Remove book?"
+    } else {
+        "Delete book?"
+    }
+
+    LiberDialog(
+        onDismissRequest = onDismiss,
+        title = title,
+        confirmLabel = cleanAction,
+        onConfirm = onConfirm,
+        confirmLabelColor = MaterialTheme.colorScheme.error,
+        dismissLabel = "Cancel",
+        onDismiss = onDismiss,
+    ) {
+        Text(
+            text = "Are you sure you want to ${cleanAction.lowercase()} \"$bookTitle\"?",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

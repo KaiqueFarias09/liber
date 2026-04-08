@@ -395,6 +395,7 @@ fun CollectionDetailScreen(
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
                 deleteLabel = "Remove from collection",
+                confirmDelete = false,
                 showAddToCollection = false,
                 viewMode = viewMode,
                 onViewModeChange = onViewModeChange,
