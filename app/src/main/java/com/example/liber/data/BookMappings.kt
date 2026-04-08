@@ -15,6 +15,8 @@ fun BookEntity.toBook() = Book(
     readingProgress = readingProgress,
     lastLocator = lastLocator,
     contentId = contentId,
+    mediaType = mediaType,
+    durationMillis = durationMillis,
 )
 
 fun Book.toEntity() = BookEntity(
@@ -24,4 +26,6 @@ fun Book.toEntity() = BookEntity(
     coverPath = coverUri?.path,
     fileUri = fileUri.toString(),
     contentId = contentId,
+    mediaType = mediaType,
+    durationMillis = durationMillis,
 )

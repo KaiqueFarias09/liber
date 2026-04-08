@@ -39,6 +39,7 @@ import com.example.liber.ui.collections.CollectionDetailScreen
 import com.example.liber.ui.collections.CollectionUiState
 import com.example.liber.ui.collections.CollectionsListScreen
 import com.example.liber.ui.collections.CollectionsViewModel
+import com.example.liber.ui.components.AudiobookGrid
 import com.example.liber.ui.components.BookGrid
 import com.example.liber.ui.components.EmptyState
 import com.example.liber.ui.components.LiberHeader
@@ -76,14 +77,18 @@ fun LibraryScreen(
     onCollectionClick: (Long?) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    val pagerState = rememberPagerState { 2 }
+    val pagerState = rememberPagerState { 3 }
     val scope = rememberCoroutineScope()
     val selectedCollection = collections.find { it.id == selectedCollectionId }
 
     val selectedTabIndex = pagerState.currentPage
 
     LaunchedEffect(selectedTabIndex) {
-        if (selectedTabIndex == 0) {
+        if (selectedTabIndex == 2) { // Changed to 2 for Collections, because Audiobooks is 1
+            // if we want Collections selection logic to run when tab 0 or 1 is selected
+            // we should adjust it. The original code did: `if (selectedTabIndex == 0) onCollectionClick(null)`
+        }
+        if (selectedTabIndex != 2) {
             onCollectionClick(null)
         }
     }
@@ -99,8 +104,6 @@ fun LibraryScreen(
                 val maxScroll = headerHeightState.intValue.toFloat()
                 val oldScrolled = scrolledPxState.floatValue
                 scrolledPxState.floatValue = (oldScrolled - delta).coerceIn(0f, maxScroll)
-                // Return the portion consumed by the header so the inner list doesn't
-                // also scroll while the header is collapsing/expanding.
                 val consumed = -(scrolledPxState.floatValue - oldScrolled)
                 return Offset(0f, consumed)
             }
@@ -112,8 +115,6 @@ fun LibraryScreen(
             .fillMaxSize()
             .nestedScroll(nestedScrollConnection)
     ) {
-        // Main content column — the spacer at the top shrinks as the header collapses,
-        // pulling the tab row up to the screen edge.
         Column(modifier = Modifier.fillMaxSize()) {
             Spacer(
                 Modifier
@@ -132,7 +133,7 @@ fun LibraryScreen(
             )
 
             LiberTabBar(
-                tabs = listOf("Books", "Collections"),
+                tabs = listOf("Books", "Audiobooks", "Collections"),
                 selectedTabIndex = selectedTabIndex,
                 onTabSelected = { index ->
                     scope.launch {
@@ -143,6 +144,9 @@ fun LibraryScreen(
 
             Spacer(Modifier.height(8.dp))
 
+            val audiobooks = remember(books) { books.filter { it.mediaType == "audio/mpeg" } }
+            val regularBooks = remember(books) { books.filter { it.mediaType != "audio/mpeg" } }
+
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier.weight(1f),
@@ -152,7 +156,7 @@ fun LibraryScreen(
                     0 -> {
                         when {
                             isLoading -> LoadingState()
-                            books.isEmpty() -> Box(
+                            regularBooks.isEmpty() -> Box(
                                 modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -167,7 +171,7 @@ fun LibraryScreen(
                             }
 
                             else -> BookGrid(
-                                books = books,
+                                books = regularBooks,
                                 onBookClick = onBookClick,
                                 onToggleWantToRead = onToggleWantToRead,
                                 onToggleFinished = onToggleFinished,
@@ -186,6 +190,31 @@ fun LibraryScreen(
                     }
 
                     1 -> {
+                        when {
+                            isLoading -> LoadingState()
+                            audiobooks.isEmpty() -> Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                EmptyState(
+                                    title = "No audiobooks",
+                                    subtitle = "Add a folder with mp3 files to listen",
+                                    image = R.drawable.library_empty, // Consider using a different icon
+                                    actionLabel = "Import Folder",
+                                    onAction = onAddBooks, // Assume + is also used for folders
+                                    modifier = Modifier.padding(horizontal = 24.dp),
+                                )
+                            }
+
+                            else -> AudiobookGrid(
+                                audiobooks = audiobooks,
+                                onBookClick = onBookClick,
+                                onDeleteBook = onDeleteBook,
+                            )
+                        }
+                    }
+
+                    2 -> {
                         CollectionsListScreen(
                             collections = collections,
                             onCollectionClick = { onCollectionClick(it.id) },

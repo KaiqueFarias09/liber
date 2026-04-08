@@ -1144,8 +1144,8 @@ fun ReaderScreen(
                 selectedText = selectedText,
                 noteText = noteText,
                 selectedColorArgb = selectedColor,
-                currentChapter = navigator?.currentLocator?.value?.title
-                    ?: navigator?.currentLocator?.value?.href?.toString(),
+                currentChapter = currentLocator?.title
+                    ?: currentLocator?.href?.toString(),
                 onNoteTextChange = { viewModel.setAnnotationNote(it) },
                 onColorChange = { viewModel.setAnnotationColor(it) },
                 onSave = {

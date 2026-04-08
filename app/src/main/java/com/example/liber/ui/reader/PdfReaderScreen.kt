@@ -1,5 +1,8 @@
+@file:SuppressLint("NewApi")
+
 package com.example.liber.ui.reader
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.graphics.Matrix
 import android.graphics.Paint
@@ -11,6 +14,7 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -71,7 +75,6 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.pointerInteropFilter
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -124,7 +127,7 @@ fun PdfReaderScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val fragmentActivity = LocalContext.current as FragmentActivity
+    val fragmentActivity = LocalActivity.current as FragmentActivity
     val viewModel: PdfReaderViewModel = viewModel()
 
     val showUI by viewModel.showUI.collectAsState()

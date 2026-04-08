@@ -125,9 +125,17 @@ class BookScanService : Service() {
 
     private fun collectBookFiles(dir: DocumentFile): List<DocumentFile> {
         val results = mutableListOf<DocumentFile>()
-        dir.listFiles().forEach { child ->
+        val files = dir.listFiles()
+
+        // Check if directory itself is an audiobook (contains audio files)
+        val hasAudio = files.any { it.isFile && isSupportedAudioFile(it.name) }
+        if (hasAudio) {
+            results += dir
+        }
+
+        files.forEach { child ->
             when {
-                child.isDirectory -> results += collectBookFiles(child)
+                child.isDirectory && !hasAudio -> results += collectBookFiles(child)
                 child.isFile && isSupportedFile(child.name) -> results += child
             }
         }
@@ -136,18 +144,26 @@ class BookScanService : Service() {
 
     private fun isSupportedFile(name: String?): Boolean {
         val ext = name?.substringAfterLast('.', "")?.lowercase() ?: return false
-        return ext in setOf("epub", "pdf")
+        return ext in setOf("epub", "pdf") || isSupportedAudioFile(name)
+    }
+
+    private fun isSupportedAudioFile(name: String?): Boolean {
+        val ext = name?.substringAfterLast('.', "")?.lowercase() ?: return false
+        // Basic list for testing, you could add flac, ogg, etc.
+        return ext in setOf("mp3", "m4a", "m4b", "aac", "wav")
     }
 
     private fun createNotificationChannel() {
-        val channel = NotificationChannel(
-            CHANNEL_ID,
-            "Book scanning",
-            NotificationManager.IMPORTANCE_LOW,
-        ).apply {
-            description = "Shows progress while scanning folders for books"
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                "Book scanning",
+                NotificationManager.IMPORTANCE_LOW,
+            ).apply {
+                description = "Shows progress while scanning folders for books"
+            }
+            getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
         }
-        getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
 
     private fun buildNotification(folder: String, current: Int, total: Int): Notification {

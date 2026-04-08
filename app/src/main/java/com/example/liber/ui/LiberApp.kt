@@ -172,22 +172,37 @@ fun LiberApp(
             onBack = { liberAppViewModel.closeReader() },
         )
     } else if (publication != null && book != null) {
-        ReaderScreen(
-            publication = publication,
-            bookId = book.id,
-            initialLocatorJson = book.lastLocator,
-            annotations = annotations,
-            bookmarks = bookmarks,
-            pendingAnnotationRequest = pendingAnnotationRequest,
-            onRequestAnnotation = { request -> viewModel.requestAnnotation(request) },
-            onSaveLocator = { json, progress -> viewModel.saveLocator(book.id, json, progress) },
-            onSaveAnnotation = { annotation -> viewModel.saveAnnotation(annotation) },
-            onDeleteAnnotation = { annotationId -> viewModel.deleteAnnotation(annotationId) },
-            onSaveBookmark = { bookmark -> viewModel.saveBookmark(bookmark) },
-            onDeleteBookmark = { bookmarkId -> viewModel.deleteBookmark(bookmarkId) },
-            onClearPendingAnnotation = { viewModel.clearPendingAnnotation() },
-            onBack = { liberAppViewModel.closeReader() },
-        )
+        if (book.mediaType == "audio/mpeg" || book.mediaType == "audiobook") {
+            com.example.liber.ui.reader.AudioPlayerScreen(
+                book = book,
+                publication = publication,
+                onBack = { liberAppViewModel.closeReader() },
+                onSaveLocator = { json, progress -> viewModel.saveLocator(book.id, json, progress) }
+            )
+        } else {
+            ReaderScreen(
+                publication = publication,
+                bookId = book.id,
+                initialLocatorJson = book.lastLocator,
+                annotations = annotations,
+                bookmarks = bookmarks,
+                pendingAnnotationRequest = pendingAnnotationRequest,
+                onRequestAnnotation = { request -> viewModel.requestAnnotation(request) },
+                onSaveLocator = { json, progress ->
+                    viewModel.saveLocator(
+                        book.id,
+                        json,
+                        progress
+                    )
+                },
+                onSaveAnnotation = { annotation -> viewModel.saveAnnotation(annotation) },
+                onDeleteAnnotation = { annotationId -> viewModel.deleteAnnotation(annotationId) },
+                onSaveBookmark = { bookmark -> viewModel.saveBookmark(bookmark) },
+                onDeleteBookmark = { bookmarkId -> viewModel.deleteBookmark(bookmarkId) },
+                onClearPendingAnnotation = { viewModel.clearPendingAnnotation() },
+                onBack = { liberAppViewModel.closeReader() },
+            )
+        }
     } else {
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
@@ -231,6 +246,7 @@ fun LiberApp(
                                 onBookClick = onOpenBook,
                                 modifier = Modifier.fillMaxSize()
                             )
+
                             AppTab.LIBRARY -> LibraryScreen(
                                 viewModel = viewModel,
                                 onBookClick = onOpenBook,
@@ -252,7 +268,12 @@ fun LiberApp(
                                         putExtra(Intent.EXTRA_STREAM, book.fileUri)
                                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                     }
-                                    context.startActivity(Intent.createChooser(intent, "Share Book"))
+                                    context.startActivity(
+                                        Intent.createChooser(
+                                            intent,
+                                            "Share Book"
+                                        )
+                                    )
                                 },
                                 collectionsViewModel = collectionsViewModel,
                                 selectedCollectionId = selectedCollectionId,

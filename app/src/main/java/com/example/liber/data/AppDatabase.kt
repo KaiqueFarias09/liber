@@ -17,7 +17,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         ScanSourceEntity::class,
         InkStrokeEntity::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -60,6 +60,13 @@ abstract class AppDatabase : RoomDatabase() {
                     )
                 """.trimIndent())
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_annotations_bookId` ON `annotations` (`bookId`)")
+            }
+        }
+
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE books ADD COLUMN mediaType TEXT")
+                db.execSQL("ALTER TABLE books ADD COLUMN durationMillis INTEGER")
             }
         }
 
@@ -155,6 +162,7 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_5_6,
                         MIGRATION_6_7,
                         MIGRATION_7_8,
+                        MIGRATION_8_9,
                     )
                     .build()
                 INSTANCE = instance

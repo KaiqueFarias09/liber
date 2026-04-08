@@ -51,8 +51,51 @@ class BookImporter(private val application: Application) {
     }
 
     suspend fun parseBook(file: DocumentFile): Book? {
+        if (file.isDirectory) return parseAudiobookFolder(file)
+
         val extension = file.name?.substringAfterLast('.', "").orEmpty().lowercase()
-        return if (extension == "pdf") parsePdf(file) else parseEpub(file)
+        return when {
+            extension == "pdf" -> parsePdf(file)
+            isAudioFile(extension) -> parseSingleAudioFile(file)
+            else -> parseEpub(file)
+        }
+    }
+
+    private fun isAudioFile(extension: String): Boolean {
+        return extension in setOf("mp3", "m4a", "m4b", "aac", "wav")
+    }
+
+    private suspend fun parseAudiobookFolder(dir: DocumentFile): Book {
+        val title = dir.name ?: "Unknown Audiobook"
+        val author = "Audiobook"
+        val coverUri = saveBitmapToCache(generateFallbackCover(title, author), dir.name ?: "audio")
+
+        return Book(
+            id = UUID.randomUUID().toString(),
+            title = title,
+            author = author,
+            coverUri = coverUri,
+            fileUri = dir.uri,
+            contentId = dir.uri.toString(), // URI acts as content ID for folders
+            mediaType = "audio/mpeg", // Or readium audiobook manifest type?
+        )
+    }
+
+    private suspend fun parseSingleAudioFile(file: DocumentFile): Book {
+        val title = file.name?.substringBeforeLast('.') ?: "Unknown Audio"
+        val author = "Audiobook"
+        val coverUri = saveBitmapToCache(generateFallbackCover(title, author), file.name ?: "audio")
+        val contentId = computeFileHash(file.uri) ?: file.uri.toString()
+
+        return Book(
+            id = UUID.randomUUID().toString(),
+            title = title,
+            author = author,
+            coverUri = coverUri,
+            fileUri = file.uri,
+            contentId = contentId,
+            mediaType = "audio/mpeg",
+        )
     }
 
     private suspend fun parsePdf(file: DocumentFile): Book {

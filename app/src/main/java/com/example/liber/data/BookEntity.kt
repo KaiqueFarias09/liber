@@ -15,4 +15,6 @@ data class BookEntity(
     val readingProgress: Int = 0,
     val lastLocator: String? = null,
     val contentId: String? = null,
+    val mediaType: String? = null,
+    val durationMillis: Long? = null,
 )
