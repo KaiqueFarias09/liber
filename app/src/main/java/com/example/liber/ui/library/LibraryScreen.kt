@@ -313,7 +313,7 @@ fun LibraryScreen(
     collectionsViewModel: CollectionsViewModel,
     liberAppViewModel: com.example.liber.ui.LiberAppViewModel,
     selectedCollectionId: Long? = null,
-    onCollectionClick: (Long?) -> Unit = {},
+    onCollectionClick: (Long?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val books by viewModel.books.collectAsState()

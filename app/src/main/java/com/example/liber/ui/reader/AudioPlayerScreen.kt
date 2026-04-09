@@ -1,6 +1,5 @@
 package com.example.liber.ui.reader
 
-import android.app.Application
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -38,10 +37,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Fill
@@ -60,29 +57,28 @@ fun AudioPlayerScreen(
     book: Book,
     publication: Publication,
     liberAppViewModel: com.example.liber.ui.LiberAppViewModel,
+    audiobookPlayerViewModel: AudiobookPlayerViewModel,
     onBack: () -> Unit,
     onSaveLocator: (String, Int) -> Unit
 ) {
-    val application = LocalContext.current.applicationContext as Application
-    val playerViewModel: AudiobookPlayerViewModel = viewModel(
-        key = book.id,
-        factory = AudiobookPlayerViewModel.Factory(application, book)
-    )
+    androidx.compose.runtime.LaunchedEffect(book) {
+        audiobookPlayerViewModel.loadBook(book)
+    }
 
-    val isPlaying by playerViewModel.isPlaying.collectAsState()
-    val positionMs by playerViewModel.positionMs.collectAsState()
-    val durationMs by playerViewModel.durationMs.collectAsState()
-    val currentTrackIndex by playerViewModel.currentTrackIndex.collectAsState()
-    val tracks by playerViewModel.tracks.collectAsState()
-    val isPrepared by playerViewModel.isPrepared.collectAsState()
+    val isPlaying by audiobookPlayerViewModel.isPlaying.collectAsState()
+    val positionMs by audiobookPlayerViewModel.positionMs.collectAsState()
+    val durationMs by audiobookPlayerViewModel.durationMs.collectAsState()
+    val currentTrackIndex by audiobookPlayerViewModel.currentTrackIndex.collectAsState()
+    val tracks by audiobookPlayerViewModel.tracks.collectAsState()
+    val isPrepared by audiobookPlayerViewModel.isPrepared.collectAsState()
 
     val globalIsPlaying by liberAppViewModel.isPlaying.collectAsState()
 
     androidx.compose.runtime.LaunchedEffect(globalIsPlaying) {
         if (globalIsPlaying) {
-            playerViewModel.play()
+            audiobookPlayerViewModel.play()
         } else {
-            playerViewModel.pause()
+            audiobookPlayerViewModel.pause()
         }
     }
 
@@ -199,7 +195,7 @@ fun AudioPlayerScreen(
             Slider(
                 value = if (durationMs > 0) positionMs / durationMs.toFloat() else 0f,
                 onValueChange = { fraction ->
-                    playerViewModel.seekTo((fraction * durationMs).toLong())
+                    audiobookPlayerViewModel.seekTo((fraction * durationMs).toLong())
                 },
                 enabled = isPrepared,
                 modifier = Modifier.fillMaxWidth(),
@@ -233,7 +229,7 @@ fun AudioPlayerScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(
-                    onClick = { playerViewModel.playPrevTrack() },
+                    onClick = { audiobookPlayerViewModel.playPrevTrack() },
                     enabled = isPrepared
                 ) {
                     Icon(
@@ -245,7 +241,7 @@ fun AudioPlayerScreen(
                 }
 
                 IconButton(
-                    onClick = { playerViewModel.skipBackward(30) },
+                    onClick = { audiobookPlayerViewModel.skipBackward(30) },
                     enabled = isPrepared
                 ) {
                     Text(
@@ -257,7 +253,7 @@ fun AudioPlayerScreen(
                 }
 
                 IconButton(
-                    onClick = { playerViewModel.togglePlayPause() },
+                    onClick = { audiobookPlayerViewModel.togglePlayPause() },
                     enabled = isPrepared,
                     modifier = Modifier
                         .size(72.dp)
@@ -272,7 +268,7 @@ fun AudioPlayerScreen(
                 }
 
                 IconButton(
-                    onClick = { playerViewModel.skipForward(30) },
+                    onClick = { audiobookPlayerViewModel.skipForward(30) },
                     enabled = isPrepared
                 ) {
                     Text(
@@ -284,7 +280,7 @@ fun AudioPlayerScreen(
                 }
 
                 IconButton(
-                    onClick = { playerViewModel.playNextTrack() },
+                    onClick = { audiobookPlayerViewModel.playNextTrack() },
                     enabled = isPrepared
                 ) {
                     Icon(

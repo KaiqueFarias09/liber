@@ -19,11 +19,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class AudiobookPlayerViewModel(
-    application: Application,
-    private val book: Book
+    application: Application
 ) : AndroidViewModel(application) {
 
     data class TrackInfo(val name: String, val uri: Uri)
+
+    private var currentBookId: String? = null
 
     private val _tracks = MutableStateFlow<List<TrackInfo>>(emptyList())
     val tracks: StateFlow<List<TrackInfo>> = _tracks
@@ -47,11 +48,24 @@ class AudiobookPlayerViewModel(
     private var positionUpdateJob: Job? = null
     private var autoPlay = false
 
-    init {
-        loadTracks()
+    fun loadBook(book: Book) {
+        if (currentBookId == book.id) return
+
+        currentBookId = book.id
+
+        // Reset state for new book
+        pause()
+        mediaPlayer?.release()
+        mediaPlayer = null
+        _isPrepared.value = false
+        _tracks.value = emptyList()
+        _positionMs.value = 0L
+        _durationMs.value = 0L
+
+        loadTracks(book)
     }
 
-    private fun loadTracks() {
+    private fun loadTracks(book: Book) {
         viewModelScope.launch(Dispatchers.IO) {
             val uri = book.fileUri
             val trackList = if (uri.toString().contains("tree")) {
@@ -201,11 +215,10 @@ class AudiobookPlayerViewModel(
     }
 
     class Factory(
-        private val application: Application,
-        private val book: Book
+        private val application: Application
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            AudiobookPlayerViewModel(application, book) as T
+            AudiobookPlayerViewModel(application) as T
     }
 }

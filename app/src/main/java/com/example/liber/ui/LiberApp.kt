@@ -1,6 +1,7 @@
 package com.example.liber.ui
 
 import android.Manifest
+import android.app.Application
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -28,7 +29,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.documentfile.provider.DocumentFile
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.liber.data.AnnotationEntity
+import com.example.liber.data.Book
 import com.example.liber.data.BookmarkEntity
 import com.example.liber.service.BookScanService
 import com.example.liber.ui.collections.CollectionsViewModel
@@ -38,6 +41,7 @@ import com.example.liber.ui.home.HomeScreen
 import com.example.liber.ui.home.HomeViewModel
 import com.example.liber.ui.library.LibraryScreen
 import com.example.liber.ui.navigation.AppTab
+import com.example.liber.ui.reader.AudiobookPlayerViewModel
 import com.example.liber.ui.reader.PdfReaderScreen
 import com.example.liber.ui.reader.ReaderScreen
 import com.example.liber.ui.settings.SettingsScreen
@@ -45,6 +49,7 @@ import com.example.liber.ui.settings.SettingsViewModel
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import org.readium.r2.shared.ExperimentalReadiumApi
+import org.readium.r2.shared.publication.LocalizedString
 
 /**
  * Root composable for app-level navigation.
@@ -62,12 +67,43 @@ fun LiberApp(
     val showNavRail = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
     val scope = rememberCoroutineScope()
 
+    val audiobookPlayerViewModel: AudiobookPlayerViewModel = viewModel(
+        factory = AudiobookPlayerViewModel.Factory(context.applicationContext as Application)
+    )
+
     val activeBook by liberAppViewModel.activeBook.collectAsState()
     val activePublication by liberAppViewModel.activePublication.collectAsState()
     val isReaderOpen by liberAppViewModel.isReaderOpen.collectAsState()
     val activeTab by liberAppViewModel.activeTab.collectAsState()
+    val isPlayingGlobal by liberAppViewModel.isPlaying.collectAsState()
     val selectedCollectionId by liberAppViewModel.selectedCollectionId.collectAsState()
     val scanSources by viewModel.scanSources.collectAsState()
+
+    // Sync global playing state to the player
+    androidx.compose.runtime.LaunchedEffect(isPlayingGlobal) {
+        if (isPlayingGlobal) {
+            audiobookPlayerViewModel.play()
+        } else {
+            audiobookPlayerViewModel.pause()
+        }
+    }
+
+    // Sync player state back to global state
+    val playerIsPlaying by audiobookPlayerViewModel.isPlaying.collectAsState()
+    val playerPositionMs by audiobookPlayerViewModel.positionMs.collectAsState()
+    val playerDurationMs by audiobookPlayerViewModel.durationMs.collectAsState()
+
+    androidx.compose.runtime.LaunchedEffect(playerIsPlaying) {
+        if (playerIsPlaying != isPlayingGlobal) {
+            liberAppViewModel.setPlaying(playerIsPlaying)
+        }
+    }
+
+    androidx.compose.runtime.LaunchedEffect(playerPositionMs, playerDurationMs) {
+        if (playerDurationMs > 0) {
+            liberAppViewModel.setPlayerProgress(playerPositionMs.toFloat() / playerDurationMs.toFloat())
+        }
+    }
 
     androidx.activity.compose.BackHandler(enabled = selectedCollectionId != null) {
         liberAppViewModel.setSelectedCollectionId(null)
@@ -126,7 +162,7 @@ fun LiberApp(
         }
     }
 
-    val onOpenBook: (com.example.liber.data.Book) -> Unit = { book ->
+    val onOpenBook: (Book) -> Unit = { book ->
         scope.launch {
             val publication = viewModel.openBook(book)
             when {
@@ -136,12 +172,12 @@ fun LiberApp(
                 }
 
                 book.mediaType == "audio/mpeg" || book.mediaType == "audiobook" -> {
-                    // Should already be handled above if synthesis succeeded,
-                    // but as a safety measure for folder-based audiobooks.
-                    liberAppViewModel.openPdf(book) // Wait, this is still setting publication to null.
-                    // Actually, let's keep it simple: if publication is null but it's audio, 
-                    // we still want to show the player (mockup mode).
-                    liberAppViewModel.openPdf(book)
+                    // Use the publication if it was synthesized, otherwise just open the reader
+                    if (publication != null) {
+                        liberAppViewModel.openEpub(book, publication)
+                    } else {
+                        liberAppViewModel.openPdf(book)
+                    }
                 }
 
                 else -> {
@@ -166,38 +202,49 @@ fun LiberApp(
     val book = activeBook
     val publication = activePublication
 
-    if (isReaderOpen && book != null && book.fileUri.toString()
-            .endsWith(".pdf", ignoreCase = true)
-    ) {
-        val initialPage = remember(book.lastLocator) {
-            book.lastLocator?.let {
-                runCatching { org.json.JSONObject(it).getInt("page") }.getOrDefault(0)
-            } ?: 0
-        }
-        PdfReaderScreen(
-            uri = book.fileUri,
-            title = book.title,
-            bookId = book.id,
-            initialPage = initialPage,
-            bookmarks = bookmarks,
-            annotations = annotations,
-            onSaveLocator = { json, progress -> viewModel.saveLocator(book.id, json, progress) },
-            onSaveBookmark = { bookmark -> viewModel.saveBookmark(bookmark) },
-            onDeleteBookmark = { bookmarkId -> viewModel.deleteBookmark(bookmarkId) },
-            onSaveAnnotation = { annotation -> viewModel.saveAnnotation(annotation) },
-            onDeleteAnnotation = { annotationId -> viewModel.deleteAnnotation(annotationId) },
-            onBack = { liberAppViewModel.closeReader() },
-        )
-    } else if (isReaderOpen && publication != null && book != null) {
-        if (book.mediaType == "audio/mpeg" || book.mediaType == "audiobook") {
+    if (isReaderOpen && book != null) {
+        if (book.fileUri.toString().endsWith(".pdf", ignoreCase = true)) {
+            val initialPage = remember(book.lastLocator) {
+                book.lastLocator?.let {
+                    runCatching { org.json.JSONObject(it).getInt("page") }.getOrDefault(0)
+                } ?: 0
+            }
+            PdfReaderScreen(
+                uri = book.fileUri,
+                title = book.title,
+                bookId = book.id,
+                initialPage = initialPage,
+                bookmarks = bookmarks,
+                annotations = annotations,
+                onSaveLocator = { json, progress ->
+                    viewModel.saveLocator(
+                        book.id,
+                        json,
+                        progress
+                    )
+                },
+                onSaveBookmark = { bookmark -> viewModel.saveBookmark(bookmark) },
+                onDeleteBookmark = { bookmarkId -> viewModel.deleteBookmark(bookmarkId) },
+                onSaveAnnotation = { annotation -> viewModel.saveAnnotation(annotation) },
+                onDeleteAnnotation = { annotationId -> viewModel.deleteAnnotation(annotationId) },
+                onBack = { liberAppViewModel.closeReader() },
+            )
+        } else if (book.mediaType == "audio/mpeg" || book.mediaType == "audiobook") {
             com.example.liber.ui.reader.AudioPlayerScreen(
                 book = book,
-                publication = publication,
+                publication = publication ?: org.readium.r2.shared.publication.Publication(
+                    org.readium.r2.shared.publication.Manifest(
+                        metadata = org.readium.r2.shared.publication.Metadata(
+                            localizedTitle = LocalizedString(book.title)
+                        )
+                    )
+                ),
                 liberAppViewModel = liberAppViewModel,
+                audiobookPlayerViewModel = audiobookPlayerViewModel,
                 onBack = { liberAppViewModel.closeReader() },
                 onSaveLocator = { json, progress -> viewModel.saveLocator(book.id, json, progress) }
             )
-        } else {
+        } else if (publication != null) {
             ReaderScreen(
                 publication = publication,
                 bookId = book.id,
@@ -281,7 +328,7 @@ fun LiberApp(
                                         )
                                     )
                                 },
-                                onShareBook = { book ->
+                                onShareBook = { book: Book ->
                                     val intent = Intent(Intent.ACTION_SEND).apply {
                                         type = "application/epub+zip"
                                         putExtra(Intent.EXTRA_STREAM, book.fileUri)
@@ -297,7 +344,11 @@ fun LiberApp(
                                 collectionsViewModel = collectionsViewModel,
                                 liberAppViewModel = liberAppViewModel,
                                 selectedCollectionId = selectedCollectionId,
-                                onCollectionClick = { liberAppViewModel.setSelectedCollectionId(it) },
+                                onCollectionClick = { id: Long? ->
+                                    liberAppViewModel.setSelectedCollectionId(
+                                        id
+                                    )
+                                },
                                 modifier = Modifier.fillMaxSize()
                             )
 
