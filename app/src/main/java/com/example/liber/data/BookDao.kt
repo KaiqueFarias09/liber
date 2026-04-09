@@ -44,6 +44,9 @@ interface BookDao {
     @Query("UPDATE books SET lastLocator = :locator, readingProgress = :progress WHERE id = :id")
     suspend fun updateLastLocator(id: String, locator: String?, progress: Int)
 
+    @Query("UPDATE books SET coverPath = :coverPath WHERE id = :id")
+    suspend fun updateCoverPath(id: String, coverPath: String?)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAnnotation(annotation: AnnotationEntity)
 

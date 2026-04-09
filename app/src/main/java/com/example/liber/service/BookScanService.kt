@@ -95,8 +95,8 @@ class BookScanService : Service() {
             ScanStateHolder.update(ScanState.Scanning(folderName, index + 1, total, newlyAdded))
             updateNotification(folderName, index + 1, total)
 
-            val isDuplicate = isDuplicate(file.uri, bookRepo)
-            if (!isDuplicate) {
+            val existingBook = bookRepo.getBookByFileUri(file.uri.toString())
+            if (existingBook == null) {
                 val book = importer.parseBook(file)
                 if (book != null) {
                     // Secondary dedup check by contentId after parsing
@@ -112,6 +112,12 @@ class BookScanService : Service() {
                     skipped++
                 }
             } else {
+                // Book already in DB — refresh cover if the cached file is missing
+                val coverMissing = existingBook.coverPath == null ||
+                        !java.io.File(existingBook.coverPath).exists()
+                if (coverMissing && file.isDirectory) {
+                    refreshAudiobookCover(file, existingBook.id, importer, bookRepo)
+                }
                 skipped++
             }
         }
@@ -120,8 +126,16 @@ class BookScanService : Service() {
         ScanStateHolder.update(ScanState.Finished(folderName, newlyAdded, skipped))
     }
 
-    private suspend fun isDuplicate(uri: Uri, bookRepo: BookRepository): Boolean =
-        bookRepo.getBookByFileUri(uri.toString()) != null
+    private suspend fun refreshAudiobookCover(
+        folder: DocumentFile,
+        bookId: String,
+        importer: BookImporter,
+        bookRepo: BookRepository
+    ) {
+        // Re-parse the full book to pick up any cover image added since last scan
+        val freshBook = importer.parseBook(folder) ?: return
+        bookRepo.updateCoverPath(bookId, freshBook.coverUri?.path)
+    }
 
     private fun collectBookFiles(dir: DocumentFile): List<DocumentFile> {
         val results = mutableListOf<DocumentFile>()

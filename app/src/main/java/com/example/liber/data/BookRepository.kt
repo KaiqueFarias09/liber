@@ -41,6 +41,9 @@ class BookRepository(private val bookDao: BookDao) {
     suspend fun updateLastLocator(id: String, locator: String?, progress: Int) =
         bookDao.updateLastLocator(id, locator, progress)
 
+    suspend fun updateCoverPath(id: String, coverPath: String?) =
+        bookDao.updateCoverPath(id, coverPath)
+
     suspend fun insertAnnotation(annotation: AnnotationEntity) =
         bookDao.insertAnnotation(annotation)
 
