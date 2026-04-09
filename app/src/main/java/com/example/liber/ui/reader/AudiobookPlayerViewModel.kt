@@ -1,14 +1,22 @@
 package com.example.liber.ui.reader
 
 import android.app.Application
-import android.media.MediaPlayer
+import android.content.ComponentName
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
+import androidx.media3.common.Player
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
 import com.example.liber.data.Book
+import com.example.liber.player.PlaybackService
+import com.google.common.util.concurrent.ListenableFuture
+import com.google.common.util.concurrent.MoreExecutors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -25,6 +33,7 @@ class AudiobookPlayerViewModel(
     data class TrackInfo(val name: String, val uri: Uri)
 
     private var currentBookId: String? = null
+    private var currentBook: Book? = null
 
     private val _tracks = MutableStateFlow<List<TrackInfo>>(emptyList())
     val tracks: StateFlow<List<TrackInfo>> = _tracks
@@ -44,19 +53,50 @@ class AudiobookPlayerViewModel(
     private val _isPrepared = MutableStateFlow(false)
     val isPrepared: StateFlow<Boolean> = _isPrepared
 
-    private var mediaPlayer: MediaPlayer? = null
+    private var controllerFuture: ListenableFuture<MediaController>? = null
+    private val controller: MediaController? get() = if (controllerFuture?.isDone == true) controllerFuture?.get() else null
+
     private var positionUpdateJob: Job? = null
-    private var autoPlay = false
+
+    init {
+        val sessionToken =
+            SessionToken(application, ComponentName(application, PlaybackService::class.java))
+        controllerFuture = MediaController.Builder(application, sessionToken).buildAsync()
+        controllerFuture?.addListener({
+            val controller = controller ?: return@addListener
+            controller.addListener(object : Player.Listener {
+                override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    _isPlaying.value = isPlaying
+                    if (isPlaying) startPositionUpdates() else positionUpdateJob?.cancel()
+                }
+
+                override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                    _currentTrackIndex.value = controller.currentMediaItemIndex
+                    _durationMs.value = controller.duration.coerceAtLeast(0L)
+                }
+
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    _isPrepared.value =
+                        playbackState != Player.STATE_IDLE && playbackState != Player.STATE_BUFFERING
+                    _durationMs.value = controller.duration.coerceAtLeast(0L)
+                }
+            })
+            // Sync initial state
+            _isPlaying.value = controller.isPlaying
+            _currentTrackIndex.value = controller.currentMediaItemIndex
+            _durationMs.value = controller.duration.coerceAtLeast(0L)
+            _positionMs.value = controller.currentPosition
+            if (controller.isPlaying) startPositionUpdates()
+        }, MoreExecutors.directExecutor())
+    }
 
     fun loadBook(book: Book) {
         if (currentBookId == book.id) return
 
         currentBookId = book.id
+        currentBook = book
 
         // Reset state for new book
-        pause()
-        mediaPlayer?.release()
-        mediaPlayer = null
         _isPrepared.value = false
         _tracks.value = emptyList()
         _positionMs.value = 0L
@@ -86,75 +126,54 @@ class AudiobookPlayerViewModel(
             _tracks.value = trackList
             if (trackList.isNotEmpty()) {
                 withContext(Dispatchers.Main) {
-                    prepareTrack(0)
+                    prepareTracks(trackList, book)
                 }
             }
         }
     }
 
-    private fun prepareTrack(index: Int) {
-        val trackList = _tracks.value
-        if (index !in trackList.indices) return
+    private fun prepareTracks(trackList: List<TrackInfo>, book: Book) {
+        val controller = controller ?: return
 
-        _isPrepared.value = false
-        positionUpdateJob?.cancel()
-
-        val wasPlaying = autoPlay
-        mediaPlayer?.release()
-        mediaPlayer = MediaPlayer().apply {
-            try {
-                setDataSource(getApplication(), trackList[index].uri)
-                setOnPreparedListener { mp ->
-                    _durationMs.value = mp.duration.toLong()
-                    _positionMs.value = 0L
-                    _currentTrackIndex.value = index
-                    _isPrepared.value = true
-                    if (wasPlaying) {
-                        mp.start()
-                        _isPlaying.value = true
-                        startPositionUpdates()
-                    }
-                }
-                setOnCompletionListener { playNextTrack() }
-                prepareAsync()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+        val mediaItems = trackList.map { track ->
+            MediaItem.Builder()
+                .setMediaId(track.uri.toString())
+                .setUri(track.uri)
+                .setMediaMetadata(
+                    MediaMetadata.Builder()
+                        .setTitle(track.name)
+                        .setArtist(book.author)
+                        .setAlbumTitle(book.title)
+                        .setArtworkUri(book.coverUri)
+                        .build()
+                )
+                .build()
         }
+
+        controller.setMediaItems(mediaItems)
+        controller.prepare()
+        _isPrepared.value = true
     }
 
     fun togglePlayPause() {
-        mediaPlayer ?: return
-        if (!_isPrepared.value) return
-        if (_isPlaying.value) {
-            pause()
+        val controller = controller ?: return
+        if (controller.isPlaying) {
+            controller.pause()
         } else {
-            play()
+            controller.play()
         }
     }
 
     fun play() {
-        val player = mediaPlayer ?: return
-        if (!_isPrepared.value) return
-        if (!_isPlaying.value) {
-            player.start()
-            _isPlaying.value = true
-            autoPlay = true
-            startPositionUpdates()
-        }
+        controller?.play()
     }
 
     fun pause() {
-        val player = mediaPlayer ?: return
-        if (_isPlaying.value) {
-            player.pause()
-            _isPlaying.value = false
-            positionUpdateJob?.cancel()
-        }
+        controller?.pause()
     }
 
     fun seekTo(positionMs: Long) {
-        mediaPlayer?.seekTo(positionMs.toInt())
+        controller?.seekTo(positionMs)
         _positionMs.value = positionMs
     }
 
@@ -169,26 +188,14 @@ class AudiobookPlayerViewModel(
     }
 
     fun playNextTrack() {
-        val nextIndex = _currentTrackIndex.value + 1
-        if (nextIndex < _tracks.value.size) {
-            prepareTrack(nextIndex)
-        } else {
-            _isPlaying.value = false
-            autoPlay = false
-            positionUpdateJob?.cancel()
-        }
+        controller?.seekToNextMediaItem()
     }
 
     fun playPrevTrack() {
         if (_positionMs.value > 5000L) {
             seekTo(0)
         } else {
-            val prevIndex = _currentTrackIndex.value - 1
-            if (prevIndex >= 0) {
-                prepareTrack(prevIndex)
-            } else {
-                seekTo(0)
-            }
+            controller?.seekToPreviousMediaItem()
         }
     }
 
@@ -196,7 +203,8 @@ class AudiobookPlayerViewModel(
         positionUpdateJob?.cancel()
         positionUpdateJob = viewModelScope.launch {
             while (isActive) {
-                _positionMs.value = mediaPlayer?.currentPosition?.toLong() ?: 0L
+                _positionMs.value = controller?.currentPosition ?: 0L
+                _durationMs.value = controller?.duration?.coerceAtLeast(0L) ?: 0L
                 delay(500)
             }
         }
@@ -204,8 +212,9 @@ class AudiobookPlayerViewModel(
 
     override fun onCleared() {
         positionUpdateJob?.cancel()
-        mediaPlayer?.release()
-        mediaPlayer = null
+        controllerFuture?.let {
+            MediaController.releaseFuture(it)
+        }
         super.onCleared()
     }
 
