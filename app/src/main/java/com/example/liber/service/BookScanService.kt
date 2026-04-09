@@ -141,9 +141,9 @@ class BookScanService : Service() {
         val results = mutableListOf<DocumentFile>()
         val files = dir.listFiles()
 
-        // Consider it an audiobook folder if it contains multiple audio files directly.
+        // Consider it an audiobook folder if it contains any audio files directly.
         val audioFiles = files.filter { it.isFile && isSupportedAudioFile(it.name) }
-        val isAudiobookFolder = audioFiles.size > 1
+        val isAudiobookFolder = audioFiles.isNotEmpty()
 
         if (isAudiobookFolder) {
             results += dir
@@ -151,7 +151,9 @@ class BookScanService : Service() {
 
         files.forEach { child ->
             when {
-                // If it's an audiobook folder, we don't recurse into subdirectories.
+                // If it's an audiobook folder, we don't recurse into subdirectories
+                // for MORE books, but we might want to if there are nested folders?
+                // For now, let's keep it simple: one folder = one audiobook.
                 child.isDirectory && !isAudiobookFolder -> results += collectBookFiles(child)
                 child.isFile -> {
                     if (isSupportedFile(child.name)) {
