@@ -17,7 +17,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         ScanSourceEntity::class,
         InkStrokeEntity::class,
     ],
-    version = 9,
+    version = 10,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -46,7 +46,8 @@ abstract class AppDatabase : RoomDatabase() {
 
         private val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("""
+                db.execSQL(
+                    """
                     CREATE TABLE IF NOT EXISTS `annotations` (
                         `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         `bookId` TEXT NOT NULL,
@@ -58,7 +59,8 @@ abstract class AppDatabase : RoomDatabase() {
                         `createdAt` INTEGER NOT NULL,
                         FOREIGN KEY(`bookId`) REFERENCES `books`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
                     )
-                """.trimIndent())
+                """.trimIndent()
+                )
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_annotations_bookId` ON `annotations` (`bookId`)")
             }
         }
@@ -110,14 +112,17 @@ abstract class AppDatabase : RoomDatabase() {
 
         private val MIGRATION_5_6 = object : Migration(5, 6) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("""
+                db.execSQL(
+                    """
                     CREATE TABLE IF NOT EXISTS `collections` (
                         `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         `name` TEXT NOT NULL,
                         `createdAt` INTEGER NOT NULL
                     )
-                """.trimIndent())
-                db.execSQL("""
+                """.trimIndent()
+                )
+                db.execSQL(
+                    """
                     CREATE TABLE IF NOT EXISTS `book_collections` (
                         `collectionId` INTEGER NOT NULL,
                         `bookId` TEXT NOT NULL,
@@ -125,7 +130,8 @@ abstract class AppDatabase : RoomDatabase() {
                         FOREIGN KEY(`collectionId`) REFERENCES `collections`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
                         FOREIGN KEY(`bookId`) REFERENCES `books`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
                     )
-                """.trimIndent())
+                """.trimIndent()
+                )
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_book_collections_collectionId` ON `book_collections` (`collectionId`)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_book_collections_bookId` ON `book_collections` (`bookId`)")
             }
@@ -133,7 +139,8 @@ abstract class AppDatabase : RoomDatabase() {
 
         private val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("""
+                db.execSQL(
+                    """
                     CREATE TABLE IF NOT EXISTS `bookmarks` (
                         `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                         `bookId` TEXT NOT NULL,
@@ -142,8 +149,15 @@ abstract class AppDatabase : RoomDatabase() {
                         `createdAt` INTEGER NOT NULL,
                         FOREIGN KEY(`bookId`) REFERENCES `books`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
                     )
-                """.trimIndent())
+                """.trimIndent()
+                )
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_bookmarks_bookId` ON `bookmarks` (`bookId`)")
+            }
+        }
+
+        private val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE books ADD COLUMN narrator TEXT")
             }
         }
 
@@ -163,6 +177,7 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_6_7,
                         MIGRATION_7_8,
                         MIGRATION_8_9,
+                        MIGRATION_9_10,
                     )
                     .build()
                 INSTANCE = instance

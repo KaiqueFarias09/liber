@@ -133,9 +133,15 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun renameBook(bookId: String, newTitle: String) {
+    fun updateMetadata(bookId: String, title: String, author: String?, narrator: String?) {
         viewModelScope.launch(Dispatchers.IO) {
-            bookRepository.renameBook(bookId, newTitle)
+            bookRepository.updateMetadata(bookId, title, author, narrator)
+        }
+    }
+
+    fun updateCoverPath(bookId: String, coverPath: String?) {
+        viewModelScope.launch(Dispatchers.IO) {
+            bookRepository.updateCoverPath(bookId, coverPath)
         }
     }
 

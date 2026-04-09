@@ -26,8 +26,8 @@ class BookRepository(private val bookDao: BookDao) {
     suspend fun insertBook(book: BookEntity) =
         bookDao.insertBook(book)
 
-    suspend fun renameBook(id: String, title: String) =
-        bookDao.renameBook(id, title)
+    suspend fun updateMetadata(id: String, title: String, author: String?, narrator: String?) =
+        bookDao.updateMetadata(id, title, author, narrator)
 
     suspend fun deleteBook(bookId: String) =
         bookDao.deleteBook(bookId)

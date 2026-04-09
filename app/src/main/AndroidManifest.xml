@@ -5,6 +5,7 @@
     <uses-sdk tools:overrideLibrary="androidx.pdf.viewer.fragment, androidx.pdf.viewer, androidx.pdf.document.service, androidx.pdf"/>
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />

@@ -405,6 +405,7 @@ fun LiberApp(
                         )
                     ),
                     liberAppViewModel = liberAppViewModel,
+                    homeViewModel = viewModel,
                     audiobookPlayerViewModel = audiobookPlayerViewModel,
                     onBack = { liberAppViewModel.closeReader() },
                     onSaveLocator = { json, progress ->

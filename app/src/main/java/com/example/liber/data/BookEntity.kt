@@ -17,4 +17,5 @@ data class BookEntity(
     val contentId: String? = null,
     val mediaType: String? = null,
     val durationMillis: Long? = null,
+    val narrator: String? = null,
 )

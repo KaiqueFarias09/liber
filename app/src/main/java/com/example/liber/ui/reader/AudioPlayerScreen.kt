@@ -1,13 +1,15 @@
 package com.example.liber.ui.reader
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateDpAsState
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,9 +29,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -44,10 +52,12 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,33 +65,55 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewModelScope
 import coil.compose.AsyncImage
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Fill
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.fill.Check
+import com.adamglin.phosphoricons.fill.MagnifyingGlass
 import com.adamglin.phosphoricons.fill.Pause
 import com.adamglin.phosphoricons.fill.Play
 import com.adamglin.phosphoricons.regular.ArrowClockwise
 import com.adamglin.phosphoricons.regular.ArrowCounterClockwise
+import com.adamglin.phosphoricons.regular.Camera
 import com.adamglin.phosphoricons.regular.CaretDown
 import com.adamglin.phosphoricons.regular.Clock
 import com.adamglin.phosphoricons.regular.DotsThree
+import com.adamglin.phosphoricons.regular.Globe
 import com.adamglin.phosphoricons.regular.Headphones
+import com.adamglin.phosphoricons.regular.Image
 import com.adamglin.phosphoricons.regular.List
 import com.adamglin.phosphoricons.regular.PencilSimple
 import com.adamglin.phosphoricons.regular.PlusCircle
 import com.adamglin.phosphoricons.regular.ShareNetwork
 import com.adamglin.phosphoricons.regular.Trash
+import com.example.liber.api.ITunesSearchApi
+import com.example.liber.api.ITunesSearchResult
 import com.example.liber.data.Book
+import com.example.liber.ui.components.LiberDialog
 import com.example.liber.ui.components.LiberModalBottomSheet
+import com.example.liber.ui.home.HomeViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
+import okhttp3.MediaType.Companion.toMediaType
 import org.readium.r2.shared.publication.Publication
+import retrofit2.Retrofit
+import retrofit2.converter.kotlinx.serialization.asConverterFactory
+import java.io.File
+import java.io.FileOutputStream
+import java.net.URL
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,6 +121,7 @@ fun AudioPlayerScreen(
     book: Book,
     publication: Publication,
     liberAppViewModel: com.example.liber.ui.LiberAppViewModel,
+    homeViewModel: HomeViewModel,
     audiobookPlayerViewModel: AudiobookPlayerViewModel,
     onBack: () -> Unit,
     onSaveLocator: (String, Int) -> Unit
@@ -107,6 +140,7 @@ fun AudioPlayerScreen(
     val sleepTimerRemainingMs by audiobookPlayerViewModel.sleepTimerRemainingMs.collectAsState()
 
     var activeSheet by remember { mutableStateOf<AudioPlayerSheet?>(null) }
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
 
     val globalIsPlaying by liberAppViewModel.isPlaying.collectAsState()
 
@@ -122,22 +156,47 @@ fun AudioPlayerScreen(
         }
     }
 
-    val infiniteTransition = rememberInfiniteTransition(label = "vinyl")
+    val infiniteTransition =
+        androidx.compose.animation.core.rememberInfiniteTransition(label = "vinyl")
     val rotation by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(4000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+            animation = androidx.compose.animation.core.tween(
+                4000,
+                easing = androidx.compose.animation.core.LinearEasing
+            ),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Restart
         ),
         label = "vinyl_rotation"
     )
 
-    val vinylOffset by animateDpAsState(
+    val vinylOffset by androidx.compose.animation.core.animateDpAsState(
         targetValue = if (isPlaying) (-80).dp else (-20).dp,
-        animationSpec = tween(1000),
+        animationSpec = androidx.compose.animation.core.tween(1000),
         label = "vinyl_offset"
     )
+
+    if (showDeleteConfirmation) {
+        LiberDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            title = "Remove Download",
+            confirmLabel = "Remove",
+            confirmLabelColor = MaterialTheme.colorScheme.error,
+            onConfirm = {
+                homeViewModel.deleteBook(book.id)
+                showDeleteConfirmation = false
+                onBack()
+            },
+            dismissLabel = "Cancel"
+        ) {
+            Text(
+                "Are you sure you want to remove this audiobook from your library? This action cannot be undone.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -559,42 +618,95 @@ fun AudioPlayerScreen(
                     AudioPlayerSheet.CHAPTERS -> "Chapters"
                     AudioPlayerSheet.SLEEP -> "Sleep Timer"
                     AudioPlayerSheet.MORE -> "Details"
+                    AudioPlayerSheet.EDIT_METADATA -> "Edit Book Info"
+                    AudioPlayerSheet.CHANGE_COVER -> "Change Cover Art"
+                    AudioPlayerSheet.SEARCH_WEB -> "Search Web"
                 }
             ) {
-                when (sheet) {
-                    AudioPlayerSheet.SPEED -> SpeedSheet(
-                        currentSpeed = playbackSpeed,
-                        onSpeedSelected = {
-                            audiobookPlayerViewModel.setPlaybackSpeed(it)
-                            activeSheet = null
-                        }
-                    )
+                AnimatedContent(
+                    targetState = sheet,
+                    transitionSpec = {
+                        slideInHorizontally { it } togetherWith slideOutHorizontally { -it }
+                    },
+                    label = "sheet_transition"
+                ) { targetSheet ->
+                    when (targetSheet) {
+                        AudioPlayerSheet.SPEED -> SpeedSheet(
+                            currentSpeed = playbackSpeed,
+                            onSpeedSelected = {
+                                audiobookPlayerViewModel.setPlaybackSpeed(it)
+                                activeSheet = null
+                            }
+                        )
 
-                    AudioPlayerSheet.CHAPTERS -> ChaptersSheet(
-                        tracks = tracks,
-                        currentIndex = currentTrackIndex,
-                        onTrackSelected = { index ->
-                            audiobookPlayerViewModel.playTrack(index)
-                            activeSheet = null
-                        }
-                    )
+                        AudioPlayerSheet.CHAPTERS -> ChaptersSheet(
+                            tracks = tracks,
+                            currentIndex = currentTrackIndex,
+                            onTrackSelected = { index ->
+                                audiobookPlayerViewModel.playTrack(index)
+                                activeSheet = null
+                            }
+                        )
 
-                    AudioPlayerSheet.SLEEP -> SleepTimerSheet(
-                        remainingMs = sleepTimerRemainingMs,
-                        onTimerSelected = { minutes ->
-                            audiobookPlayerViewModel.setSleepTimer(minutes)
-                            activeSheet = null
-                        },
-                        onEndOfChapterSelected = {
-                            audiobookPlayerViewModel.setSleepTimerEndOfChapter()
-                            activeSheet = null
-                        }
-                    )
+                        AudioPlayerSheet.SLEEP -> SleepTimerSheet(
+                            remainingMs = sleepTimerRemainingMs,
+                            onTimerSelected = { minutes ->
+                                audiobookPlayerViewModel.setSleepTimer(minutes)
+                                activeSheet = null
+                            },
+                            onEndOfChapterSelected = {
+                                audiobookPlayerViewModel.setSleepTimerEndOfChapter()
+                                activeSheet = null
+                            }
+                        )
 
-                    AudioPlayerSheet.MORE -> MoreOptionsSheet(
-                        book = book,
-                        onDismiss = { activeSheet = null }
-                    )
+                        AudioPlayerSheet.MORE -> MoreOptionsSheet(
+                            book = book,
+                            onDismiss = { activeSheet = null },
+                            onEditMetadata = { activeSheet = AudioPlayerSheet.EDIT_METADATA },
+                            onChangeCover = { activeSheet = AudioPlayerSheet.CHANGE_COVER },
+                            onDelete = {
+                                activeSheet = null
+                                showDeleteConfirmation = true
+                            }
+                        )
+
+                        AudioPlayerSheet.EDIT_METADATA -> EditMetadataSheet(
+                            book = book,
+                            onSave = { title, author, narrator ->
+                                homeViewModel.updateMetadata(book.id, title, author, narrator)
+                                activeSheet = null
+                            }
+                        )
+
+                        AudioPlayerSheet.CHANGE_COVER -> ChangeCoverSheet(
+                            onGalleryClick = { /* Handled by launcher */ },
+                            onSearchWebClick = { activeSheet = AudioPlayerSheet.SEARCH_WEB },
+                            onCameraClick = { /* Not implemented */ },
+                            onCoverSelected = { uri ->
+                                homeViewModel.updateCoverPath(book.id, uri.toString())
+                                activeSheet = null
+                            }
+                        )
+
+                        AudioPlayerSheet.SEARCH_WEB -> SearchWebSheet(
+                            initialQuery = book.title,
+                            onCoverSelected = { highResUrl ->
+                                // Logic to download and save locally
+                                activeSheet = null
+                                homeViewModel.viewModelScope.launch {
+                                    val localUri = downloadAndSaveCover(
+                                        homeViewModel.getApplication(),
+                                        book.id,
+                                        highResUrl
+                                    )
+                                    if (localUri != null) {
+                                        homeViewModel.updateCoverPath(book.id, localUri.toString())
+                                    }
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -602,7 +714,7 @@ fun AudioPlayerScreen(
 }
 
 enum class AudioPlayerSheet {
-    SPEED, CHAPTERS, SLEEP, MORE
+    SPEED, CHAPTERS, SLEEP, MORE, EDIT_METADATA, CHANGE_COVER, SEARCH_WEB
 }
 
 @Composable
@@ -795,7 +907,13 @@ fun SleepTimerOption(label: String, isSelected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-fun MoreOptionsSheet(book: Book, onDismiss: () -> Unit) {
+fun MoreOptionsSheet(
+    book: Book,
+    onDismiss: () -> Unit,
+    onEditMetadata: () -> Unit,
+    onChangeCover: () -> Unit,
+    onDelete: () -> Unit
+) {
     Column(
         modifier = Modifier
             .padding(horizontal = 20.dp)
@@ -842,13 +960,13 @@ fun MoreOptionsSheet(book: Book, onDismiss: () -> Unit) {
             icon = PhosphorIcons.Regular.PencilSimple,
             title = "Edit Book Info",
             subtitle = "Change title, author, and narrator",
-            onClick = { /* Not implemented yet */ }
+            onClick = onEditMetadata
         )
         MoreOptionItem(
             icon = PhosphorIcons.Regular.PlusCircle,
             title = "Change Cover Art",
             subtitle = "Upload or search for a new image",
-            onClick = { /* Not implemented yet */ }
+            onClick = onChangeCover
         )
 
         HorizontalDivider(
@@ -867,9 +985,307 @@ fun MoreOptionsSheet(book: Book, onDismiss: () -> Unit) {
             icon = PhosphorIcons.Regular.Trash,
             title = "Remove Download",
             subtitle = null,
-            onClick = { /* Not implemented yet */ },
+            onClick = onDelete,
             tint = MaterialTheme.colorScheme.error
         )
+    }
+}
+
+@Composable
+fun EditMetadataSheet(
+    book: Book,
+    onSave: (String, String?, String?) -> Unit
+) {
+    var title by remember { mutableStateOf(book.title) }
+    var author by remember { mutableStateOf(book.author ?: "") }
+    var narrator by remember { mutableStateOf(book.narrator ?: "") }
+
+    Column(
+        modifier = Modifier
+            .padding(horizontal = 20.dp)
+            .padding(bottom = 40.dp)
+            .padding(top = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        MetadataInputField(
+            label = "Title",
+            value = title,
+            onValueChange = { title = it },
+            placeholder = "Book Title"
+        )
+
+        MetadataInputField(
+            label = "Author",
+            value = author,
+            onValueChange = { author = it },
+            placeholder = "Author Name"
+        )
+
+        MetadataInputField(
+            label = "Narrator",
+            value = narrator,
+            onValueChange = { narrator = it },
+            placeholder = "Narrated by"
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.onSurface)
+                .clickable { onSave(title, author.ifBlank { null }, narrator.ifBlank { null }) }
+                .padding(vertical = 16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                "Save Changes",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.surface
+            )
+        }
+    }
+}
+
+@Composable
+fun MetadataInputField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String
+) {
+    val focusManager = LocalFocusManager.current
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.sp
+        )
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    MaterialTheme.colorScheme.surfaceContainerLow,
+                    RoundedCornerShape(12.dp)
+                )
+                .padding(16.dp),
+            textStyle = MaterialTheme.typography.bodyMedium.copy(
+                color = MaterialTheme.colorScheme.onSurface
+            ),
+            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+            decorationBox = { innerTextField ->
+                if (value.isEmpty()) {
+                    Text(
+                        placeholder,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                }
+                innerTextField()
+            }
+        )
+    }
+}
+
+@Composable
+fun ChangeCoverSheet(
+    onGalleryClick: () -> Unit,
+    onSearchWebClick: () -> Unit,
+    onCameraClick: () -> Unit,
+    onCoverSelected: (android.net.Uri) -> Unit
+) {
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            onCoverSelected(uri)
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .padding(horizontal = 20.dp)
+            .padding(bottom = 40.dp)
+            .padding(top = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        MoreOptionItem(
+            icon = PhosphorIcons.Regular.Image,
+            title = "Choose from Gallery",
+            subtitle = "Select an image from your device",
+            onClick = { galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
+        )
+        MoreOptionItem(
+            icon = PhosphorIcons.Regular.Globe,
+            title = "Search Web",
+            subtitle = "Find high-resolution covers online",
+            onClick = onSearchWebClick
+        )
+        MoreOptionItem(
+            icon = PhosphorIcons.Regular.Camera,
+            title = "Take Photo",
+            subtitle = "Use your camera to capture a cover",
+            onClick = onCameraClick
+        )
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun SearchWebSheet(
+    initialQuery: String,
+    onCoverSelected: (String) -> Unit
+) {
+    var query by remember { mutableStateOf(initialQuery) }
+    var results by remember { mutableStateOf<List<ITunesSearchResult>>(emptyList()) }
+    var isSearching by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
+    val scope = rememberCoroutineScope()
+
+    val itunesApi = remember {
+        val json = Json { ignoreUnknownKeys = true }
+        Retrofit.Builder()
+            .baseUrl("https://itunes.apple.com/")
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+            .build()
+            .create(ITunesSearchApi::class.java)
+    }
+
+    fun performSearch() {
+        if (query.isBlank()) return
+        isSearching = true
+        focusManager.clearFocus()
+        scope.launch {
+            try {
+                val response = itunesApi.searchAudiobooks(query)
+                results = response.results
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                isSearching = false
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        performSearch()
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxHeight(0.8f)
+            .padding(horizontal = 20.dp)
+    ) {
+        // Search Bar
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp)
+                .background(
+                    MaterialTheme.colorScheme.surfaceContainerLow,
+                    RoundedCornerShape(12.dp)
+                )
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                PhosphorIcons.Fill.MagnifyingGlass,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            BasicTextField(
+                value = query,
+                onValueChange = { query = it },
+                modifier = Modifier.weight(1f),
+                textStyle = MaterialTheme.typography.bodyMedium.copy(
+                    color = MaterialTheme.colorScheme.onSurface
+                ),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { performSearch() }),
+                decorationBox = { innerTextField ->
+                    if (query.isEmpty()) {
+                        Text(
+                            "Search for a book...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                    }
+                    innerTextField()
+                }
+            )
+        }
+
+        if (isSearching) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                androidx.compose.material3.CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+            }
+        } else if (results.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    "No results found",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(3),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(results) { result ->
+                    val highResUrl = result.highResArtworkUrl ?: result.artworkUrl100
+                    if (highResUrl != null) {
+                        AsyncImage(
+                            model = result.artworkUrl100, // Use low-res for thumbnail
+                            contentDescription = result.collectionName,
+                            modifier = Modifier
+                                .aspectRatio(1f)
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { onCoverSelected(highResUrl) },
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+suspend fun downloadAndSaveCover(
+    context: android.content.Context,
+    bookId: String,
+    url: String
+): android.net.Uri? {
+    return withContext(Dispatchers.IO) {
+        try {
+            val fileName = "cover_$bookId.jpg"
+            val file = File(context.filesDir, fileName)
+            val connection = URL(url).openConnection()
+            connection.connect()
+            val input = connection.getInputStream()
+            val output = FileOutputStream(file)
+            input.copyTo(output)
+            output.close()
+            input.close()
+            android.net.Uri.fromFile(file)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
     }
 }
 

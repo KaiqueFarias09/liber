@@ -15,6 +15,7 @@ data class Book(
     val contentId: String? = null,
     val mediaType: String? = null,
     val durationMillis: Long? = null,
+    val narrator: String? = null,
 ) {
     val isAudiobook: Boolean
         get() = mediaType == "audio/mpeg" || mediaType == "audiobook"

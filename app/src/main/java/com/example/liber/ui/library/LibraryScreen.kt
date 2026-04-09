@@ -345,7 +345,14 @@ fun LibraryScreen(
                 book.readingProgress == 100
             )
         },
-        onRenameBook = { book, newTitle -> viewModel.renameBook(book.id, newTitle) },
+        onRenameBook = { book, newTitle ->
+            viewModel.updateMetadata(
+                book.id,
+                newTitle,
+                book.author,
+                book.narrator
+            )
+        },
         onDeleteBook = { book -> viewModel.deleteBook(book.id) },
         onShareBook = onShareBook,
         onAddToCollection = { book, collectionId ->
