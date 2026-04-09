@@ -290,6 +290,7 @@ fun LiberApp(
                                     )
                                 },
                                 collectionsViewModel = collectionsViewModel,
+                                liberAppViewModel = liberAppViewModel,
                                 selectedCollectionId = selectedCollectionId,
                                 onCollectionClick = { liberAppViewModel.setSelectedCollectionId(it) },
                                 modifier = Modifier.fillMaxSize()

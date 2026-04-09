@@ -15,6 +15,8 @@ fun AudiobookGrid(
     audiobooks: List<Book>,
     onBookClick: (Book) -> Unit,
     onDeleteBook: (Book) -> Unit,
+    activeBookId: String? = null,
+    isPlaying: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     LazyVerticalGrid(
@@ -28,6 +30,8 @@ fun AudiobookGrid(
             AudiobookGridItem(
                 book = book,
                 onClick = { onBookClick(book) },
+                isActive = book.id == activeBookId,
+                isPlaying = isPlaying
             )
         }
     }

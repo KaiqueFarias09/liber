@@ -75,6 +75,11 @@ fun LibraryScreen(
     onSortOptionChange: (LibrarySortOption) -> Unit = {},
     selectedCollectionId: Long? = null,
     onCollectionClick: (Long?) -> Unit = {},
+    activeBookId: String? = null,
+    isPlaying: Boolean = false,
+    nowPlayingProgress: Float = 0f,
+    onTogglePlay: () -> Unit = {},
+    onNowPlayingClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val pagerState = rememberPagerState { 3 }
@@ -210,6 +215,8 @@ fun LibraryScreen(
                                 audiobooks = audiobooks,
                                 onBookClick = onBookClick,
                                 onDeleteBook = onDeleteBook,
+                                activeBookId = activeBookId,
+                                isPlaying = isPlaying
                             )
                         }
                     }
@@ -241,6 +248,22 @@ fun LibraryScreen(
             LiberHeader(
                 title = "Library"
             )
+        }
+
+        if (activeBookId != null) {
+            val activeBook = books.find { it.id == activeBookId }
+            if (activeBook != null) {
+                com.example.liber.ui.components.NowPlayingBar(
+                    book = activeBook,
+                    isPlaying = isPlaying,
+                    progress = nowPlayingProgress,
+                    onTogglePlay = onTogglePlay,
+                    onClick = onNowPlayingClick,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 16.dp)
+                )
+            }
         }
 
         if (selectedCollectionId != null && selectedCollection != null) {
@@ -288,6 +311,7 @@ fun LibraryScreen(
     onAddBooks: () -> Unit,
     onShareBook: (Book) -> Unit,
     collectionsViewModel: CollectionsViewModel,
+    liberAppViewModel: com.example.liber.ui.LiberAppViewModel,
     selectedCollectionId: Long? = null,
     onCollectionClick: (Long?) -> Unit = {},
     modifier: Modifier = Modifier,
@@ -298,6 +322,8 @@ fun LibraryScreen(
     val viewMode by viewModel.libraryViewMode.collectAsState()
     val sortOption by viewModel.librarySortOption.collectAsState()
     val scanState by viewModel.scanState.collectAsState()
+
+    val activeBook by liberAppViewModel.activeBook.collectAsState()
 
     LibraryScreen(
         books = books,
@@ -335,6 +361,12 @@ fun LibraryScreen(
         onSortOptionChange = { viewModel.setLibrarySortOption(it) },
         selectedCollectionId = selectedCollectionId,
         onCollectionClick = onCollectionClick,
+        activeBookId = activeBook?.id,
+        // Mocking these for now as we don't have global state for them easily accessible here
+        isPlaying = false,
+        nowPlayingProgress = 0.35f,
+        onTogglePlay = { /* Toggle global player if exists */ },
+        onNowPlayingClick = { activeBook?.let { onBookClick(it) } },
         modifier = modifier,
     )
 }
@@ -369,6 +401,8 @@ private fun LibraryScreenPreview() {
             onRenameBook = { _, _ -> },
             onDeleteBook = {},
             onShareBook = {},
+            onTogglePlay = {},
+            onNowPlayingClick = {},
         )
     }
 }
@@ -387,6 +421,8 @@ private fun LibraryScreenEmptyPreview() {
             onRenameBook = { _, _ -> },
             onDeleteBook = {},
             onShareBook = {},
+            onTogglePlay = {},
+            onNowPlayingClick = {},
         )
     }
 }
