@@ -56,6 +56,12 @@ class AudiobookPlayerViewModel(
     private val _isPrepared = MutableStateFlow(false)
     val isPrepared: StateFlow<Boolean> = _isPrepared
 
+    private val _playbackSpeed = MutableStateFlow(1.0f)
+    val playbackSpeed: StateFlow<Float> = _playbackSpeed
+
+    private val _sleepTimerRemainingMs = MutableStateFlow<Long?>(null)
+    val sleepTimerRemainingMs: StateFlow<Long?> = _sleepTimerRemainingMs
+
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private val controller: MediaController? get() = if (controllerFuture?.isDone == true) controllerFuture?.get() else null
 
@@ -91,6 +97,7 @@ class AudiobookPlayerViewModel(
             _currentTrackIndex.value = controller.currentMediaItemIndex
             _durationMs.value = controller.duration.coerceAtLeast(0L)
             _positionMs.value = controller.currentPosition
+            _playbackSpeed.value = controller.playbackParameters.speed
             if (controller.isPlaying) startPositionUpdates()
         }, MoreExecutors.directExecutor())
     }
@@ -194,9 +201,55 @@ class AudiobookPlayerViewModel(
         controller?.pause()
     }
 
+    fun setPlaybackSpeed(speed: Float) {
+        controller?.setPlaybackSpeed(speed)
+        _playbackSpeed.value = speed
+    }
+
+    private var sleepTimerJob: Job? = null
+
+    fun setSleepTimer(minutes: Int?) {
+        sleepTimerJob?.cancel()
+        if (minutes == null) {
+            _sleepTimerRemainingMs.value = null
+            return
+        }
+
+        val durationMs = minutes * 60 * 1000L
+        _sleepTimerRemainingMs.value = durationMs
+
+        sleepTimerJob = viewModelScope.launch {
+            val startTime = System.currentTimeMillis()
+            while (isActive) {
+                val elapsed = System.currentTimeMillis() - startTime
+                val remaining = durationMs - elapsed
+                if (remaining <= 0) {
+                    _sleepTimerRemainingMs.value = null
+                    pause()
+                    break
+                }
+                _sleepTimerRemainingMs.value = remaining
+                delay(1000)
+            }
+        }
+    }
+
+    fun setSleepTimerEndOfChapter() {
+        sleepTimerJob?.cancel()
+        _sleepTimerRemainingMs.value = -1L // Special value for end of chapter
+    }
+
     fun seekTo(positionMs: Long) {
         controller?.seekTo(positionMs)
         _positionMs.value = positionMs
+    }
+
+    fun playTrack(index: Int) {
+        val controller = controller ?: return
+        if (index in 0 until controller.mediaItemCount) {
+            controller.seekTo(index, 0)
+            controller.play()
+        }
     }
 
     fun skipForward(seconds: Int = 30) {
@@ -235,6 +288,14 @@ class AudiobookPlayerViewModel(
                 if (currentTime - lastSaveTime > 5000L) {
                     saveProgress()
                     lastSaveTime = currentTime
+                }
+
+                // Check end of chapter sleep timer
+                if (_sleepTimerRemainingMs.value == -1L) {
+                    if (currentPos >= _durationMs.value - 1000L && _durationMs.value > 0) {
+                        _sleepTimerRemainingMs.value = null
+                        pause()
+                    }
                 }
 
                 delay(500)
