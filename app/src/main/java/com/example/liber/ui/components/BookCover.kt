@@ -238,44 +238,56 @@ fun AudiobookCover(
             )
 
             // Icons and Text on cover (matching React mock)
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                verticalArrangement = Arrangement.SpaceBetween
-            ) {
+            if (book.coverUri == null) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Icon(
+                        imageVector = PhosphorIcons.Regular.Headphones,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.7f),
+                        modifier = Modifier.size(iconSize)
+                    )
+
+                    Column {
+                        Text(
+                            text = book.title,
+                            style = TextStyle(
+                                fontFamily = Gambetta,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = titleSize,
+                                color = Color.White
+                            ),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        if (!isSmall) {
+                            Text(
+                                text = book.author?.uppercase() ?: "UNKNOWN AUTHOR",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = Color.White.copy(alpha = 0.7f),
+                                    letterSpacing = 1.sp,
+                                    fontSize = 8.sp
+                                ),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+            } else {
+                // Just the headphones icon if there is a cover
                 Icon(
                     imageVector = PhosphorIcons.Regular.Headphones,
                     contentDescription = null,
                     tint = Color.White.copy(alpha = 0.7f),
-                    modifier = Modifier.size(iconSize)
+                    modifier = Modifier
+                        .padding(padding)
+                        .size(iconSize)
                 )
-
-                Column {
-                    Text(
-                        text = book.title,
-                        style = TextStyle(
-                            fontFamily = Gambetta,
-                            fontWeight = FontWeight.Medium,
-                            fontSize = titleSize,
-                            color = Color.White
-                        ),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    if (!isSmall) {
-                        Text(
-                            text = book.author?.uppercase() ?: "UNKNOWN AUTHOR",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                color = Color.White.copy(alpha = 0.7f),
-                                letterSpacing = 1.sp,
-                                fontSize = 8.sp
-                            ),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
             }
         }
     }
