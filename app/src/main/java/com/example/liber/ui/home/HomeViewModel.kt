@@ -34,7 +34,7 @@ import org.readium.r2.shared.publication.Publication
 @OptIn(ExperimentalReadiumApi::class)
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val bookRepository = BookRepository(AppDatabase.getDatabase(application).bookDao())
+    internal val bookRepository = BookRepository(AppDatabase.getDatabase(application).bookDao())
     private val scanSourceRepository =
         ScanSourceRepository(AppDatabase.getDatabase(application).scanSourceDao())
     private val bookImporter = BookImporter(application)

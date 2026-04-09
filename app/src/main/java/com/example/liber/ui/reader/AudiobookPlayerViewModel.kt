@@ -14,6 +14,7 @@ import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.example.liber.data.Book
+import com.example.liber.data.BookRepository
 import com.example.liber.player.PlaybackService
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
@@ -25,9 +26,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
 
 class AudiobookPlayerViewModel(
-    application: Application
+    application: Application,
+    private val bookRepository: BookRepository
 ) : AndroidViewModel(application) {
 
     data class TrackInfo(val name: String, val uri: Uri)
@@ -71,8 +74,10 @@ class AudiobookPlayerViewModel(
                 }
 
                 override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                    val controller = controller ?: return
                     _currentTrackIndex.value = controller.currentMediaItemIndex
                     _durationMs.value = controller.duration.coerceAtLeast(0L)
+                    saveProgress()
                 }
 
                 override fun onPlaybackStateChanged(playbackState: Int) {
@@ -151,6 +156,23 @@ class AudiobookPlayerViewModel(
         }
 
         controller.setMediaItems(mediaItems)
+
+        // Restore position
+        book.lastLocator?.let { locatorStr ->
+            try {
+                val json = JSONObject(locatorStr)
+                val trackIdx = json.getInt("trackIndex")
+                val posMs = json.getLong("positionMs")
+                if (trackIdx in trackList.indices) {
+                    controller.seekTo(trackIdx, posMs)
+                    _currentTrackIndex.value = trackIdx
+                    _positionMs.value = posMs
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
         controller.prepare()
         _isPrepared.value = true
     }
@@ -202,11 +224,41 @@ class AudiobookPlayerViewModel(
     private fun startPositionUpdates() {
         positionUpdateJob?.cancel()
         positionUpdateJob = viewModelScope.launch {
+            var lastSaveTime = 0L
             while (isActive) {
-                _positionMs.value = controller?.currentPosition ?: 0L
+                val currentPos = controller?.currentPosition ?: 0L
+                _positionMs.value = currentPos
                 _durationMs.value = controller?.duration?.coerceAtLeast(0L) ?: 0L
+
+                // Save progress every 5 seconds or if it's the first update
+                val currentTime = System.currentTimeMillis()
+                if (currentTime - lastSaveTime > 5000L) {
+                    saveProgress()
+                    lastSaveTime = currentTime
+                }
+
                 delay(500)
             }
+        }
+    }
+
+    private fun saveProgress() {
+        val bookId = currentBookId ?: return
+        val pos = _positionMs.value
+        val dur = _durationMs.value
+        val trackIdx = _currentTrackIndex.value
+
+        if (dur <= 0) return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val progress = ((pos.toDouble() / dur.toDouble()) * 100).toInt().coerceIn(0, 100)
+            val locator = JSONObject().apply {
+                put("trackIndex", trackIdx)
+                put("positionMs", pos)
+            }.toString()
+
+            bookRepository.updateLastLocator(bookId, locator, progress)
+            bookRepository.updateLastOpenedAt(bookId, System.currentTimeMillis())
         }
     }
 
@@ -224,10 +276,11 @@ class AudiobookPlayerViewModel(
     }
 
     class Factory(
-        private val application: Application
+        private val application: Application,
+        private val bookRepository: BookRepository
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            AudiobookPlayerViewModel(application) as T
+            AudiobookPlayerViewModel(application, bookRepository) as T
     }
 }

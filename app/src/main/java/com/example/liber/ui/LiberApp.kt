@@ -68,7 +68,10 @@ fun LiberApp(
     val scope = rememberCoroutineScope()
 
     val audiobookPlayerViewModel: AudiobookPlayerViewModel = viewModel(
-        factory = AudiobookPlayerViewModel.Factory(context.applicationContext as Application)
+        factory = AudiobookPlayerViewModel.Factory(
+            context.applicationContext as Application,
+            viewModel.bookRepository
+        )
     )
 
     val activeBook by liberAppViewModel.activeBook.collectAsState()
