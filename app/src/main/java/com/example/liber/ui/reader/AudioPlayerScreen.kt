@@ -171,12 +171,12 @@ fun AudioPlayerScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
-                    actionIconContentColor = MaterialTheme.colorScheme.onBackground
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
         },
-        containerColor = Color(0xFF0A0A0A)
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize()) {
             // Background Glow
@@ -187,7 +187,7 @@ fun AudioPlayerScreen(
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
                                 Color.Transparent
                             )
                         )
@@ -223,13 +223,17 @@ fun AudioPlayerScreen(
                             .background(
                                 Brush.sweepGradient(
                                     listOf(
-                                        Color(0xFF050505),
-                                        Color(0xFF1A1A1A),
-                                        Color(0xFF050505)
+                                        MaterialTheme.colorScheme.surface,
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
+                                        MaterialTheme.colorScheme.surface
                                     )
                                 )
                             )
-                            .border(1.dp, Color.White.copy(alpha = 0.05f), CircleShape)
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                                CircleShape
+                            )
                     ) {
                         // Grooves
                         repeat(6) { i ->
@@ -237,7 +241,11 @@ fun AudioPlayerScreen(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .padding((15 + i * 12).dp)
-                                    .border(0.5.dp, Color.White.copy(alpha = 0.05f), CircleShape)
+                                    .border(
+                                        0.5.dp,
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                                        CircleShape
+                                    )
                             )
                         }
 
@@ -248,8 +256,12 @@ fun AudioPlayerScreen(
                                 .aspectRatio(1f)
                                 .align(Alignment.Center)
                                 .clip(CircleShape)
-                                .background(Color(0xFF111111))
-                                .border(1.dp, Color.White.copy(alpha = 0.1f), CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .border(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                                    CircleShape
+                                )
                         ) {
                             AsyncImage(
                                 model = book.coverUri,
@@ -264,9 +276,13 @@ fun AudioPlayerScreen(
                                 modifier = Modifier
                                     .size(10.dp)
                                     .clip(CircleShape)
-                                    .background(Color(0xFF0A0A0A))
+                                    .background(MaterialTheme.colorScheme.background)
                                     .align(Alignment.Center)
-                                    .border(1.dp, Color.White.copy(alpha = 0.1f), CircleShape)
+                                    .border(
+                                        1.dp,
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                                        CircleShape
+                                    )
                             )
                         }
                     }
@@ -278,7 +294,10 @@ fun AudioPlayerScreen(
                             .aspectRatio(1f),
                         shape = RoundedCornerShape(12.dp),
                         elevation = CardDefaults.cardElevation(defaultElevation = 24.dp),
-                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f))
+                        border = BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                        )
                     ) {
                         Box {
                             AsyncImage(
@@ -324,7 +343,7 @@ fun AudioPlayerScreen(
                 Text(
                     text = book.title,
                     style = MaterialTheme.typography.headlineSmall, // Gambetta
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center,
                     maxLines = 2
                 )
@@ -348,9 +367,9 @@ fun AudioPlayerScreen(
                         enabled = isPrepared,
                         modifier = Modifier.fillMaxWidth(),
                         colors = SliderDefaults.colors(
-                            thumbColor = Color.White,
+                            thumbColor = MaterialTheme.colorScheme.onSurface,
                             activeTrackColor = MaterialTheme.colorScheme.primary,
-                            inactiveTrackColor = Color(0xFF1A1A1A)
+                            inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
                         )
                     )
                     Row(
@@ -383,14 +402,14 @@ fun AudioPlayerScreen(
                             Icon(
                                 PhosphorIcons.Regular.ArrowCounterClockwise,
                                 contentDescription = "-15s",
-                                tint = Color.LightGray,
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                                 modifier = Modifier.size(28.dp)
                             )
                             Text(
                                 "-15s",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.LightGray
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                             )
                         }
                     }
@@ -402,17 +421,17 @@ fun AudioPlayerScreen(
                         modifier = Modifier
                             .size(80.dp)
                             .clip(CircleShape)
-                            .background(if (isPlaying) Color(0xFF1A1A1A) else Color.White)
+                            .background(if (isPlaying) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.onSurface)
                             .border(
                                 1.dp,
-                                if (isPlaying) Color(0xFF333333) else Color.Transparent,
+                                if (isPlaying) MaterialTheme.colorScheme.outlineVariant else Color.Transparent,
                                 CircleShape
                             )
                     ) {
                         Icon(
                             imageVector = if (isPlaying) PhosphorIcons.Fill.Pause else PhosphorIcons.Fill.Play,
                             contentDescription = if (isPlaying) "Pause" else "Play",
-                            tint = if (isPlaying) Color.White else Color.Black,
+                            tint = if (isPlaying) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surface,
                             modifier = Modifier.size(32.dp)
                         )
                     }
@@ -424,14 +443,14 @@ fun AudioPlayerScreen(
                             Icon(
                                 PhosphorIcons.Regular.ArrowClockwise,
                                 contentDescription = "+15s",
-                                tint = Color.LightGray,
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                                 modifier = Modifier.size(28.dp)
                             )
                             Text(
                                 "+15s",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.LightGray
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                             )
                         }
                     }
@@ -451,23 +470,27 @@ fun AudioPlayerScreen(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(4.dp))
-                            .background(Color(0xFF1A1A1A))
-                            .border(1.dp, Color(0xFF333333), RoundedCornerShape(4.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.outlineVariant,
+                                RoundedCornerShape(4.dp)
+                            )
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
                             "1.25x",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = Color.LightGray
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
                     Row(
                         modifier = Modifier
                             .clip(CircleShape)
-                            .background(Color(0xFF1A1A1A).copy(alpha = 0.8f))
-                            .border(1.dp, Color(0xFF333333), CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f))
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -476,19 +499,19 @@ fun AudioPlayerScreen(
                             PhosphorIcons.Regular.List,
                             null,
                             Modifier.size(16.dp),
-                            Color.LightGray
+                            MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
                             "Capítulos",
                             style = MaterialTheme.typography.labelMedium,
-                            color = Color.LightGray
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
                     Icon(
                         PhosphorIcons.Regular.Clock,
                         contentDescription = "Sleep Timer",
-                        tint = Color.Gray,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(24.dp)
                     )
                 }

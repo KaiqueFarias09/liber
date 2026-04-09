@@ -33,7 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -70,8 +69,12 @@ fun NowPlayingBar(
             .height(72.dp)
             .padding(horizontal = 16.dp)
             .clip(RoundedCornerShape(20.dp))
-            .background(Color(0xFF1E1E1E).copy(alpha = 0.9f))
-            .border(0.5.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f))
+            .border(
+                0.5.dp,
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                RoundedCornerShape(20.dp)
+            )
             .clickable(onClick = onClick)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -89,13 +92,17 @@ fun NowPlayingBar(
                         .background(
                             Brush.sweepGradient(
                                 listOf(
-                                    Color(0xFF111111),
-                                    Color(0xFF222222),
-                                    Color(0xFF111111)
+                                    MaterialTheme.colorScheme.surface,
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                                    MaterialTheme.colorScheme.surface
                                 )
                             )
                         )
-                        .border(0.5.dp, Color.White.copy(alpha = 0.2f), CircleShape)
+                        .border(
+                            0.5.dp,
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            CircleShape
+                        )
                         .rotate(if (isPlaying) rotation else 0f)
                 ) {
                     Box(
@@ -109,7 +116,7 @@ fun NowPlayingBar(
                         modifier = Modifier
                             .size(2.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF0A0A0A))
+                            .background(MaterialTheme.colorScheme.surface)
                             .align(Alignment.Center)
                     )
                 }
@@ -121,7 +128,7 @@ fun NowPlayingBar(
                         text = book.title,
                         style = MaterialTheme.typography.titleSmall.copy(
                             fontWeight = FontWeight.SemiBold,
-                            color = Color.White
+                            color = MaterialTheme.colorScheme.onSurface
                         ),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -129,7 +136,7 @@ fun NowPlayingBar(
                     Text(
                         text = book.author?.uppercase() ?: "UNKNOWN AUTHOR",
                         style = MaterialTheme.typography.labelSmall.copy(
-                            color = Color.White.copy(alpha = 0.5f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             letterSpacing = 1.2.sp,
                             fontSize = 9.sp
                         ),
@@ -142,7 +149,7 @@ fun NowPlayingBar(
                     Icon(
                         imageVector = if (isPlaying) PhosphorIcons.Fill.Pause else PhosphorIcons.Fill.Play,
                         contentDescription = if (isPlaying) "Pause" else "Play",
-                        tint = Color.White,
+                        tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -153,7 +160,7 @@ fun NowPlayingBar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(3.dp)
-                    .background(Color.White.copy(alpha = 0.1f))
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
             ) {
                 Box(
                     modifier = Modifier
