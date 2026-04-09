@@ -64,6 +64,7 @@ fun LiberApp(
 
     val activeBook by liberAppViewModel.activeBook.collectAsState()
     val activePublication by liberAppViewModel.activePublication.collectAsState()
+    val isReaderOpen by liberAppViewModel.isReaderOpen.collectAsState()
     val activeTab by liberAppViewModel.activeTab.collectAsState()
     val selectedCollectionId by liberAppViewModel.selectedCollectionId.collectAsState()
     val scanSources by viewModel.scanSources.collectAsState()
@@ -165,7 +166,9 @@ fun LiberApp(
     val book = activeBook
     val publication = activePublication
 
-    if (book != null && book.fileUri.toString().endsWith(".pdf", ignoreCase = true)) {
+    if (isReaderOpen && book != null && book.fileUri.toString()
+            .endsWith(".pdf", ignoreCase = true)
+    ) {
         val initialPage = remember(book.lastLocator) {
             book.lastLocator?.let {
                 runCatching { org.json.JSONObject(it).getInt("page") }.getOrDefault(0)
@@ -185,7 +188,7 @@ fun LiberApp(
             onDeleteAnnotation = { annotationId -> viewModel.deleteAnnotation(annotationId) },
             onBack = { liberAppViewModel.closeReader() },
         )
-    } else if (publication != null && book != null) {
+    } else if (isReaderOpen && publication != null && book != null) {
         if (book.mediaType == "audio/mpeg" || book.mediaType == "audiobook") {
             com.example.liber.ui.reader.AudioPlayerScreen(
                 book = book,

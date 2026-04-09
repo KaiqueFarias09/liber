@@ -367,7 +367,7 @@ fun LibraryScreen(
         isPlaying = isPlaying,
         nowPlayingProgress = playerProgress,
         onTogglePlay = { liberAppViewModel.setPlaying(!isPlaying) },
-        onNowPlayingClick = { activeBook?.let { onBookClick(it) } },
+        onNowPlayingClick = { liberAppViewModel.openReader() },
         modifier = modifier,
     )
 }

@@ -110,17 +110,32 @@ class AudiobookPlayerViewModel(
     }
 
     fun togglePlayPause() {
-        val player = mediaPlayer ?: return
+        mediaPlayer ?: return
         if (!_isPrepared.value) return
         if (_isPlaying.value) {
-            player.pause()
-            _isPlaying.value = false
-            positionUpdateJob?.cancel()
+            pause()
         } else {
+            play()
+        }
+    }
+
+    fun play() {
+        val player = mediaPlayer ?: return
+        if (!_isPrepared.value) return
+        if (!_isPlaying.value) {
             player.start()
             _isPlaying.value = true
             autoPlay = true
             startPositionUpdates()
+        }
+    }
+
+    fun pause() {
+        val player = mediaPlayer ?: return
+        if (_isPlaying.value) {
+            player.pause()
+            _isPlaying.value = false
+            positionUpdateJob?.cancel()
         }
     }
 

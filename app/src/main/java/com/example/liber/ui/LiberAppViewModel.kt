@@ -22,6 +22,9 @@ class LiberAppViewModel(application: Application) : AndroidViewModel(application
     private val _selectedCollectionId = MutableStateFlow<Long?>(null)
     val selectedCollectionId: StateFlow<Long?> = _selectedCollectionId
 
+    private val _isReaderOpen = MutableStateFlow(false)
+    val isReaderOpen: StateFlow<Boolean> = _isReaderOpen
+
     fun setActiveTab(tab: AppTab) {
         _activeTab.value = tab
     }
@@ -33,16 +36,30 @@ class LiberAppViewModel(application: Application) : AndroidViewModel(application
     fun openEpub(book: Book, publication: Publication) {
         _activeBook.value = book
         _activePublication.value = publication
+        _isReaderOpen.value = true
     }
 
     fun openPdf(book: Book) {
         _activeBook.value = book
         _activePublication.value = null
+        _isReaderOpen.value = true
+    }
+
+    fun openReader() {
+        if (_activeBook.value != null) {
+            _isReaderOpen.value = true
+        }
     }
 
     fun closeReader() {
-        _activePublication.value = null
-        _activeBook.value = null
+        _isReaderOpen.value = false
+        // We don't null out _activeBook here so the NowPlayingBar can stay
+        // But for EPUBs/PDFs we might want to eventually? 
+        // For now, let's keep it for audiobooks.
+        if (_activeBook.value?.mediaType != "audio/mpeg" && _activeBook.value?.mediaType != "audiobook") {
+            _activeBook.value = null
+            _activePublication.value = null
+        }
     }
 
     private val _isPlaying = MutableStateFlow(false)

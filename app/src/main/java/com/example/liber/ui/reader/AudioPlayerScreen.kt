@@ -76,8 +76,20 @@ fun AudioPlayerScreen(
     val tracks by playerViewModel.tracks.collectAsState()
     val isPrepared by playerViewModel.isPrepared.collectAsState()
 
+    val globalIsPlaying by liberAppViewModel.isPlaying.collectAsState()
+
+    androidx.compose.runtime.LaunchedEffect(globalIsPlaying) {
+        if (globalIsPlaying) {
+            playerViewModel.play()
+        } else {
+            playerViewModel.pause()
+        }
+    }
+
     androidx.compose.runtime.LaunchedEffect(isPlaying) {
-        liberAppViewModel.setPlaying(isPlaying)
+        if (isPlaying != globalIsPlaying) {
+            liberAppViewModel.setPlaying(isPlaying)
+        }
     }
 
     androidx.compose.runtime.LaunchedEffect(positionMs, durationMs) {
