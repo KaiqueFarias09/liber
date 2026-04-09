@@ -97,7 +97,22 @@ class BookImporter(private val application: Application) {
     }
 
     private fun isAudioFile(extension: String): Boolean {
-        return extension in setOf("mp3", "m4a", "m4b", "aac", "wav")
+        // TODO: This list could probably become a constant because it's being used in multiple places at the same time
+        // I should look on the project for other values that are similar to it
+        return extension in setOf(
+            "mp3",
+            "m4a",
+            "m4b",
+            "aac",
+            "wav",
+            "flac",
+            "ogg",
+            "opus",
+            "amr",
+            "awb",
+            "3gp",
+            "mka"
+        )
     }
 
     private suspend fun parseAudiobookFolder(dir: DocumentFile): Book {

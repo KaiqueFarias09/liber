@@ -177,7 +177,21 @@ class BookScanService : Service() {
     private fun isSupportedAudioFile(name: String?): Boolean {
         val ext = name?.substringAfterLast('.', "")?.lowercase() ?: return false
         // Basic list for testing, you could add flac, ogg, etc.
-        return ext in setOf("mp3", "m4a", "m4b", "aac", "wav")
+        // TODO: This list could probably become a constant because it's being used in multiple places at the same time
+        return ext in setOf(
+            "mp3",
+            "m4a",
+            "m4b",
+            "aac",
+            "wav",
+            "flac",
+            "ogg",
+            "opus",
+            "amr",
+            "awb",
+            "3gp",
+            "mka"
+        )
     }
 
     private fun createNotificationChannel() {
