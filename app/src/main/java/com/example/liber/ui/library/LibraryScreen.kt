@@ -190,6 +190,8 @@ fun LibraryScreen(
                                 onViewModeChange = onViewModeChange,
                                 sortOption = sortOption,
                                 onSortOptionChange = onSortOptionChange,
+                                activeAudiobookId = activeBookId,
+                                isAudiobookPlaying = isPlaying,
                             )
                         }
                     }
@@ -296,6 +298,8 @@ fun LibraryScreen(
                     onViewModeChange = onViewModeChange,
                     sortOption = sortOption,
                     onSortOptionChange = onSortOptionChange,
+                    activeAudiobookId = activeBookId,
+                    isAudiobookPlaying = isPlaying,
                 )
             }
         }

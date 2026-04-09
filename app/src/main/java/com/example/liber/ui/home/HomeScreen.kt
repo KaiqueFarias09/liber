@@ -65,8 +65,13 @@ fun HomeScreen(
                         modifier = Modifier.padding(bottom = 8.dp),
                     ) {
                         items(continueBooks, key = { it.id }) { book ->
-                            BookListCard(book = book, onClick = { onBookClick(book) }) {
-                                ProgressText(book.readingProgress)
+                            BookListCard(
+                                book = book,
+                                onClick = { onBookClick(book) },
+                                isActive = book.id == activeBookId,
+                                isPlaying = isPlaying,
+                            ) {
+                                ProgressText(book)
                             }
                         }
                     }
@@ -124,8 +129,13 @@ fun HomeScreen(
                         modifier = Modifier.padding(bottom = 8.dp),
                     ) {
                         items(previousBooks, key = { it.id }) { book ->
-                            BookListCard(book = book, onClick = { onBookClick(book) }) {
-                                PreviousStatusContent(book.readingProgress)
+                            BookListCard(
+                                book = book,
+                                onClick = { onBookClick(book) },
+                                isActive = book.id == activeBookId,
+                                isPlaying = isPlaying,
+                            ) {
+                                PreviousStatusContent(book)
                             }
                         }
                     }
@@ -227,9 +237,10 @@ private fun SectionDivider() {
 }
 
 @Composable
-private fun ProgressText(progress: Int) {
+private fun ProgressText(book: Book) {
+    val typeLabel = if (book.isAudiobook) "Audiobook" else "Book"
     Text(
-        text = "Book \u2022 $progress%",
+        text = "$typeLabel \u2022 ${book.readingProgress}%",
         style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(top = 4.dp),
@@ -237,8 +248,8 @@ private fun ProgressText(progress: Int) {
 }
 
 @Composable
-private fun PreviousStatusContent(progress: Int) {
-    if (progress >= 100) {
+private fun PreviousStatusContent(book: Book) {
+    if (book.readingProgress >= 100) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(top = 4.dp),
@@ -249,14 +260,15 @@ private fun PreviousStatusContent(progress: Int) {
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(13.dp),
             )
+            val typeLabel = if (book.isAudiobook) "Audiobook" else "Book"
             Text(
-                text = " Finished",
+                text = " $typeLabel \u2022 Finished",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     } else {
-        ProgressText(progress)
+        ProgressText(book)
     }
 }
 

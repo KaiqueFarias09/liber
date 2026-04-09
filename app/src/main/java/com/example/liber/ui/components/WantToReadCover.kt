@@ -19,13 +19,14 @@ fun WantToReadCover(
     modifier: Modifier = Modifier,
 ) {
     BookCover(
-        coverUri = book.coverUri,
-        contentDescription = book.title,
+        book = book,
         style = CoverStyle.LARGE,
+        isActive = false,
+        isPlaying = false,
         modifier = modifier
-            .width(144.dp)
+            .width(if (book.isAudiobook) 200.dp else 144.dp)
             .height(210.dp)
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
     )
 }
 

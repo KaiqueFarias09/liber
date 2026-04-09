@@ -34,12 +34,14 @@ fun BookListCard(
     book: Book,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isActive: Boolean = false,
+    isPlaying: Boolean = false,
     statusContent: @Composable () -> Unit,
 ) {
     Card(
         modifier = modifier
-            .width(300.dp)
-            .height(104.dp)
+            .width(320.dp) // Slightly wider for audiobook vinyl
+            .height(112.dp)
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(12.dp),
@@ -50,12 +52,13 @@ fun BookListCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             BookCover(
-                coverUri = book.coverUri,
-                contentDescription = book.title,
+                book = book,
                 style = CoverStyle.SMALL,
-                modifier = Modifier.size(width = 56.dp, height = 80.dp),
+                isActive = isActive,
+                isPlaying = isPlaying,
+                modifier = Modifier.size(if (book.isAudiobook) 80.dp else 56.dp, 80.dp)
             )
-            Spacer(Modifier.width(14.dp))
+            Spacer(Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = book.title,

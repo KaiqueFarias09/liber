@@ -247,9 +247,10 @@ private fun StackedBookCovers(
     ) {
         displayBooks.forEachIndexed { index, book ->
             BookCover(
-                coverUri = book.coverUri,
-                contentDescription = book.title,
+                book = book,
                 style = CoverStyle.SMALL,
+                isActive = false,
+                isPlaying = false,
                 modifier = Modifier
                     .offset(x = step * index)
                     .width(coverWidth),
@@ -296,6 +297,8 @@ fun CollectionDetailScreen(
     onViewModeChange: (LibraryViewMode) -> Unit = {},
     sortOption: LibrarySortOption = LibrarySortOption.RECENT,
     onSortOptionChange: (LibrarySortOption) -> Unit = {},
+    activeAudiobookId: String? = null,
+    isAudiobookPlaying: Boolean = false,
 ) {
     var showMenu by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
@@ -401,6 +404,8 @@ fun CollectionDetailScreen(
                 onViewModeChange = onViewModeChange,
                 sortOption = sortOption,
                 onSortOptionChange = onSortOptionChange,
+                activeAudiobookId = activeAudiobookId,
+                isAudiobookPlaying = isAudiobookPlaying,
             )
         }
     }
@@ -537,12 +542,12 @@ private fun AddBooksDialog(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         BookCover(
-                            coverUri = book.coverUri,
-                            contentDescription = book.title,
+                            book = book,
                             style = CoverStyle.SMALL,
+                            isActive = false,
+                            isPlaying = false,
                             modifier = Modifier
-                                .width(36.dp)
-                                .height(54.dp),
+                                .size(if (book.isAudiobook) 36.dp else 36.dp, 54.dp),
                         )
                         Spacer(Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {

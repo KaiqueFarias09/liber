@@ -75,6 +75,8 @@ fun BookGrid(
     onViewModeChange: (LibraryViewMode) -> Unit = {},
     sortOption: LibrarySortOption = LibrarySortOption.RECENT,
     onSortOptionChange: (LibrarySortOption) -> Unit = {},
+    activeAudiobookId: String? = null,
+    isAudiobookPlaying: Boolean = false,
 ) {
     val sortedBooks = remember(books, sortOption) {
         when (sortOption) {
@@ -144,6 +146,8 @@ fun BookGrid(
                                         },
                                         collections = collections,
                                         modifier = Modifier.weight(1f),
+                                        isActive = book.id == activeAudiobookId,
+                                        isPlaying = isAudiobookPlaying,
                                     )
                                 }
                                 if (rowBooks.size < columns) {
@@ -188,6 +192,8 @@ fun BookGrid(
                                     onAddToCollection(book, collectionId)
                                 },
                                 collections = collections,
+                                isActive = book.id == activeAudiobookId,
+                                isPlaying = isAudiobookPlaying,
                             )
                         }
                     }
@@ -360,6 +366,8 @@ private fun BookListItem(
     showAddToCollection: Boolean = false,
     onAddToCollection: (Long) -> Unit = {},
     collections: List<CollectionUiState> = emptyList(),
+    isActive: Boolean = false,
+    isPlaying: Boolean = false,
 ) {
     var showMenu by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
@@ -379,12 +387,13 @@ private fun BookListItem(
         Box(
             modifier = Modifier
                 .width(64.dp)
-                .aspectRatio(2f / 3f),
+                .aspectRatio(if (book.isAudiobook) 1f else 2f / 3f),
         ) {
             BookCover(
-                coverUri = book.coverUri,
-                contentDescription = book.title,
+                book = book,
                 style = CoverStyle.SMALL,
+                isActive = isActive,
+                isPlaying = isPlaying,
                 modifier = Modifier.fillMaxSize(),
                 fillBounds = true,
             )
@@ -511,6 +520,8 @@ fun BookGridItem(
     onAddToCollection: (Long) -> Unit = {},
     collections: List<CollectionUiState> = emptyList(),
     modifier: Modifier = Modifier,
+    isActive: Boolean = false,
+    isPlaying: Boolean = false,
 ) {
     var showMenu by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
@@ -521,9 +532,10 @@ fun BookGridItem(
         modifier = modifier.clickable(onClick = onClick),
     ) {
         BookCover(
-            coverUri = book.coverUri,
-            contentDescription = book.title,
-            style = CoverStyle.LARGE,
+            book = book,
+            style = if (book.isAudiobook) CoverStyle.LARGE else CoverStyle.SMALL,
+            isActive = isActive,
+            isPlaying = isPlaying,
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight(),
