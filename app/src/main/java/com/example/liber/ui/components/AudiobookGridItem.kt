@@ -31,6 +31,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -241,8 +242,25 @@ fun AudiobookGridItem(
                 modifier = Modifier.size(12.dp)
             )
             Spacer(modifier = Modifier.width(4.dp))
+
+            val remainingText = remember(book.durationMillis, book.readingProgress) {
+                val duration = book.durationMillis ?: 0L
+                if (duration <= 0L) {
+                    if (book.readingProgress == 100) "Finished" else "Not started"
+                } else {
+                    val remainingMillis = duration * (100 - book.readingProgress) / 100
+                    if (remainingMillis <= 0) {
+                        "Finished"
+                    } else {
+                        val hours = remainingMillis / 3600000
+                        val minutes = (remainingMillis % 3600000) / 60000
+                        if (hours > 0) "${hours}h ${minutes}m left" else "${minutes}m left"
+                    }
+                }
+            }
+
             Text(
-                text = "Not started", // Mocking the "left" text for now
+                text = remainingText,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
             )

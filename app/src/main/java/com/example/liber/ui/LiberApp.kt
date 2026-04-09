@@ -190,6 +190,7 @@ fun LiberApp(
             com.example.liber.ui.reader.AudioPlayerScreen(
                 book = book,
                 publication = publication,
+                liberAppViewModel = liberAppViewModel,
                 onBack = { liberAppViewModel.closeReader() },
                 onSaveLocator = { json, progress -> viewModel.saveLocator(book.id, json, progress) }
             )
@@ -258,6 +259,7 @@ fun LiberApp(
                             AppTab.HOME -> HomeScreen(
                                 viewModel = viewModel,
                                 onBookClick = onOpenBook,
+                                liberAppViewModel = liberAppViewModel,
                                 modifier = Modifier.fillMaxSize()
                             )
 

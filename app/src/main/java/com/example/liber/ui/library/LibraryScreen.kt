@@ -324,6 +324,8 @@ fun LibraryScreen(
     val scanState by viewModel.scanState.collectAsState()
 
     val activeBook by liberAppViewModel.activeBook.collectAsState()
+    val isPlaying by liberAppViewModel.isPlaying.collectAsState()
+    val playerProgress by liberAppViewModel.playerProgress.collectAsState()
 
     LibraryScreen(
         books = books,
@@ -362,10 +364,9 @@ fun LibraryScreen(
         selectedCollectionId = selectedCollectionId,
         onCollectionClick = onCollectionClick,
         activeBookId = activeBook?.id,
-        // Mocking these for now as we don't have global state for them easily accessible here
-        isPlaying = false,
-        nowPlayingProgress = 0.35f,
-        onTogglePlay = { /* Toggle global player if exists */ },
+        isPlaying = isPlaying,
+        nowPlayingProgress = playerProgress,
+        onTogglePlay = { liberAppViewModel.setPlaying(!isPlaying) },
         onNowPlayingClick = { activeBook?.let { onBookClick(it) } },
         modifier = modifier,
     )

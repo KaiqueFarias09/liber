@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
@@ -16,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -38,89 +40,115 @@ fun HomeScreen(
     wantToReadBooks: List<Book>,
     previousBooks: List<Book>,
     onBookClick: (Book) -> Unit,
+    activeBookId: String? = null,
+    isPlaying: Boolean = false,
+    nowPlayingProgress: Float = 0f,
+    onTogglePlay: () -> Unit = {},
+    onNowPlayingClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    LiberScrollableScreen(
-        title = "Liber",
-        modifier = modifier,
-        contentPadding = PaddingValues(bottom = 32.dp),
-    ) {
-        // ── Continue ────────────────────────────────────────────────────────
-        if (continueBooks.isNotEmpty()) {
-            item {
-                SectionTitle(text = "Continue")
-            }
-            item {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 24.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.padding(bottom = 8.dp),
-                ) {
-                    items(continueBooks, key = { it.id }) { book ->
-                        BookListCard(book = book, onClick = { onBookClick(book) }) {
-                            ProgressText(book.readingProgress)
+    androidx.compose.foundation.layout.Box(modifier = modifier.fillMaxSize()) {
+        LiberScrollableScreen(
+            title = "Liber",
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 100.dp),
+        ) {
+            // ── Continue ────────────────────────────────────────────────────────
+            if (continueBooks.isNotEmpty()) {
+                item {
+                    SectionTitle(text = "Continue")
+                }
+                item {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 24.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    ) {
+                        items(continueBooks, key = { it.id }) { book ->
+                            BookListCard(book = book, onClick = { onBookClick(book) }) {
+                                ProgressText(book.readingProgress)
+                            }
                         }
                     }
                 }
             }
-        }
 
-        // ── Want to Read ────────────────────────────────────────────────────
-        item { SectionDivider() }
-        item {
-            Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-                SectionTitleWithChevron(text = "Want to Read")
-                Text(
-                    text = "Books you would like to read next.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
-                )
-            }
-        }
-        item {
-            if (wantToReadBooks.isEmpty()) {
-                EmptyState(
-                    title = "No books yet",
-                    subtitle = "Tap the bookmark icon in Library to add.",
-                    image = R.drawable.want_to_read_empty,
-                    showImage = true,
-                    modifier = Modifier.padding(horizontal = 24.dp)
-                )
-            } else {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 24.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.padding(bottom = 8.dp),
-                ) {
-                    items(wantToReadBooks, key = { it.id }) { book ->
-                        WantToReadCover(book = book, onClick = { onBookClick(book) })
-                    }
-                }
-            }
-        }
-
-        // ── Previous ────────────────────────────────────────────────────────
-        if (previousBooks.isNotEmpty()) {
+            // ── Want to Read ────────────────────────────────────────────────────
             item { SectionDivider() }
             item {
-                SectionTitleWithChevron(
-                    text = "Previous",
-                    modifier = Modifier.padding(start = 24.dp, bottom = 12.dp),
-                )
+                Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+                    SectionTitleWithChevron(text = "Want to Read")
+                    Text(
+                        text = "Books you would like to read next.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
+                    )
+                }
             }
             item {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 24.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.padding(bottom = 8.dp),
-                ) {
-                    items(previousBooks, key = { it.id }) { book ->
-                        BookListCard(book = book, onClick = { onBookClick(book) }) {
-                            PreviousStatusContent(book.readingProgress)
+                if (wantToReadBooks.isEmpty()) {
+                    EmptyState(
+                        title = "No books yet",
+                        subtitle = "Tap the bookmark icon in Library to add.",
+                        image = R.drawable.want_to_read_empty,
+                        showImage = true,
+                        modifier = Modifier.padding(horizontal = 24.dp)
+                    )
+                } else {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 24.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    ) {
+                        items(wantToReadBooks, key = { it.id }) { book ->
+                            WantToReadCover(book = book, onClick = { onBookClick(book) })
                         }
                     }
                 }
+            }
+
+            // ── Previous ────────────────────────────────────────────────────────
+            if (previousBooks.isNotEmpty()) {
+                item { SectionDivider() }
+                item {
+                    SectionTitleWithChevron(
+                        text = "Previous",
+                        modifier = Modifier.padding(start = 24.dp, bottom = 12.dp),
+                    )
+                }
+                item {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 24.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    ) {
+                        items(previousBooks, key = { it.id }) { book ->
+                            BookListCard(book = book, onClick = { onBookClick(book) }) {
+                                PreviousStatusContent(book.readingProgress)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (activeBookId != null) {
+            val allBooks = remember(continueBooks, wantToReadBooks, previousBooks) {
+                (continueBooks + wantToReadBooks + previousBooks).distinctBy { it.id }
+            }
+            val activeBook = allBooks.find { it.id == activeBookId }
+            if (activeBook != null) {
+                com.example.liber.ui.components.NowPlayingBar(
+                    book = activeBook,
+                    isPlaying = isPlaying,
+                    progress = nowPlayingProgress,
+                    onTogglePlay = onTogglePlay,
+                    onClick = onNowPlayingClick,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 16.dp)
+                )
             }
         }
     }
@@ -132,17 +160,26 @@ fun HomeScreen(
 fun HomeScreen(
     viewModel: HomeViewModel,
     onBookClick: (Book) -> Unit,
+    liberAppViewModel: com.example.liber.ui.LiberAppViewModel,
     modifier: Modifier = Modifier,
 ) {
     val continueBooks by viewModel.continueReadingBooks.collectAsState()
     val wantToReadBooks by viewModel.wantToReadBooks.collectAsState()
     val previousBooks by viewModel.previousBooks.collectAsState()
+    val activeBook by liberAppViewModel.activeBook.collectAsState()
+    val isPlaying by liberAppViewModel.isPlaying.collectAsState()
+    val playerProgress by liberAppViewModel.playerProgress.collectAsState()
 
     HomeScreen(
         continueBooks = continueBooks,
         wantToReadBooks = wantToReadBooks,
         previousBooks = previousBooks,
         onBookClick = onBookClick,
+        activeBookId = activeBook?.id,
+        isPlaying = isPlaying,
+        nowPlayingProgress = playerProgress,
+        onTogglePlay = { liberAppViewModel.setPlaying(!isPlaying) },
+        onNowPlayingClick = { activeBook?.let { onBookClick(it) } },
         modifier = modifier,
     )
 }
@@ -227,7 +264,14 @@ private fun PreviousStatusContent(progress: Int) {
 
 private val previewBooks = listOf(
     Book("1", "Lean UX", "Jeff Gothelf", null, Uri.EMPTY, readingProgress = 10),
-    Book("2", "100 Things Every Designer Needs to Know", "Susan Weinschenk", null, Uri.EMPTY, readingProgress = 19),
+    Book(
+        "2",
+        "100 Things Every Designer Needs to Know",
+        "Susan Weinschenk",
+        null,
+        Uri.EMPTY,
+        readingProgress = 19
+    ),
 )
 
 @Preview(showBackground = true, heightDp = 900)

@@ -59,6 +59,7 @@ import org.readium.r2.shared.publication.Publication
 fun AudioPlayerScreen(
     book: Book,
     publication: Publication,
+    liberAppViewModel: com.example.liber.ui.LiberAppViewModel,
     onBack: () -> Unit,
     onSaveLocator: (String, Int) -> Unit
 ) {
@@ -74,6 +75,16 @@ fun AudioPlayerScreen(
     val currentTrackIndex by playerViewModel.currentTrackIndex.collectAsState()
     val tracks by playerViewModel.tracks.collectAsState()
     val isPrepared by playerViewModel.isPrepared.collectAsState()
+
+    androidx.compose.runtime.LaunchedEffect(isPlaying) {
+        liberAppViewModel.setPlaying(isPlaying)
+    }
+
+    androidx.compose.runtime.LaunchedEffect(positionMs, durationMs) {
+        if (durationMs > 0) {
+            liberAppViewModel.setPlayerProgress(positionMs.toFloat() / durationMs.toFloat())
+        }
+    }
 
     val infiniteTransition = rememberInfiniteTransition(label = "vinyl")
     val rotation by infiniteTransition.animateFloat(
