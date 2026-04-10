@@ -137,8 +137,12 @@ fun LiberApp(
         }
     }
 
-    androidx.activity.compose.BackHandler(enabled = selectedCollectionId != null) {
-        liberAppViewModel.setSelectedCollectionId(null)
+    androidx.activity.compose.BackHandler(enabled = isReaderOpen || selectedCollectionId != null) {
+        if (isReaderOpen) {
+            liberAppViewModel.closeReader()
+        } else {
+            liberAppViewModel.setSelectedCollectionId(null)
+        }
     }
 
     val bookLauncher = rememberLauncherForActivityResult(
@@ -472,7 +476,7 @@ fun LiberApp(
                         }
                     },
                     onClick = {
-                        liberAppViewModel.openEpub(book, publication!!)
+                        liberAppViewModel.openReader()
                     }
                 )
             }

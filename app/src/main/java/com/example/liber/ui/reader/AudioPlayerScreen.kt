@@ -1,5 +1,6 @@
 package com.example.liber.ui.reader
 
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -138,6 +139,14 @@ fun AudioPlayerScreen(
 
     var activeSheet by remember { mutableStateOf<AudioPlayerSheet?>(null) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
+
+    BackHandler {
+        if (activeSheet != null) {
+            activeSheet = null
+        } else {
+            onBack()
+        }
+    }
 
     // Background metadata update if needed
     androidx.compose.runtime.LaunchedEffect(book.id) {

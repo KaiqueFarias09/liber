@@ -22,6 +22,9 @@ class LiberAppViewModel(application: Application) : AndroidViewModel(application
     private val _selectedCollectionId = MutableStateFlow<Long?>(null)
     val selectedCollectionId: StateFlow<Long?> = _selectedCollectionId
 
+    private val _libraryTabIndex = MutableStateFlow(0)
+    val libraryTabIndex: StateFlow<Int> = _libraryTabIndex
+
     private val _isReaderOpen = MutableStateFlow(false)
     val isReaderOpen: StateFlow<Boolean> = _isReaderOpen
 
@@ -31,6 +34,10 @@ class LiberAppViewModel(application: Application) : AndroidViewModel(application
 
     fun setSelectedCollectionId(id: Long?) {
         _selectedCollectionId.value = id
+    }
+
+    fun setLibraryTabIndex(index: Int) {
+        _libraryTabIndex.value = index
     }
 
     fun openEpub(book: Book, publication: Publication) {

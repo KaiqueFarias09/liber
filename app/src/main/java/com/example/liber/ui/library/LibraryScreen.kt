@@ -75,22 +75,21 @@ fun LibraryScreen(
     onSortOptionChange: (LibrarySortOption) -> Unit = {},
     selectedCollectionId: Long? = null,
     onCollectionClick: (Long?) -> Unit = {},
+    selectedTabIndex: Int = 0,
+    onTabSelected: (Int) -> Unit = {},
     activeBookId: String? = null,
     isPlaying: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    val pagerState = rememberPagerState { 3 }
+    val pagerState = rememberPagerState(initialPage = selectedTabIndex) { 3 }
     val scope = rememberCoroutineScope()
     val selectedCollection = collections.find { it.id == selectedCollectionId }
 
-    val selectedTabIndex = pagerState.currentPage
+    val currentTabIndex = pagerState.currentPage
 
-    LaunchedEffect(selectedTabIndex) {
-        if (selectedTabIndex == 2) { // Changed to 2 for Collections, because Audiobooks is 1
-            // if we want Collections selection logic to run when tab 0 or 1 is selected
-            // we should adjust it. The original code did: `if (selectedTabIndex == 0) onCollectionClick(null)`
-        }
-        if (selectedTabIndex != 2) {
+    LaunchedEffect(currentTabIndex) {
+        onTabSelected(currentTabIndex)
+        if (currentTabIndex != 2) {
             onCollectionClick(null)
         }
     }
@@ -136,7 +135,7 @@ fun LibraryScreen(
 
             LiberTabBar(
                 tabs = listOf("Books", "Audiobooks", "Collections"),
-                selectedTabIndex = selectedTabIndex,
+                selectedTabIndex = currentTabIndex,
                 onTabSelected = { index ->
                     scope.launch {
                         pagerState.animateScrollToPage(index)
@@ -310,6 +309,7 @@ fun LibraryScreen(
 
     val activeBook by liberAppViewModel.activeBook.collectAsState()
     val isPlaying by liberAppViewModel.isPlaying.collectAsState()
+    val selectedTabIndex by liberAppViewModel.libraryTabIndex.collectAsState()
 
     LibraryScreen(
         books = books,
@@ -354,6 +354,8 @@ fun LibraryScreen(
         onSortOptionChange = { viewModel.setLibrarySortOption(it) },
         selectedCollectionId = selectedCollectionId,
         onCollectionClick = onCollectionClick,
+        selectedTabIndex = selectedTabIndex,
+        onTabSelected = { liberAppViewModel.setLibraryTabIndex(it) },
         activeBookId = activeBook?.id,
         isPlaying = isPlaying,
         modifier = modifier,
