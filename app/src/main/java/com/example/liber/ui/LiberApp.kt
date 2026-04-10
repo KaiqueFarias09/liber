@@ -88,26 +88,28 @@ fun LiberApp(
     val isReaderOpen by liberAppViewModel.isReaderOpen.collectAsState()
     val activeTab by liberAppViewModel.activeTab.collectAsState()
     val isPlayingGlobal by liberAppViewModel.isPlaying.collectAsState()
+    val playWhenReadyGlobal by liberAppViewModel.playWhenReady.collectAsState()
     val selectedCollectionId by liberAppViewModel.selectedCollectionId.collectAsState()
     val scanSources by viewModel.scanSources.collectAsState()
 
-    // Sync global playing state to the player
-    androidx.compose.runtime.LaunchedEffect(isPlayingGlobal) {
-        if (isPlayingGlobal) {
-            audiobookPlayerViewModel.play()
-        } else {
-            audiobookPlayerViewModel.pause()
-        }
-    }
+    // Sync global playWhenReady state to the player
+    // Removed to avoid feedback loops. UI components now call audiobookPlayerViewModel directly.
 
     // Sync player state back to global state
     val playerIsPlaying by audiobookPlayerViewModel.isPlaying.collectAsState()
+    val playerPlayWhenReady by audiobookPlayerViewModel.playWhenReady.collectAsState()
     val playerPositionMs by audiobookPlayerViewModel.positionMs.collectAsState()
     val playerDurationMs by audiobookPlayerViewModel.durationMs.collectAsState()
 
     androidx.compose.runtime.LaunchedEffect(playerIsPlaying) {
         if (playerIsPlaying != isPlayingGlobal) {
             liberAppViewModel.setPlaying(playerIsPlaying)
+        }
+    }
+
+    androidx.compose.runtime.LaunchedEffect(playerPlayWhenReady) {
+        if (playerPlayWhenReady != playWhenReadyGlobal) {
+            liberAppViewModel.setPlayWhenReady(playerPlayWhenReady)
         }
     }
 
@@ -430,13 +432,13 @@ fun LiberApp(
             ) {
                 NowPlayingBar(
                     book = book!!,
-                    isPlaying = isPlayingGlobal,
+                    isPlaying = playWhenReadyGlobal,
                     progress = playerProgress,
                     onTogglePlay = {
                         if (book.isAudiobook) {
                             audiobookPlayerViewModel.togglePlayPause()
                         } else {
-                            liberAppViewModel.setPlaying(!isPlayingGlobal)
+                            liberAppViewModel.setPlayWhenReady(!playWhenReadyGlobal)
                         }
                     },
                     onRewind = {

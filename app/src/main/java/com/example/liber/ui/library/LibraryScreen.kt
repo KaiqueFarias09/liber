@@ -77,9 +77,6 @@ fun LibraryScreen(
     onCollectionClick: (Long?) -> Unit = {},
     activeBookId: String? = null,
     isPlaying: Boolean = false,
-    nowPlayingProgress: Float = 0f,
-    onTogglePlay: () -> Unit = {},
-    onNowPlayingClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val pagerState = rememberPagerState { 3 }
@@ -252,22 +249,6 @@ fun LibraryScreen(
             )
         }
 
-        if (activeBookId != null) {
-            val activeBook = books.find { it.id == activeBookId }
-            if (activeBook != null) {
-                com.example.liber.ui.components.NowPlayingBar(
-                    book = activeBook,
-                    isPlaying = isPlaying,
-                    progress = nowPlayingProgress,
-                    onTogglePlay = onTogglePlay,
-                    onClick = onNowPlayingClick,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 16.dp)
-                )
-            }
-        }
-
         if (selectedCollectionId != null && selectedCollection != null) {
             Surface(
                 modifier = Modifier.fillMaxSize(),
@@ -329,7 +310,6 @@ fun LibraryScreen(
 
     val activeBook by liberAppViewModel.activeBook.collectAsState()
     val isPlaying by liberAppViewModel.isPlaying.collectAsState()
-    val playerProgress by liberAppViewModel.playerProgress.collectAsState()
 
     LibraryScreen(
         books = books,
@@ -376,9 +356,6 @@ fun LibraryScreen(
         onCollectionClick = onCollectionClick,
         activeBookId = activeBook?.id,
         isPlaying = isPlaying,
-        nowPlayingProgress = playerProgress,
-        onTogglePlay = { liberAppViewModel.setPlaying(!isPlaying) },
-        onNowPlayingClick = { liberAppViewModel.openReader() },
         modifier = modifier,
     )
 }
@@ -413,8 +390,6 @@ private fun LibraryScreenPreview() {
             onRenameBook = { _, _ -> },
             onDeleteBook = {},
             onShareBook = {},
-            onTogglePlay = {},
-            onNowPlayingClick = {},
         )
     }
 }
@@ -433,8 +408,6 @@ private fun LibraryScreenEmptyPreview() {
             onRenameBook = { _, _ -> },
             onDeleteBook = {},
             onShareBook = {},
-            onTogglePlay = {},
-            onNowPlayingClick = {},
         )
     }
 }

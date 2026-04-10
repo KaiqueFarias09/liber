@@ -131,6 +131,7 @@ fun AudioPlayerScreen(
     }
 
     val isPlaying by audiobookPlayerViewModel.isPlaying.collectAsState()
+    val playWhenReady by audiobookPlayerViewModel.playWhenReady.collectAsState()
     val positionMs by audiobookPlayerViewModel.positionMs.collectAsState()
     val durationMs by audiobookPlayerViewModel.durationMs.collectAsState()
     val currentTrackIndex by audiobookPlayerViewModel.currentTrackIndex.collectAsState()
@@ -143,6 +144,13 @@ fun AudioPlayerScreen(
     var showDeleteConfirmation by remember { mutableStateOf(false) }
 
     val globalIsPlaying by liberAppViewModel.isPlaying.collectAsState()
+
+    var isDragging by remember { mutableStateOf(false) }
+    var dragPosition by remember { mutableStateOf(0f) }
+
+    val currentSliderPosition = if (isDragging) dragPosition else {
+        if (durationMs > 0) positionMs / durationMs.toFloat() else 0f
+    }
 
     androidx.compose.runtime.LaunchedEffect(isPlaying) {
         if (isPlaying != globalIsPlaying) {
@@ -172,7 +180,7 @@ fun AudioPlayerScreen(
     )
 
     val vinylOffset by androidx.compose.animation.core.animateDpAsState(
-        targetValue = if (isPlaying) (-80).dp else (-20).dp,
+        targetValue = if (playWhenReady) (-80).dp else (-20).dp,
         animationSpec = androidx.compose.animation.core.tween(1000),
         label = "vinyl_offset"
     )
@@ -294,7 +302,7 @@ fun AudioPlayerScreen(
                             .fillMaxWidth(0.8f)
                             .aspectRatio(1f)
                             .graphicsLayer {
-                                rotationZ = if (isPlaying) rotation else 0f
+                                rotationZ = if (playWhenReady) rotation else 0f
                             }
                             .clip(CircleShape)
                             .background(
@@ -437,9 +445,14 @@ fun AudioPlayerScreen(
                 // Progress
                 Column {
                     Slider(
-                        value = if (durationMs > 0) positionMs / durationMs.toFloat() else 0f,
-                        onValueChange = { fraction ->
-                            audiobookPlayerViewModel.seekTo((fraction * durationMs).toLong())
+                        value = currentSliderPosition,
+                        onValueChange = {
+                            isDragging = true
+                            dragPosition = it
+                        },
+                        onValueChangeFinished = {
+                            audiobookPlayerViewModel.seekTo((dragPosition * durationMs).toLong())
+                            isDragging = false
                         },
                         enabled = isPrepared,
                         modifier = Modifier.fillMaxWidth(),
@@ -498,17 +511,17 @@ fun AudioPlayerScreen(
                         modifier = Modifier
                             .size(80.dp)
                             .clip(CircleShape)
-                            .background(if (isPlaying) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.onSurface)
+                            .background(if (playWhenReady) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.onSurface)
                             .border(
                                 1.dp,
-                                if (isPlaying) MaterialTheme.colorScheme.outlineVariant else Color.Transparent,
+                                if (playWhenReady) MaterialTheme.colorScheme.outlineVariant else Color.Transparent,
                                 CircleShape
                             )
                     ) {
                         Icon(
-                            imageVector = if (isPlaying) PhosphorIcons.Fill.Pause else PhosphorIcons.Fill.Play,
-                            contentDescription = if (isPlaying) "Pause" else "Play",
-                            tint = if (isPlaying) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surface,
+                            imageVector = if (playWhenReady) PhosphorIcons.Fill.Pause else PhosphorIcons.Fill.Play,
+                            contentDescription = if (playWhenReady) "Pause" else "Play",
+                            tint = if (playWhenReady) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surface,
                             modifier = Modifier.size(32.dp)
                         )
                     }

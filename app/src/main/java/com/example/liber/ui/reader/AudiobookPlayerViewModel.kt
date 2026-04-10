@@ -47,6 +47,9 @@ class AudiobookPlayerViewModel(
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying
 
+    private val _playWhenReady = MutableStateFlow(false)
+    val playWhenReady: StateFlow<Boolean> = _playWhenReady
+
     private val _positionMs = MutableStateFlow(0L)
     val positionMs: StateFlow<Long> = _positionMs
 
@@ -79,6 +82,10 @@ class AudiobookPlayerViewModel(
                     if (isPlaying) startPositionUpdates() else positionUpdateJob?.cancel()
                 }
 
+                override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+                    _playWhenReady.value = playWhenReady
+                }
+
                 override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                     val controller = controller ?: return
                     _currentTrackIndex.value = controller.currentMediaItemIndex
@@ -94,6 +101,7 @@ class AudiobookPlayerViewModel(
             })
             // Sync initial state
             _isPlaying.value = controller.isPlaying
+            _playWhenReady.value = controller.playWhenReady
             _currentTrackIndex.value = controller.currentMediaItemIndex
             _durationMs.value = controller.duration.coerceAtLeast(0L)
             _positionMs.value = controller.currentPosition
@@ -181,12 +189,13 @@ class AudiobookPlayerViewModel(
         }
 
         controller.prepare()
+        controller.play()
         _isPrepared.value = true
     }
 
     fun togglePlayPause() {
         val controller = controller ?: return
-        if (controller.isPlaying) {
+        if (controller.playWhenReady) {
             controller.pause()
         } else {
             controller.play()
@@ -240,8 +249,14 @@ class AudiobookPlayerViewModel(
     }
 
     fun seekTo(positionMs: Long) {
-        controller?.seekTo(positionMs)
+        val controller = controller ?: return
+        controller.seekTo(positionMs)
         _positionMs.value = positionMs
+        // Explicitly re-assert play state if we were supposed to be playing.
+        // This helps MediaController state consistency during/after seeks.
+        if (controller.playWhenReady) {
+            controller.play()
+        }
     }
 
     fun playTrack(index: Int) {
@@ -253,12 +268,18 @@ class AudiobookPlayerViewModel(
     }
 
     fun skipForward(seconds: Int = 30) {
-        val newPos = (_positionMs.value + seconds * 1000L).coerceAtMost(_durationMs.value)
+        val controller = controller ?: return
+        val currentPos = controller.currentPosition
+        val duration = controller.duration
+        val newPos = if (duration > 0) (currentPos + seconds * 1000L).coerceAtMost(duration)
+        else currentPos + seconds * 1000L
         seekTo(newPos)
     }
 
     fun skipBackward(seconds: Int = 30) {
-        val newPos = (_positionMs.value - seconds * 1000L).coerceAtLeast(0)
+        val controller = controller ?: return
+        val currentPos = controller.currentPosition
+        val newPos = (currentPos - seconds * 1000L).coerceAtLeast(0)
         seekTo(newPos)
     }
 

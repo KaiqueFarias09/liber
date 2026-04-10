@@ -65,11 +65,18 @@ class LiberAppViewModel(application: Application) : AndroidViewModel(application
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying
 
+    private val _playWhenReady = MutableStateFlow(false)
+    val playWhenReady: StateFlow<Boolean> = _playWhenReady
+
     private val _playerProgress = MutableStateFlow(0f)
     val playerProgress: StateFlow<Float> = _playerProgress
 
     fun setPlaying(playing: Boolean) {
         _isPlaying.value = playing
+    }
+
+    fun setPlayWhenReady(playWhenReady: Boolean) {
+        _playWhenReady.value = playWhenReady
     }
 
     fun setPlayerProgress(progress: Float) {
