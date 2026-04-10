@@ -209,8 +209,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 val publication = openBook(book)
                 if (publication != null) {
                     liberAppViewModel.openEpub(book, publication)
-                } else if (book.fileUri.toString().endsWith(".pdf", ignoreCase = true)) {
-                    liberAppViewModel.openPdf(book)
                 }
             }
             _isLoading.value = false

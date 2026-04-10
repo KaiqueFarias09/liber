@@ -46,12 +46,6 @@ class LiberAppViewModel(application: Application) : AndroidViewModel(application
         _isReaderOpen.value = true
     }
 
-    fun openPdf(book: Book) {
-        _activeBook.value = book
-        _activePublication.value = null
-        _isReaderOpen.value = true
-    }
-
     fun openAudiobook(book: Book) {
         _activeBook.value = book
         _activePublication.value = null
@@ -67,7 +61,6 @@ class LiberAppViewModel(application: Application) : AndroidViewModel(application
     fun closeReader() {
         _isReaderOpen.value = false
         // We don't null out _activeBook here so the NowPlayingBar can stay
-        // But for EPUBs/PDFs we might want to eventually? 
         // For now, let's keep it for audiobooks.
         if (_activeBook.value?.mediaType != "audio/mpeg" && _activeBook.value?.mediaType != "audiobook") {
             _activeBook.value = null

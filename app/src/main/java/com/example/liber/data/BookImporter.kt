@@ -7,7 +7,6 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Typeface
-import android.graphics.pdf.PdfRenderer
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.text.Layout
@@ -90,7 +89,6 @@ class BookImporter(private val application: Application) {
 
         val extension = file.name?.substringAfterLast('.', "").orEmpty().lowercase()
         return when {
-            extension == "pdf" -> parsePdf(file)
             isAudioFile(extension) -> parseSingleAudioFile(file)
             else -> parseEpub(file)
         }
@@ -396,23 +394,6 @@ class BookImporter(private val application: Application) {
         )
     }
 
-    private suspend fun parsePdf(file: DocumentFile): Book {
-        val title = file.name?.substringBeforeLast('.') ?: "Unknown PDF"
-        val author = "PDF Document"
-        val coverUri = extractPdfCover(file.uri, file.name ?: "pdf") ?: run {
-            saveBitmapToCache(generateFallbackCover(title, author), file.name ?: "pdf")
-        }
-        val contentId = computeFileHash(file.uri)
-        return Book(
-            id = UUID.randomUUID().toString(),
-            title = title,
-            author = author,
-            coverUri = coverUri,
-            fileUri = file.uri,
-            contentId = contentId,
-        )
-    }
-
     private suspend fun parseEpub(file: DocumentFile): Book? = try {
         val tempFile = copyToTempFile(file.uri)
         val asset = assetRetriever.retrieve(tempFile.toUrl()).getOrNull() ?: return null
@@ -520,33 +501,6 @@ class BookImporter(private val application: Application) {
 
         return bitmap
     }
-
-    private suspend fun extractPdfCover(uri: Uri, fileName: String): Uri? =
-        withContext(Dispatchers.IO) {
-            try {
-                application.contentResolver.openFileDescriptor(uri, "r")?.use { pfd ->
-                    val renderer = PdfRenderer(pfd)
-                    if (renderer.pageCount > 0) {
-                        renderer.openPage(0).use { page ->
-                            val bitmap = Bitmap.createBitmap(
-                                page.width, page.height, Bitmap.Config.ARGB_8888
-                            )
-                            page.render(
-                                bitmap,
-                                null,
-                                null,
-                                PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY
-                            )
-                            return@withContext saveBitmapToCache(bitmap, fileName)
-                        }
-                    }
-                    renderer.close()
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-            null
-        }
 
     private fun saveBitmapToCache(bitmap: Bitmap, fileName: String): Uri? {
         val coverFile = File(

@@ -51,7 +51,6 @@ import com.example.liber.ui.library.LibraryScreen
 import com.example.liber.ui.navigation.AppTab
 import com.example.liber.ui.reader.AudioPlayerScreen
 import com.example.liber.ui.reader.AudiobookPlayerViewModel
-import com.example.liber.ui.reader.PdfReaderScreen
 import com.example.liber.ui.reader.ReaderScreen
 import com.example.liber.ui.settings.SettingsScreen
 import com.example.liber.ui.settings.SettingsViewModel
@@ -213,10 +212,6 @@ fun LiberApp(
                         // This handles EPUBs and synthesized audiobook publications
                         liberAppViewModel.openEpub(book, publication)
                     }
-
-                    else -> {
-                        liberAppViewModel.openPdf(book)
-                    }
                 }
             }
         }
@@ -239,33 +234,7 @@ fun LiberApp(
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (isReaderOpen && book != null) {
-            if (book.fileUri.toString().endsWith(".pdf", ignoreCase = true)) {
-                val initialPage = remember(book.lastLocator) {
-                    book.lastLocator?.let {
-                        runCatching { org.json.JSONObject(it).getInt("page") }.getOrDefault(0)
-                    } ?: 0
-                }
-                PdfReaderScreen(
-                    uri = book.fileUri,
-                    title = book.title,
-                    bookId = book.id,
-                    initialPage = initialPage,
-                    bookmarks = bookmarks,
-                    annotations = annotations,
-                    onSaveLocator = { json, progress ->
-                        viewModel.saveLocator(
-                            book.id,
-                            json,
-                            progress
-                        )
-                    },
-                    onSaveBookmark = { bookmark -> viewModel.saveBookmark(bookmark) },
-                    onDeleteBookmark = { bookmarkId -> viewModel.deleteBookmark(bookmarkId) },
-                    onSaveAnnotation = { annotation -> viewModel.saveAnnotation(annotation) },
-                    onDeleteAnnotation = { annotationId -> viewModel.deleteAnnotation(annotationId) },
-                    onBack = { liberAppViewModel.closeReader() },
-                )
-            } else if (publication != null && (book.mediaType != "audio/mpeg" && book.mediaType != "audiobook")) {
+            if (publication != null && (book.mediaType != "audio/mpeg" && book.mediaType != "audiobook")) {
                 ReaderScreen(
                     publication = publication,
                     bookId = book.id,
@@ -341,7 +310,6 @@ fun LiberApp(
                                         bookLauncher.launch(
                                             arrayOf(
                                                 "application/epub+zip",
-                                                "application/pdf",
                                                 "application/x-cbz",
                                                 "application/audiobook+zip",
                                                 "application/lpf+zip",
@@ -380,7 +348,6 @@ fun LiberApp(
                                         bookLauncher.launch(
                                             arrayOf(
                                                 "application/epub+zip",
-                                                "application/pdf",
                                                 "application/x-cbz",
                                                 "application/audiobook+zip",
                                                 "application/lpf+zip",

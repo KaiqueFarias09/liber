@@ -158,7 +158,7 @@ class BookScanService : Service() {
                 child.isFile -> {
                     if (isSupportedFile(child.name)) {
                         val isAudio = isSupportedAudioFile(child.name)
-                        // Add non-audio books (epub/pdf) OR audio files only if the folder isn't the book.
+                        // Add non-audio books (epub) OR audio files only if the folder isn't the book.
                         if (!isAudio || !isAudiobookFolder) {
                             results += child
                         }
@@ -171,7 +171,7 @@ class BookScanService : Service() {
 
     private fun isSupportedFile(name: String?): Boolean {
         val ext = name?.substringAfterLast('.', "")?.lowercase() ?: return false
-        return ext in setOf("epub", "pdf") || isSupportedAudioFile(name)
+        return ext == "epub" || isSupportedAudioFile(name)
     }
 
     private fun isSupportedAudioFile(name: String?): Boolean {
