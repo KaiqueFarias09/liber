@@ -433,7 +433,25 @@ fun LiberApp(
                     isPlaying = isPlayingGlobal,
                     progress = playerProgress,
                     onTogglePlay = {
-                        liberAppViewModel.setPlaying(!isPlayingGlobal)
+                        if (book.isAudiobook) {
+                            audiobookPlayerViewModel.togglePlayPause()
+                        } else {
+                            liberAppViewModel.setPlaying(!isPlayingGlobal)
+                        }
+                    },
+                    onRewind = {
+                        if (book.isAudiobook) {
+                            audiobookPlayerViewModel.skipBackward(15)
+                        } else {
+                            liberAppViewModel.seekBy(-15)
+                        }
+                    },
+                    onForward = {
+                        if (book.isAudiobook) {
+                            audiobookPlayerViewModel.skipForward(15)
+                        } else {
+                            liberAppViewModel.seekBy(15)
+                        }
                     },
                     onClick = {
                         liberAppViewModel.openEpub(book, publication!!)
