@@ -213,8 +213,16 @@ fun LibraryScreen(
                                 audiobooks = audiobooks,
                                 onBookClick = onBookClick,
                                 onDeleteBook = onDeleteBook,
+                                onShareBook = onShareBook,
+                                onToggleWantToRead = onToggleWantToRead,
+                                onToggleFinished = onToggleFinished,
+                                onRenameBook = onRenameBook,
                                 activeBookId = activeBookId,
-                                isPlaying = isPlaying
+                                isPlaying = isPlaying,
+                                viewMode = viewMode,
+                                onViewModeChange = onViewModeChange,
+                                sortOption = sortOption,
+                                onSortOptionChange = onSortOptionChange,
                             )
                         }
                     }

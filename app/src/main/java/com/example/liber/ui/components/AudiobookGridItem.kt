@@ -2,6 +2,7 @@ package com.example.liber.ui.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,11 +11,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -22,6 +28,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
+import com.adamglin.phosphoricons.regular.DotsThree
 import com.adamglin.phosphoricons.regular.PlayCircle
 import com.example.liber.data.Book
 
@@ -29,11 +36,19 @@ import com.example.liber.data.Book
 fun AudiobookGridItem(
     book: Book,
     onClick: () -> Unit,
+    onDeleteBook: () -> Unit,
+    onShareBook: () -> Unit,
+    onToggleWantToRead: () -> Unit,
+    onToggleFinished: () -> Unit,
+    onRenameBook: (String) -> Unit,
     modifier: Modifier = Modifier,
     isActive: Boolean = false,
     isPlaying: Boolean = false,
-    onActionClick: ((Boolean) -> Unit)? = null,
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+    var showRenameDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -44,7 +59,9 @@ fun AudiobookGridItem(
             isActive = isActive,
             isPlaying = isPlaying,
             style = CoverStyle.LARGE,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
         )
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -59,7 +76,7 @@ fun AudiobookGridItem(
                     text = book.title,
                     style = MaterialTheme.typography.titleSmall.copy(
                         fontWeight = FontWeight.SemiBold,
-                        color = if (isActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                     ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -68,7 +85,7 @@ fun AudiobookGridItem(
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 4.dp)
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                 ) {
                     Icon(
                         imageVector = PhosphorIcons.Regular.PlayCircle,
@@ -106,9 +123,53 @@ fun AudiobookGridItem(
                 }
             }
 
-            if (onActionClick != null) {
-                // We'll pass through the menu trigger if needed
+            Box {
+                IconButton(
+                    onClick = { showMenu = true },
+                    modifier = Modifier.size(24.dp),
+                ) {
+                    Icon(
+                        imageVector = PhosphorIcons.Regular.DotsThree,
+                        contentDescription = "More options",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                BookActionMenu(
+                    expanded = showMenu,
+                    book = book,
+                    onDismiss = { showMenu = false },
+                    onShare = onShareBook,
+                    onToggleWantToRead = onToggleWantToRead,
+                    onToggleFinished = onToggleFinished,
+                    onRename = { showRenameDialog = true },
+                    onDelete = { showDeleteDialog = true },
+                    deleteLabel = "Delete",
+                )
             }
         }
+    }
+
+    if (showRenameDialog) {
+        RenameBookDialog(
+            currentTitle = book.title,
+            onConfirm = { newTitle ->
+                onRenameBook(newTitle)
+                showRenameDialog = false
+            },
+            onDismiss = { showRenameDialog = false },
+        )
+    }
+
+    if (showDeleteDialog) {
+        DeleteBookConfirmationDialog(
+            bookTitle = book.title,
+            actionLabel = "Delete",
+            onConfirm = {
+                showDeleteDialog = false
+                onDeleteBook()
+            },
+            onDismiss = { showDeleteDialog = false },
+        )
     }
 }
