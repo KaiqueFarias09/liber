@@ -52,6 +52,10 @@ class BookRepository(private val bookDao: BookDao) {
         bookDao.updateLastLocator(id, locator, progress)
     }
 
+    suspend fun updateDuration(id: String, duration: Long) {
+        bookDao.updateDuration(id, duration)
+    }
+
     suspend fun updateCoverPath(id: String, coverPath: String?) =
         bookDao.updateCoverPath(id, coverPath)
 

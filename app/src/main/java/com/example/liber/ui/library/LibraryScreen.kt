@@ -146,8 +146,8 @@ fun LibraryScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            val audiobooks = remember(books) { books.filter { it.mediaType == "audio/mpeg" } }
-            val regularBooks = remember(books) { books.filter { it.mediaType != "audio/mpeg" } }
+            val audiobooks = remember(books) { books.filter { it.isAudiobook } }
+            val regularBooks = remember(books) { books.filter { !it.isAudiobook } }
 
             HorizontalPager(
                 state = pagerState,

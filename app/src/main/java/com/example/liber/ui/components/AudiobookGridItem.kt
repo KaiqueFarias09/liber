@@ -81,7 +81,11 @@ fun AudiobookGridItem(
                     val remainingText = remember(book.durationMillis, book.readingProgress) {
                         val duration = book.durationMillis ?: 0L
                         if (duration <= 0L) {
-                            if (book.readingProgress == 100) "Finished" else "Not started"
+                            when {
+                                book.readingProgress == 100 -> "Finished"
+                                book.readingProgress > 0 -> "${book.readingProgress}%"
+                                else -> "Not started"
+                            }
                         } else {
                             val remainingMillis = duration * (100 - book.readingProgress) / 100
                             if (remainingMillis <= 0) {

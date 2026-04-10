@@ -96,18 +96,33 @@ class AudiobookPlayerViewModel(
                 override fun onPlaybackStateChanged(playbackState: Int) {
                     _isPrepared.value =
                         playbackState != Player.STATE_IDLE && playbackState != Player.STATE_BUFFERING
-                    _durationMs.value = controller.duration.coerceAtLeast(0L)
+                    val duration = controller.duration.coerceAtLeast(0L)
+                    _durationMs.value = duration
+                    if (duration > 0) {
+                        saveDuration(duration)
+                    }
                 }
             })
             // Sync initial state
             _isPlaying.value = controller.isPlaying
             _playWhenReady.value = controller.playWhenReady
             _currentTrackIndex.value = controller.currentMediaItemIndex
-            _durationMs.value = controller.duration.coerceAtLeast(0L)
+            val duration = controller.duration.coerceAtLeast(0L)
+            _durationMs.value = duration
+            if (duration > 0) {
+                saveDuration(duration)
+            }
             _positionMs.value = controller.currentPosition
             _playbackSpeed.value = controller.playbackParameters.speed
             if (controller.isPlaying) startPositionUpdates()
         }, MoreExecutors.directExecutor())
+    }
+
+    private fun saveDuration(duration: Long) {
+        val bookId = currentBookId ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            bookRepository.updateDuration(bookId, duration)
+        }
     }
 
     fun loadBook(book: Book) {

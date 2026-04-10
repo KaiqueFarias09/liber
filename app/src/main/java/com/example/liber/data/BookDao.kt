@@ -47,6 +47,9 @@ interface BookDao {
     @Query("UPDATE books SET lastLocator = :locator, readingProgress = :progress WHERE id = :id")
     suspend fun updateLastLocator(id: String, locator: String?, progress: Int)
 
+    @Query("UPDATE books SET durationMillis = :duration WHERE id = :id")
+    suspend fun updateDuration(id: String, duration: Long)
+
     @Query("UPDATE books SET coverPath = :coverPath WHERE id = :id")
     suspend fun updateCoverPath(id: String, coverPath: String?)
 
