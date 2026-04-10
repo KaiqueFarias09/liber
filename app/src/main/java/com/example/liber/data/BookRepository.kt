@@ -8,6 +8,9 @@ class BookRepository(private val bookDao: BookDao) {
     fun getAllBooks(): Flow<List<Book>> =
         bookDao.getAllBooks().map { it.map(BookEntity::toBook) }
 
+    suspend fun getAllBooksList(): List<Book> =
+        bookDao.getAllBooksList().map(BookEntity::toBook)
+
     fun getContinueReadingBooks(threshold: Long): Flow<List<Book>> =
         bookDao.getContinueReadingBooks(threshold).map { it.map(BookEntity::toBook) }
 
@@ -35,11 +38,19 @@ class BookRepository(private val bookDao: BookDao) {
     suspend fun updateLastOpenedAt(id: String, timestamp: Long) =
         bookDao.updateLastOpenedAt(id, timestamp)
 
+    suspend fun updateLastOpenedAtQuietly(id: String, timestamp: Long) {
+        bookDao.updateLastOpenedAt(id, timestamp)
+    }
+
     suspend fun updateWantToRead(id: String, wantToRead: Boolean) =
         bookDao.updateWantToRead(id, wantToRead)
 
     suspend fun updateLastLocator(id: String, locator: String?, progress: Int) =
         bookDao.updateLastLocator(id, locator, progress)
+
+    suspend fun updateLastLocatorQuietly(id: String, locator: String?, progress: Int) {
+        bookDao.updateLastLocator(id, locator, progress)
+    }
 
     suspend fun updateCoverPath(id: String, coverPath: String?) =
         bookDao.updateCoverPath(id, coverPath)

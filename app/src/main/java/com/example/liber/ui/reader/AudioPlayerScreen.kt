@@ -126,10 +126,6 @@ fun AudioPlayerScreen(
     onBack: () -> Unit,
     onSaveLocator: (String, Int) -> Unit
 ) {
-    androidx.compose.runtime.LaunchedEffect(book) {
-        audiobookPlayerViewModel.loadBook(book)
-    }
-
     val isPlaying by audiobookPlayerViewModel.isPlaying.collectAsState()
     val playWhenReady by audiobookPlayerViewModel.playWhenReady.collectAsState()
     val positionMs by audiobookPlayerViewModel.positionMs.collectAsState()

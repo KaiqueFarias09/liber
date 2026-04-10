@@ -84,6 +84,10 @@ fun LiberApp(
     )
 
     val activeBook by liberAppViewModel.activeBook.collectAsState()
+    val allBooks by viewModel.books.collectAsState()
+    val book = remember(activeBook?.id, allBooks) {
+        allBooks.find { it.id == activeBook?.id } ?: activeBook
+    }
     val activePublication by liberAppViewModel.activePublication.collectAsState()
     val isReaderOpen by liberAppViewModel.isReaderOpen.collectAsState()
     val activeTab by liberAppViewModel.activeTab.collectAsState()
@@ -92,14 +96,28 @@ fun LiberApp(
     val selectedCollectionId by liberAppViewModel.selectedCollectionId.collectAsState()
     val scanSources by viewModel.scanSources.collectAsState()
 
-    // Sync global playWhenReady state to the player
-    // Removed to avoid feedback loops. UI components now call audiobookPlayerViewModel directly.
-
     // Sync player state back to global state
     val playerIsPlaying by audiobookPlayerViewModel.isPlaying.collectAsState()
     val playerPlayWhenReady by audiobookPlayerViewModel.playWhenReady.collectAsState()
     val playerPositionMs by audiobookPlayerViewModel.positionMs.collectAsState()
     val playerDurationMs by audiobookPlayerViewModel.durationMs.collectAsState()
+
+    androidx.compose.runtime.LaunchedEffect(book?.id) {
+        if (book != null && book.isAudiobook) {
+            audiobookPlayerViewModel.loadBook(book)
+        }
+    }
+
+    androidx.compose.runtime.LaunchedEffect(
+        book?.title,
+        book?.author,
+        book?.coverUri,
+        book?.narrator
+    ) {
+        if (book != null && book.isAudiobook) {
+            audiobookPlayerViewModel.updateMetadataIfLoaded(book)
+        }
+    }
 
     androidx.compose.runtime.LaunchedEffect(playerIsPlaying) {
         if (playerIsPlaying != isPlayingGlobal) {
@@ -213,7 +231,6 @@ fun LiberApp(
 
     val pendingAnnotationRequest by viewModel.pendingAnnotationRequest.collectAsState()
 
-    val book = activeBook
     val publication = activePublication
     val playerProgress by liberAppViewModel.playerProgress.collectAsState()
 

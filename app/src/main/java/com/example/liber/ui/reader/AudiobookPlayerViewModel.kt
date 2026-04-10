@@ -111,7 +111,9 @@ class AudiobookPlayerViewModel(
     }
 
     fun loadBook(book: Book) {
-        if (currentBookId == book.id) return
+        if (currentBookId == book.id) {
+            return
+        }
 
         currentBookId = book.id
         currentBook = book
@@ -123,6 +125,21 @@ class AudiobookPlayerViewModel(
         _durationMs.value = 0L
 
         loadTracks(book)
+    }
+
+    fun updateMetadataIfLoaded(book: Book) {
+        val oldBook = currentBook
+        if (currentBookId == book.id && oldBook != null) {
+            // Only update if metadata-related fields changed
+            if (oldBook.title != book.title ||
+                oldBook.author != book.author ||
+                oldBook.coverUri != book.coverUri ||
+                oldBook.narrator != book.narrator
+            ) {
+                currentBook = book
+                updateMetadataInController(book)
+            }
+        }
     }
 
     private fun loadTracks(book: Book) {
@@ -189,8 +206,25 @@ class AudiobookPlayerViewModel(
         }
 
         controller.prepare()
-        controller.play()
         _isPrepared.value = true
+    }
+
+    private fun updateMetadataInController(book: Book) {
+        val controller = controller ?: return
+        for (i in 0 until controller.mediaItemCount) {
+            val item = controller.getMediaItemAt(i)
+            val updatedMetadata = item.mediaMetadata.buildUpon()
+                .setArtist(book.author)
+                .setAlbumTitle(book.title)
+                .setArtworkUri(book.coverUri)
+                .build()
+
+            val updatedItem = item.buildUpon()
+                .setMediaMetadata(updatedMetadata)
+                .build()
+
+            controller.replaceMediaItem(i, updatedItem)
+        }
     }
 
     fun togglePlayPause() {
@@ -339,8 +373,8 @@ class AudiobookPlayerViewModel(
                 put("positionMs", pos)
             }.toString()
 
-            bookRepository.updateLastLocator(bookId, locator, progress)
-            bookRepository.updateLastOpenedAt(bookId, System.currentTimeMillis())
+            bookRepository.updateLastLocatorQuietly(bookId, locator, progress)
+            bookRepository.updateLastOpenedAtQuietly(bookId, System.currentTimeMillis())
         }
     }
 

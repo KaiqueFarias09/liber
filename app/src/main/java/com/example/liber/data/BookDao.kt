@@ -11,6 +11,9 @@ interface BookDao {
     @Query("SELECT * FROM books ORDER BY title ASC")
     fun getAllBooks(): Flow<List<BookEntity>>
 
+    @Query("SELECT * FROM books ORDER BY title ASC")
+    suspend fun getAllBooksList(): List<BookEntity>
+
     @Query("SELECT * FROM books WHERE wantToRead = 0 AND lastOpenedAt IS NOT NULL AND lastOpenedAt >= :threshold ORDER BY lastOpenedAt DESC")
     fun getContinueReadingBooks(threshold: Long): Flow<List<BookEntity>>
 
