@@ -37,7 +37,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     internal val bookRepository = BookRepository(AppDatabase.getDatabase(application).bookDao())
     private val scanSourceRepository =
         ScanSourceRepository(AppDatabase.getDatabase(application).scanSourceDao())
-    private val bookImporter = BookImporter(application)
+    val bookImporter = BookImporter(application)
 
     private val sevenDaysMs = 7L * 24 * 60 * 60 * 1000
 
@@ -104,7 +104,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 book.fileUri,
                 android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
             )
-        } catch (_: Exception) { /* permission already held or not applicable */ }
+        } catch (_: Exception) { /* permission already held or not applicable */
+        }
         bookImporter.openPublication(book.fileUri)
     }
 
@@ -136,6 +137,18 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun updateMetadata(bookId: String, title: String, author: String?, narrator: String?) {
         viewModelScope.launch(Dispatchers.IO) {
             bookRepository.updateMetadata(bookId, title, author, narrator)
+        }
+    }
+
+    fun updateFullMetadata(
+        bookId: String,
+        title: String,
+        author: String?,
+        coverPath: String?,
+        narrator: String?
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            bookRepository.updateFullMetadata(bookId, title, author, coverPath, narrator)
         }
     }
 

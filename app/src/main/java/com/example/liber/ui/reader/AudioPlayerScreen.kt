@@ -139,6 +139,22 @@ fun AudioPlayerScreen(
     var activeSheet by remember { mutableStateOf<AudioPlayerSheet?>(null) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
 
+    // Background metadata update if needed
+    androidx.compose.runtime.LaunchedEffect(book.id) {
+        if (book.isAudiobook && (book.author == null || book.coverUri == null)) {
+            val updatedBook = homeViewModel.bookImporter.fillAudiobookMetadata(book)
+            if (updatedBook.author != book.author || updatedBook.coverUri != book.coverUri || updatedBook.title != book.title) {
+                homeViewModel.updateFullMetadata(
+                    book.id,
+                    updatedBook.title,
+                    updatedBook.author,
+                    updatedBook.coverUri?.toString(),
+                    book.narrator
+                )
+            }
+        }
+    }
+
     val globalIsPlaying by liberAppViewModel.isPlaying.collectAsState()
 
     var isDragging by remember { mutableStateOf(false) }
@@ -291,6 +307,8 @@ fun AudioPlayerScreen(
                         .fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
+                    val coverToShow = remember(book.id, book.coverUri) { book.coverUri }
+                    
                     // Vinyl Disk
                     Box(
                         modifier = Modifier
@@ -345,7 +363,7 @@ fun AudioPlayerScreen(
                                 )
                         ) {
                             AsyncImage(
-                                model = book.coverUri,
+                                model = coverToShow,
                                 contentDescription = null,
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
@@ -382,7 +400,7 @@ fun AudioPlayerScreen(
                     ) {
                         Box {
                             AsyncImage(
-                                model = book.coverUri,
+                                model = coverToShow,
                                 contentDescription = "Cover",
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize()

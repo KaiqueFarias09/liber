@@ -195,25 +195,24 @@ fun LiberApp(
     }
 
     val onOpenBook: (Book) -> Unit = { book ->
-        scope.launch {
-            val publication = viewModel.openBook(book)
-            when {
-                publication != null -> {
-                    // This handles EPUBs and synthesized audiobook publications
-                    liberAppViewModel.openEpub(book, publication)
-                }
-
-                book.mediaType == "audio/mpeg" || book.mediaType == "audiobook" -> {
-                    // Use the publication if it was synthesized, otherwise just open the reader
-                    if (publication != null) {
+        if (book.isAudiobook) {
+            liberAppViewModel.openAudiobook(book)
+            // Still update the last opened timestamp in background
+            scope.launch {
+                viewModel.openBook(book)
+            }
+        } else {
+            scope.launch {
+                val publication = viewModel.openBook(book)
+                when {
+                    publication != null -> {
+                        // This handles EPUBs and synthesized audiobook publications
                         liberAppViewModel.openEpub(book, publication)
-                    } else {
+                    }
+
+                    else -> {
                         liberAppViewModel.openPdf(book)
                     }
-                }
-
-                else -> {
-                    liberAppViewModel.openPdf(book)
                 }
             }
         }

@@ -45,6 +45,12 @@ class LiberAppViewModel(application: Application) : AndroidViewModel(application
         _isReaderOpen.value = true
     }
 
+    fun openAudiobook(book: Book) {
+        _activeBook.value = book
+        _activePublication.value = null
+        _isReaderOpen.value = true
+    }
+
     fun openReader() {
         if (_activeBook.value != null) {
             _isReaderOpen.value = true

@@ -116,7 +116,24 @@ class BookImporter(private val application: Application) {
     }
 
     private suspend fun parseAudiobookFolder(dir: DocumentFile): Book {
-        val firstAudio = dir.listFiles()
+        // Fast path for initial discovery: use folder name as title
+        val title = dir.name ?: "Unknown Audiobook"
+
+        return Book(
+            id = UUID.randomUUID().toString(),
+            title = title,
+            author = null,
+            coverUri = null,
+            fileUri = dir.uri,
+            contentId = dir.uri.toString(),
+            mediaType = "audio/mpeg",
+        )
+    }
+
+    suspend fun fillAudiobookMetadata(book: Book): Book {
+        val dir = DocumentFile.fromTreeUri(application, book.fileUri) ?: return book
+        val files = dir.listFiles()
+        val firstAudio = files
             .filter {
                 it.isFile && isAudioFile(
                     it.name?.substringAfterLast('.', "").orEmpty().lowercase()
@@ -127,18 +144,42 @@ class BookImporter(private val application: Application) {
         val (albumTitle, albumArtist) = if (firstAudio != null) extractTextMetadata(firstAudio)
         else Pair(null, null)
 
-        val title = albumTitle?.takeIf { it.isNotBlank() } ?: (dir.name ?: "Unknown Audiobook")
+        val title = albumTitle?.takeIf { it.isNotBlank() } ?: book.title
         val author = albumArtist?.takeIf { it.isNotBlank() }
-        val coverUri = getBestAudiobookCover(dir, firstAudio, title, author)
 
-        return Book(
-            id = UUID.randomUUID().toString(),
+        // Find cover
+        val imageExtensions = setOf("jpg", "jpeg", "png", "webp")
+        val preferredNames = setOf("cover", "folder", "front", "album", "artwork", "art")
+
+        // Preferred: canonical cover name
+        var coverUri = files.find { file ->
+            val name = file.name?.substringBeforeLast('.')?.lowercase() ?: ""
+            val ext = file.name?.substringAfterLast('.', "")?.lowercase() ?: ""
+            file.isFile && name in preferredNames && ext in imageExtensions
+        }?.uri
+
+        // Fallback 1: any image file in the folder
+        if (coverUri == null) {
+            coverUri = files.find { file ->
+                val ext = file.name?.substringAfterLast('.', "")?.lowercase() ?: ""
+                file.isFile && ext in imageExtensions
+            }?.uri
+        }
+
+        // Fallback 2: embedded cover
+        if (coverUri == null && firstAudio != null) {
+            coverUri = extractEmbeddedCover(firstAudio, title)
+        }
+
+        // Fallback 3: generated cover
+        if (coverUri == null) {
+            coverUri = saveBitmapToCache(generateFallbackCover(title, author), dir.name ?: "audio")
+        }
+
+        return book.copy(
             title = title,
             author = author,
-            coverUri = coverUri,
-            fileUri = dir.uri,
-            contentId = dir.uri.toString(),
-            mediaType = "audio/mpeg",
+            coverUri = coverUri
         )
     }
 

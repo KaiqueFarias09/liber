@@ -32,6 +32,15 @@ class BookRepository(private val bookDao: BookDao) {
     suspend fun updateMetadata(id: String, title: String, author: String?, narrator: String?) =
         bookDao.updateMetadata(id, title, author, narrator)
 
+    suspend fun updateFullMetadata(
+        id: String,
+        title: String,
+        author: String?,
+        coverPath: String?,
+        narrator: String?
+    ) =
+        bookDao.updateFullMetadata(id, title, author, coverPath, narrator)
+
     suspend fun deleteBook(bookId: String) =
         bookDao.deleteBook(bookId)
 
@@ -58,6 +67,9 @@ class BookRepository(private val bookDao: BookDao) {
 
     suspend fun updateCoverPath(id: String, coverPath: String?) =
         bookDao.updateCoverPath(id, coverPath)
+
+    suspend fun updateTracks(id: String, tracksJson: String?) =
+        bookDao.updateTracks(id, tracksJson)
 
     suspend fun insertAnnotation(annotation: AnnotationEntity) =
         bookDao.insertAnnotation(annotation)

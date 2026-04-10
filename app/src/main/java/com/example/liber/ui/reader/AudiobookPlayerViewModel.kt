@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
 
 class AudiobookPlayerViewModel(
@@ -34,6 +35,31 @@ class AudiobookPlayerViewModel(
 ) : AndroidViewModel(application) {
 
     data class TrackInfo(val name: String, val uri: Uri)
+
+    private fun List<TrackInfo>.toJson(): String {
+        val array = JSONArray()
+        forEach { track ->
+            array.put(JSONObject().apply {
+                put("name", track.name)
+                put("uri", track.uri.toString())
+            })
+        }
+        return array.toString()
+    }
+
+    private fun String.toTrackInfoList(): List<TrackInfo> {
+        val list = mutableListOf<TrackInfo>()
+        try {
+            val array = JSONArray(this)
+            for (i in 0 until array.length()) {
+                val obj = array.getJSONObject(i)
+                list.add(TrackInfo(obj.getString("name"), Uri.parse(obj.getString("uri"))))
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return list
+    }
 
     private var currentBookId: String? = null
     private var currentBook: Book? = null
@@ -159,6 +185,19 @@ class AudiobookPlayerViewModel(
 
     private fun loadTracks(book: Book) {
         viewModelScope.launch(Dispatchers.IO) {
+            // 1. Try to load from cache first
+            val cachedTracks = book.tracksJson?.toTrackInfoList()
+            if (!cachedTracks.isNullOrEmpty()) {
+                _tracks.value = cachedTracks
+                withContext(Dispatchers.Main) {
+                    prepareTracks(cachedTracks, book)
+                }
+                // We still might want to re-scan in background to ensure sync, 
+                // but for "speeding up opening" we stop here or do it later.
+                return@launch
+            }
+
+            // 2. Fallback to filesystem scan
             val uri = book.fileUri
             val trackList = if (uri.toString().contains("tree")) {
                 val folder = DocumentFile.fromTreeUri(getApplication(), uri) ?: return@launch
@@ -175,8 +214,12 @@ class AudiobookPlayerViewModel(
                 val file = DocumentFile.fromSingleUri(getApplication(), uri) ?: return@launch
                 listOf(TrackInfo(file.name?.substringBeforeLast('.') ?: "Track", file.uri))
             }
+
             _tracks.value = trackList
             if (trackList.isNotEmpty()) {
+                // Cache to DB
+                bookRepository.updateTracks(book.id, trackList.toJson())
+
                 withContext(Dispatchers.Main) {
                     prepareTracks(trackList, book)
                 }
