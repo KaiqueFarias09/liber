@@ -1,6 +1,5 @@
 package com.example.liber.core.designsystem
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,16 +29,18 @@ fun LiberButton(
     type: LiberButtonType = LiberButtonType.PRIMARY,
     enabled: Boolean = true,
 ) {
+    val isDark = MaterialTheme.extendedColors.isDark
+
     val containerColor = when (type) {
         LiberButtonType.PRIMARY -> MaterialTheme.colorScheme.primary
-        LiberButtonType.PRIMARY_INVERTED -> if (isSystemInDarkTheme()) Color.White else MaterialTheme.colorScheme.onPrimary
+        LiberButtonType.PRIMARY_INVERTED -> if (isDark) Color.White else MaterialTheme.colorScheme.onPrimary
         LiberButtonType.SECONDARY -> MaterialTheme.colorScheme.secondary
         LiberButtonType.TERTIARY -> MaterialTheme.colorScheme.tertiary
     }
 
     val contentColor = when (type) {
         LiberButtonType.PRIMARY -> MaterialTheme.colorScheme.onPrimary
-        LiberButtonType.PRIMARY_INVERTED -> if (isSystemInDarkTheme()) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.primary
+        LiberButtonType.PRIMARY_INVERTED -> if (isDark) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.primary
         LiberButtonType.SECONDARY -> MaterialTheme.colorScheme.onSecondary
         LiberButtonType.TERTIARY -> MaterialTheme.colorScheme.onTertiary
     }
