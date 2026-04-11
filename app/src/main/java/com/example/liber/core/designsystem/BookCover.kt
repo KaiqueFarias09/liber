@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -97,7 +96,6 @@ fun BookCover(
             .then(
                 if (fillBounds) Modifier.fillMaxSize() else Modifier.fillMaxWidth()
             )
-            .clip(RoundedCornerShape(if (style == CoverStyle.SMALL) 4.dp else 8.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
     ) {
         if (coverUri != null) {
@@ -242,20 +240,16 @@ fun AudiobookCover(
                 .fillMaxSize()
                 .shadow(
                     elevation = if (isActive) 12.dp else 4.dp,
-                    shape = RoundedCornerShape(8.dp),
                     spotColor = if (isActive) Color.White.copy(alpha = 0.25f) else Color.Black
                 )
-                .clip(RoundedCornerShape(8.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .then(
                     if (isActive) Modifier.border(
                         2.dp,
-                        Color.White,
-                        RoundedCornerShape(8.dp)
+                        Color.White
                     ) else Modifier.border(
                         1.dp,
-                        Color.White.copy(alpha = 0.1f),
-                        RoundedCornerShape(8.dp)
+                        Color.White.copy(alpha = 0.1f)
                     )
                 )
         ) {
