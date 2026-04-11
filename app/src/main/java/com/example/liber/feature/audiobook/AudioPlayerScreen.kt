@@ -6,7 +6,6 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,7 +20,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -29,8 +27,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -50,19 +46,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Fill
 import com.adamglin.phosphoricons.Regular
@@ -76,6 +67,8 @@ import com.adamglin.phosphoricons.regular.Clock
 import com.adamglin.phosphoricons.regular.DotsThree
 import com.adamglin.phosphoricons.regular.List
 import com.example.liber.R
+import com.example.liber.core.designsystem.AudiobookCover
+import com.example.liber.core.designsystem.CoverStyle
 import com.example.liber.core.designsystem.LiberDialog
 import com.example.liber.core.designsystem.LiberModalBottomSheet
 import com.example.liber.core.util.UiText
@@ -83,7 +76,6 @@ import com.example.liber.core.util.toFormattedPlaybackTime
 import com.example.liber.data.model.Book
 import com.example.liber.feature.home.HomeViewModel
 import com.example.liber.feature.home.components.BookDetailsBottomSheet
-import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -156,24 +148,6 @@ fun AudioPlayerScreen(
 
     val infiniteTransition =
         androidx.compose.animation.core.rememberInfiniteTransition(label = "vinyl")
-    val rotation by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
-            animation = androidx.compose.animation.core.tween(
-                4000,
-                easing = androidx.compose.animation.core.LinearEasing
-            ),
-            repeatMode = androidx.compose.animation.core.RepeatMode.Restart
-        ),
-        label = "vinyl_rotation"
-    )
-
-    val vinylOffset by androidx.compose.animation.core.animateDpAsState(
-        targetValue = if (playWhenReady) (-80).dp else (-20).dp,
-        animationSpec = androidx.compose.animation.core.tween(1000),
-        label = "vinyl_offset"
-    )
 
     if (showDeleteConfirmation) {
         LiberDialog(
@@ -272,120 +246,15 @@ fun AudioPlayerScreen(
                         .fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
-                    val coverToShow = remember(book.id, book.coverUri) { book.coverUri }
-
-                    // Vinyl Disk
-                    Box(
+                    AudiobookCover(
+                        book = book,
                         modifier = Modifier
-                            .offset { IntOffset(0, vinylOffset.value.roundToInt()) }
-                            .fillMaxWidth(0.8f)
-                            .aspectRatio(1f)
-                            .graphicsLayer {
-                                rotationZ = if (playWhenReady) rotation else 0f
-                            }
-                            .clip(CircleShape)
-                            .background(
-                                Brush.sweepGradient(
-                                    listOf(
-                                        MaterialTheme.colorScheme.surface,
-                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
-                                        MaterialTheme.colorScheme.surface
-                                    )
-                                )
-                            )
-                            .border(
-                                1.dp,
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
-                                CircleShape
-                            )
-                    ) {
-                        // Grooves
-                        repeat(6) { i ->
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding((15 + i * 12).dp)
-                                    .border(
-                                        0.5.dp,
-                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
-                                        CircleShape
-                                    )
-                            )
-                        }
-
-                        // Center Label
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(0.35f)
-                                .aspectRatio(1f)
-                                .align(Alignment.Center)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .border(
-                                    1.dp,
-                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
-                                    CircleShape
-                                )
-                        ) {
-                            AsyncImage(
-                                model = coverToShow,
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .alpha(0.4f)
-                            )
-                            // Hole
-                            Box(
-                                modifier = Modifier
-                                    .size(10.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.background)
-                                    .align(Alignment.Center)
-                                    .border(
-                                        1.dp,
-                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
-                                        CircleShape
-                                    )
-                            )
-                        }
-                    }
-
-                    // Foreground Cover
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth(0.85f)
+                            .fillMaxWidth(0.95f)
                             .aspectRatio(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 24.dp),
-                        border = BorderStroke(
-                            1.dp,
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-                        )
-                    ) {
-                        Box {
-                            AsyncImage(
-                                model = coverToShow,
-                                contentDescription = "Cover",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                            // Plastic Reflection
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .fillMaxHeight(0.3f)
-                                    .background(
-                                        Brush.verticalGradient(
-                                            listOf(
-                                                Color.White.copy(alpha = 0.1f),
-                                                Color.Transparent
-                                            )
-                                        )
-                                    )
-                            )
-                        }
-                    }
+                        style = CoverStyle.LARGE,
+                        isActive = true,
+                        isPlaying = playWhenReady
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(40.dp))

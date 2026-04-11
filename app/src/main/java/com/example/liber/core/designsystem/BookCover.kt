@@ -10,11 +10,11 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
@@ -28,14 +28,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -134,7 +138,7 @@ fun BookCover(
                     else
                         MaterialTheme.typography.headlineSmall,
                     color = Color.White,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    textAlign = TextAlign.Center,
                     maxLines = 4,
                     overflow = TextOverflow.Ellipsis,
                     fontFamily = Gambetta
@@ -174,8 +178,12 @@ fun AudiobookCover(
     )
 
     val vinylOffset by animateDpAsState(
-        targetValue = if (isActive && isPlaying) (-24).dp else 8.dp,
-        animationSpec = tween(500),
+        targetValue = if (isActive && isPlaying) {
+            if (style == CoverStyle.LARGE) (-80).dp else (-24).dp
+        } else {
+            if (style == CoverStyle.LARGE) (-20).dp else 8.dp
+        },
+        animationSpec = tween(if (style == CoverStyle.LARGE) 1000 else 500),
         label = "vinyl_offset"
     )
 
@@ -183,73 +191,161 @@ fun AudiobookCover(
         modifier = modifier.aspectRatio(1f)
     ) {
         val isSmall = style == CoverStyle.SMALL
-        val padding = if (isSmall) 4.dp else 8.dp
-        val iconSize = if (isSmall) 10.dp else 16.dp
-        val titleSize = if (isSmall) 10.sp else 14.sp
+        val padding = if (isSmall) 4.dp else 12.dp
+        val iconSize = if (isSmall) 10.dp else 18.dp
+        val titleSize = if (isSmall) 10.sp else 16.sp
+        val isDark = isSystemInDarkTheme()
 
         // Vinyl Record behind the cover (Only for Large style)
         if (!isSmall) {
             Box(
                 modifier = Modifier
-                    .fillMaxSize(0.85f)
+                    .fillMaxSize(0.92f)
                     .align(Alignment.Center)
                     .offset { IntOffset(0, vinylOffset.value.roundToInt()) }
                     .rotate(if (isActive && isPlaying) rotation else 0f)
                     .clip(CircleShape)
                     .background(
                         Brush.sweepGradient(
-                            listOf(
-                                Color(0xFF111111),
-                                Color(0xFF222222),
-                                Color(0xFF111111)
-                            )
+                            0.0f to Color(0xFF050505),
+                            0.25f to Color(0xFF1A1A1A),
+                            0.5f to Color(0xFF050505),
+                            0.75f to Color(0xFF1A1A1A),
+                            1.0f to Color(0xFF050505)
                         )
                     )
-                    .border(1.dp, Color.White.copy(alpha = 0.1f), CircleShape)
+                    .border(1.dp, Color.White.copy(alpha = 0.05f), CircleShape)
             ) {
-                // Vinyl inner circle details
+                // Vinyl Grooves (multiple rings)
+                val grooveColor = Color.White.copy(alpha = 0.05f)
                 Box(
                     modifier = Modifier
-                        .fillMaxSize(0.33f)
+                        .fillMaxSize()
+                        .padding(2.dp)
+                        .border(1.dp, grooveColor, CircleShape)
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(5.dp)
+                        .border(1.dp, grooveColor, CircleShape)
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(8.dp)
+                        .border(1.dp, grooveColor, CircleShape)
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(12.dp)
+                        .border(1.dp, grooveColor, CircleShape)
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp)
+                        .border(1.dp, grooveColor, CircleShape)
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(32.dp)
+                        .border(1.dp, grooveColor, CircleShape)
+                )
+
+                // Vinyl shine overlay
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color.White.copy(alpha = 0.1f), Color.Transparent),
+                                endY = 100f
+                            )
+                        )
+                )
+
+                // Vinyl Label
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize(0.38f)
                         .clip(CircleShape)
-                        .background(Color(0xFF0A0A0A))
+                        .background(Color(0xFF111111))
                         .border(1.dp, Color.White.copy(alpha = 0.1f), CircleShape)
                         .align(Alignment.Center)
                 ) {
+                    // Dimmed cover image on label
+                    AsyncImage(
+                        model = book.coverUri,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .alpha(0.4f)
+                    )
+
+                    // Label Overlays
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .fillMaxHeight(0.5f)
-                            .align(Alignment.BottomCenter)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.5f))
                     )
-                    Box(
+
+                    Column(
                         modifier = Modifier
-                            .size(4.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF222222))
-                            .align(Alignment.Center)
-                    )
+                            .fillMaxSize()
+                            .padding(4.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            "SIDE A",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 5.sp,
+                                letterSpacing = 1.sp,
+                                color = Color.White.copy(alpha = 0.8f),
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+
+                        // Center hole
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF0A0A0A))
+                                .border(0.5.dp, Color.White.copy(alpha = 0.2f), CircleShape)
+                        )
+
+                        Text(
+                            book.title.uppercase(),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 5.sp,
+                                color = Color.White.copy(alpha = 0.8f),
+                                fontWeight = FontWeight.Bold,
+                                lineHeight = 6.sp
+                            ),
+                            maxLines = 2,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             }
         }
 
-        // Cover Image (Sleeve)
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .shadow(
-                    elevation = if (isActive) 12.dp else 4.dp,
-                    spotColor = if (isActive) Color.White.copy(alpha = 0.25f) else Color.Black
-                )
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .then(
                     if (isActive) Modifier.border(
                         2.dp,
-                        Color.White
+                        MaterialTheme.colorScheme.primary,
                     ) else Modifier.border(
                         1.dp,
-                        Color.White.copy(alpha = 0.1f)
+                        Color.White.copy(alpha = 0.1f),
                     )
                 )
         ) {
@@ -260,56 +356,82 @@ fun AudiobookCover(
                 modifier = Modifier.fillMaxSize()
             )
 
-            // Overlay for texture/lighting
+            // Overlay for texture/lighting (matching React mockup)
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .drawWithContent {
+                        drawContent()
+                        // Overlay blend simulation
+                        drawRect(
+                            color = Color.Black.copy(alpha = if (isDark) 0.1f else 0.05f),
+                            blendMode = BlendMode.Overlay
+                        )
+                    }
                     .background(
-                        Brush.verticalGradient(
-                            listOf(Color.Transparent, Color.Black.copy(alpha = 0.4f)),
-                            startY = 300f
+                        Brush.linearGradient(
+                            0.0f to Color.Black.copy(alpha = if (isDark) 0.6f else 0.4f),
+                            0.6f to Color.Transparent,
+                            start = Offset(0f, Float.POSITIVE_INFINITY),
+                            end = Offset(Float.POSITIVE_INFINITY, 0f)
                         )
                     )
+                    .background(
+                        Brush.verticalGradient(
+                            0.0f to Color.White.copy(alpha = if (isDark) 0.1f else 0.2f),
+                            0.3f to Color.Transparent
+                        )
+                    )
+                    .background(brush = style.gradient)
             )
 
             // Icons and Text on cover (matching React mock)
             if (book.coverUri == null) {
-                Column(
+                val fallbackColor = MaterialTheme.colorScheme.primaryContainer
+                val onFallbackColor = MaterialTheme.colorScheme.onPrimaryContainer
+
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(padding),
-                    verticalArrangement = Arrangement.SpaceBetween
+                        .background(fallbackColor)
                 ) {
-                    Icon(
-                        imageVector = PhosphorIcons.Regular.Headphones,
-                        contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.7f),
-                        modifier = Modifier.size(iconSize)
-                    )
-
-                    Column {
-                        Text(
-                            text = book.title,
-                            style = TextStyle(
-                                fontFamily = Gambetta,
-                                fontWeight = FontWeight.Medium,
-                                fontSize = titleSize,
-                                color = Color.White
-                            ),
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding),
+                        verticalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Icon(
+                            imageVector = PhosphorIcons.Regular.Headphones,
+                            contentDescription = null,
+                            tint = onFallbackColor.copy(alpha = 0.7f),
+                            modifier = Modifier.size(iconSize)
                         )
-                        if (!isSmall) {
+
+                        Column {
                             Text(
-                                text = book.author?.uppercase() ?: "UNKNOWN AUTHOR",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    color = Color.White.copy(alpha = 0.7f),
-                                    letterSpacing = 1.sp,
-                                    fontSize = 8.sp
+                                text = book.title,
+                                style = TextStyle(
+                                    fontFamily = Gambetta,
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = titleSize,
+                                    color = onFallbackColor
                                 ),
-                                maxLines = 1,
+                                maxLines = 2,
                                 overflow = TextOverflow.Ellipsis
                             )
+                            if (!isSmall) {
+                                Text(
+                                    text = book.author?.uppercase() ?: "UNKNOWN AUTHOR",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        color = onFallbackColor.copy(alpha = 0.7f),
+                                        letterSpacing = 1.sp,
+                                        fontSize = 8.sp
+                                    ),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
                     }
                 }
@@ -318,7 +440,7 @@ fun AudiobookCover(
                 Icon(
                     imageVector = PhosphorIcons.Regular.Headphones,
                     contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.7f),
+                    tint = Color.White.copy(alpha = 0.5f),
                     modifier = Modifier
                         .padding(padding)
                         .size(iconSize)
@@ -328,35 +450,44 @@ fun AudiobookCover(
     }
 }
 
-enum class CoverStyle(val gradient: Brush) {
+enum class CoverStyle {
     /**
      * Compact thumbnail.
      */
-    SMALL(
-        gradient = Brush.horizontalGradient(
-            colorStops = arrayOf(
-                0.00f to Color(0x66FFFFFF), // spine highlight (40%)
-                0.04f to Color(0x66000000), // spine shadow (40%)
-                0.06f to Color(0x33FFFFFF), // secondary highlight (20%)
-                0.10f to Color.Transparent,
-            ),
-        ),
-    ),
+    SMALL,
 
     /**
      * Full-size cover.
      */
-    LARGE(
-        gradient = Brush.horizontalGradient(
-            colorStops = arrayOf(
-                0.00f to Color(0x66FFFFFF), // leading highlight (40%)
-                0.01f to Color(0x00FFFFFF), // fade out
-                0.03f to Color(0x99000000), // spine shadow (60%)
-                0.04f to Color(0x66FFFFFF), // secondary highlight (40%)
-                0.06f to Color.Transparent,
-                0.98f to Color.Transparent,
-                1.00f to Color(0x66000000), // trailing edge shadow (40%)
-            ),
-        ),
-    ),
+    LARGE;
 }
+
+val CoverStyle.gradient: Brush
+    @Composable
+    get() {
+        val isDark = isSystemInDarkTheme()
+        val highlightAlpha = if (isDark) 0.1f else 0.2f
+        val shadowAlpha = if (isDark) 0.2f else 0.1f
+
+        val highlight = Color.White.copy(alpha = highlightAlpha)
+        val shadow = Color.Black.copy(alpha = shadowAlpha)
+
+        return when (this) {
+            CoverStyle.SMALL -> Brush.horizontalGradient(
+                colorStops = arrayOf(
+                    0.00f to highlight,
+                    0.03f to shadow,
+                    0.05f to Color.Transparent,
+                ),
+            )
+
+            CoverStyle.LARGE -> Brush.horizontalGradient(
+                colorStops = arrayOf(
+                    0.00f to highlight,
+                    0.01f to shadow,
+                    0.02f to highlight.copy(alpha = highlightAlpha * 0.5f),
+                    0.04f to Color.Transparent,
+                ),
+            )
+        }
+    }

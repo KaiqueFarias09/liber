@@ -1,14 +1,9 @@
 package com.example.liber.feature.audiobook.components
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,23 +25,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Fill
 import com.adamglin.phosphoricons.Regular
@@ -54,6 +44,8 @@ import com.adamglin.phosphoricons.fill.Pause
 import com.adamglin.phosphoricons.fill.Play
 import com.adamglin.phosphoricons.regular.ArrowClockwise
 import com.adamglin.phosphoricons.regular.ArrowCounterClockwise
+import com.example.liber.core.designsystem.AudiobookCover
+import com.example.liber.core.designsystem.CoverStyle
 import com.example.liber.data.model.Book
 
 @Composable
@@ -68,15 +60,7 @@ fun NowPlayingBar(
     onClick: () -> Unit,
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "vinyl")
-    val rotation by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(3000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "vinyl_rotation"
-    )
+    val isDark = isSystemInDarkTheme()
 
     Surface(
         modifier = modifier
@@ -90,7 +74,7 @@ fun NowPlayingBar(
             )
             .clip(RoundedCornerShape(20.dp))
             .clickable(onClick = onClick),
-        color = Color(0xFF171717).copy(alpha = 0.95f),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
         tonalElevation = 8.dp
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -116,80 +100,13 @@ fun NowPlayingBar(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Sleeve + Vinyl Container
-                    Box(modifier = Modifier.size(48.dp)) {
-                        // Vinyl (sliding out)
-                        Box(
-                            modifier = Modifier
-                                .size(44.dp)
-                                .offset(x = 10.dp)
-                                .align(Alignment.CenterStart)
-                                .rotate(if (isPlaying) rotation else 0f)
-                                .shadow(4.dp, CircleShape)
-                                .background(
-                                    Brush.sweepGradient(
-                                        listOf(
-                                            Color(0xFF111111),
-                                            Color(0xFF222222),
-                                            Color(0xFF111111)
-                                        )
-                                    ),
-                                    CircleShape
-                                )
-                                .border(0.5.dp, Color(0xFF404040), CircleShape)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(4.dp)
-                                    .border(0.5.dp, Color.White.copy(alpha = 0.05f), CircleShape)
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(8.dp)
-                                    .border(0.5.dp, Color.White.copy(alpha = 0.05f), CircleShape)
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .size(16.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.Black)
-                                    .border(0.5.dp, Color(0xFF262626), CircleShape)
-                                    .align(Alignment.Center)
-                            ) {
-                                AsyncImage(
-                                    model = book.coverUri,
-                                    contentDescription = null,
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .alpha(0.6f),
-                                    contentScale = ContentScale.Crop
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .size(4.dp)
-                                        .background(Color.White, CircleShape)
-                                        .align(Alignment.Center)
-                                )
-                            }
-                        }
-
-                        // Square Sleeve (Top Layer)
-                        AsyncImage(
-                            model = book.coverUri,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(48.dp)
-                                .shadow(8.dp, RoundedCornerShape(4.dp))
-                                .clip(RoundedCornerShape(4.dp))
-                                .border(
-                                    0.5.dp,
-                                    Color.White.copy(alpha = 0.1f),
-                                    RoundedCornerShape(4.dp)
-                                ),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
+                    AudiobookCover(
+                        book = book,
+                        modifier = Modifier.size(54.dp),
+                        style = CoverStyle.SMALL,
+                        isActive = true,
+                        isPlaying = isPlaying
+                    )
 
                     Spacer(modifier = Modifier.width(20.dp))
 
@@ -198,7 +115,7 @@ fun NowPlayingBar(
                             text = book.title,
                             style = MaterialTheme.typography.titleSmall.copy(
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontSize = 13.sp,
                                 lineHeight = 16.sp
                             ),
@@ -208,7 +125,7 @@ fun NowPlayingBar(
                         Text(
                             text = book.author?.uppercase() ?: "UNKNOWN AUTHOR",
                             style = MaterialTheme.typography.labelSmall.copy(
-                                color = Color(0xFFA3A3A3),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 letterSpacing = 1.2.sp,
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Medium
@@ -227,7 +144,7 @@ fun NowPlayingBar(
                                 Icon(
                                     imageVector = PhosphorIcons.Regular.ArrowCounterClockwise,
                                     contentDescription = "Rewind 15s",
-                                    tint = Color(0xFFA3A3A3),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Text(
@@ -235,7 +152,7 @@ fun NowPlayingBar(
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontSize = 7.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color(0xFFA3A3A3)
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     ),
                                     modifier = Modifier.offset(y = 1.dp)
                                 )
@@ -246,8 +163,8 @@ fun NowPlayingBar(
                             onClick = onTogglePlay,
                             modifier = Modifier.size(40.dp),
                             shape = CircleShape,
-                            color = Color.White,
-                            contentColor = Color.Black,
+                            color = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
                             shadowElevation = 4.dp
                         ) {
                             Box(
@@ -269,7 +186,7 @@ fun NowPlayingBar(
                                 Icon(
                                     imageVector = PhosphorIcons.Regular.ArrowClockwise,
                                     contentDescription = "Forward 15s",
-                                    tint = Color(0xFFA3A3A3),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Text(
@@ -277,7 +194,7 @@ fun NowPlayingBar(
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontSize = 7.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color(0xFFA3A3A3)
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     ),
                                     modifier = Modifier.offset(y = 1.dp)
                                 )
@@ -290,7 +207,7 @@ fun NowPlayingBar(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(4.dp)
-                        .background(Color(0xFF262626).copy(alpha = 0.8f))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     Box(
                         modifier = Modifier
@@ -307,7 +224,7 @@ fun NowPlayingBar(
                                     Brush.horizontalGradient(
                                         colors = listOf(
                                             Color.Transparent,
-                                            Color.White.copy(alpha = 0.4f)
+                                            Color.White.copy(alpha = if (isDark) 0.4f else 0.7f)
                                         )
                                     )
                                 )
