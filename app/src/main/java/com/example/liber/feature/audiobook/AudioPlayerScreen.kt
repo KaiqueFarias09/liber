@@ -70,6 +70,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -77,6 +78,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.lifecycle.viewModelScope
 import coil.compose.AsyncImage
 import com.adamglin.PhosphorIcons
@@ -111,7 +114,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
-import org.readium.r2.shared.publication.Publication
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.io.File
@@ -123,12 +125,10 @@ import kotlin.math.roundToInt
 @Composable
 fun AudioPlayerScreen(
     book: Book,
-    publication: Publication,
     liberAppViewModel: com.example.liber.ui.LiberAppViewModel,
     homeViewModel: HomeViewModel,
     audiobookPlayerViewModel: AudiobookPlayerViewModel,
     onBack: () -> Unit,
-    onSaveLocator: (String, Int) -> Unit
 ) {
     val isPlaying by audiobookPlayerViewModel.isPlaying.collectAsState()
     val playWhenReady by audiobookPlayerViewModel.playWhenReady.collectAsState()
@@ -700,7 +700,6 @@ fun AudioPlayerScreen(
 
                         AudioPlayerSheet.MORE -> MoreOptionsSheet(
                             book = book,
-                            onDismiss = { activeSheet = null },
                             onEditMetadata = { activeSheet = AudioPlayerSheet.EDIT_METADATA },
                             onChangeCover = { activeSheet = AudioPlayerSheet.CHANGE_COVER },
                             onDelete = {
@@ -717,15 +716,61 @@ fun AudioPlayerScreen(
                             }
                         )
 
-                        AudioPlayerSheet.CHANGE_COVER -> ChangeCoverSheet(
-                            onGalleryClick = { /* Handled by launcher */ },
-                            onSearchWebClick = { activeSheet = AudioPlayerSheet.SEARCH_WEB },
-                            onCameraClick = { /* Not implemented */ },
-                            onCoverSelected = { uri ->
-                                homeViewModel.updateCoverPath(book.id, uri.toString())
-                                activeSheet = null
+                        AudioPlayerSheet.CHANGE_COVER -> {
+                            val context = LocalContext.current
+                            var tempUri by remember { mutableStateOf<android.net.Uri?>(null) }
+
+                            val cameraLauncher = rememberLauncherForActivityResult(
+                                contract = ActivityResultContracts.TakePicture()
+                            ) { success ->
+                                if (success && tempUri != null) {
+                                    homeViewModel.updateCoverPath(book.id, tempUri.toString())
+                                    activeSheet = null
+                                }
                             }
-                        )
+
+                            val launchCamera = {
+                                try {
+                                    val file = File(context.filesDir, "cover_${book.id}.jpg")
+                                    val uri = FileProvider.getUriForFile(
+                                        context,
+                                        "${context.packageName}.fileprovider",
+                                        file
+                                    )
+                                    tempUri = uri
+                                    cameraLauncher.launch(uri)
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                }
+                            }
+
+                            val permissionLauncher = rememberLauncherForActivityResult(
+                                ActivityResultContracts.RequestPermission()
+                            ) { isGranted ->
+                                if (isGranted) {
+                                    launchCamera()
+                                }
+                            }
+
+                            ChangeCoverSheet(
+                                onSearchWebClick = { activeSheet = AudioPlayerSheet.SEARCH_WEB },
+                                onCameraClick = {
+                                    val permissionCheckResult = ContextCompat.checkSelfPermission(
+                                        context,
+                                        android.Manifest.permission.CAMERA
+                                    )
+                                    if (permissionCheckResult == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                                        launchCamera()
+                                    } else {
+                                        permissionLauncher.launch(android.Manifest.permission.CAMERA)
+                                    }
+                                },
+                                onCoverSelected = { uri ->
+                                    homeViewModel.updateCoverPath(book.id, uri.toString())
+                                    activeSheet = null
+                                }
+                            )
+                        }
 
                         AudioPlayerSheet.SEARCH_WEB -> SearchWebSheet(
                             initialQuery = book.title,
@@ -947,7 +992,6 @@ fun SleepTimerOption(label: String, isSelected: Boolean, onClick: () -> Unit) {
 @Composable
 fun MoreOptionsSheet(
     book: Book,
-    onDismiss: () -> Unit,
     onEditMetadata: () -> Unit,
     onChangeCover: () -> Unit,
     onDelete: () -> Unit
@@ -1136,7 +1180,6 @@ fun MetadataInputField(
 
 @Composable
 fun ChangeCoverSheet(
-    onGalleryClick: () -> Unit,
     onSearchWebClick: () -> Unit,
     onCameraClick: () -> Unit,
     onCoverSelected: (android.net.Uri) -> Unit

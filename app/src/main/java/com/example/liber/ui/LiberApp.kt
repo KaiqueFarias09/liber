@@ -60,7 +60,6 @@ import com.example.liber.service.BookScanService
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import org.readium.r2.shared.ExperimentalReadiumApi
-import org.readium.r2.shared.publication.LocalizedString
 
 /**
  * Root composable for app-level navigation.
@@ -380,24 +379,10 @@ fun LiberApp(
             ) {
                 AudioPlayerScreen(
                     book = book!!,
-                    publication = publication ?: org.readium.r2.shared.publication.Publication(
-                        org.readium.r2.shared.publication.Manifest(
-                            metadata = org.readium.r2.shared.publication.Metadata(
-                                localizedTitle = LocalizedString(book.title)
-                            )
-                        )
-                    ),
                     liberAppViewModel = liberAppViewModel,
                     homeViewModel = homeViewModel,
                     audiobookPlayerViewModel = audiobookPlayerViewModel,
-                    onBack = { liberAppViewModel.closeReader() },
-                    onSaveLocator = { json, progress ->
-                        homeViewModel.saveLocator(
-                            book.id,
-                            json,
-                            progress
-                        )
-                    },
+                    onBack = { liberAppViewModel.closeReader() }
                 )
             }
 
