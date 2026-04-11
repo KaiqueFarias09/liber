@@ -12,7 +12,10 @@ import android.net.Uri
 import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.withTranslation
 import androidx.documentfile.provider.DocumentFile
+import com.example.liber.data.model.AudioFormats
 import com.example.liber.data.model.Book
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -71,7 +74,7 @@ class BookImporter(private val application: Application) {
             }
 
             val extension = file.name?.substringAfterLast('.', "").orEmpty().lowercase()
-            if (isAudioFile(extension)) {
+            if (AudioFormats.isSupported(extension)) {
                 return@withContext createAudiobookPublication(file)
             }
 
@@ -85,40 +88,20 @@ class BookImporter(private val application: Application) {
         }
     }
 
-    suspend fun parseBook(file: DocumentFile): Book? {
-        if (file.isDirectory) return parseAudiobookFolder(file)
+    suspend fun parseBook(file: DocumentFile): Book? = withContext(Dispatchers.IO) {
+        if (file.isDirectory) return@withContext parseAudiobookFolder(file)
 
         val extension = file.name?.substringAfterLast('.', "").orEmpty().lowercase()
-        return when {
-            isAudioFile(extension) -> parseSingleAudioFile(file)
+        when {
+            AudioFormats.isSupported(extension) -> parseSingleAudioFile(file)
             else -> parseEpub(file)
         }
     }
 
-    private fun isAudioFile(extension: String): Boolean {
-        // TODO: This list could probably become a constant because it's being used in multiple places at the same time
-        // I should look on the project for other values that are similar to it
-        return extension in setOf(
-            "mp3",
-            "m4a",
-            "m4b",
-            "aac",
-            "wav",
-            "flac",
-            "ogg",
-            "opus",
-            "amr",
-            "awb",
-            "3gp",
-            "mka"
-        )
-    }
-
     private suspend fun parseAudiobookFolder(dir: DocumentFile): Book {
-        // Fast path for initial discovery: use folder name as title
         val title = dir.name ?: "Unknown Audiobook"
 
-        return Book(
+        val initialBook = Book(
             id = UUID.randomUUID().toString(),
             title = title,
             author = null,
@@ -127,14 +110,16 @@ class BookImporter(private val application: Application) {
             contentId = dir.uri.toString(),
             mediaType = "audio/mpeg",
         )
+        // Fill metadata (including cover) immediately during import
+        return fillAudiobookMetadata(initialBook)
     }
 
-    suspend fun fillAudiobookMetadata(book: Book): Book {
-        val dir = DocumentFile.fromTreeUri(application, book.fileUri) ?: return book
+    suspend fun fillAudiobookMetadata(book: Book): Book = withContext(Dispatchers.IO) {
+        val dir = DocumentFile.fromTreeUri(application, book.fileUri) ?: return@withContext book
         val files = dir.listFiles()
         val firstAudio = files
             .filter {
-                it.isFile && isAudioFile(
+                it.isFile && AudioFormats.isSupported(
                     it.name?.substringAfterLast('.', "").orEmpty().lowercase()
                 )
             }
@@ -175,7 +160,7 @@ class BookImporter(private val application: Application) {
             coverUri = saveBitmapToCache(generateFallbackCover(title, author), dir.name ?: "audio")
         }
 
-        return book.copy(
+        book.copy(
             title = title,
             author = author,
             coverUri = coverUri
@@ -183,40 +168,41 @@ class BookImporter(private val application: Application) {
     }
 
     /** Extracts ALBUM and ARTIST text tags from an audio file via a small temp-file copy. */
-    private fun extractTextMetadata(file: DocumentFile): Pair<String?, String?> {
-        val tempFile = File(application.cacheDir, "meta_txt_${System.currentTimeMillis()}")
-        val retriever = MediaMetadataRetriever()
-        return try {
-            application.contentResolver.openInputStream(file.uri)?.use { input ->
-                FileOutputStream(tempFile).use { out ->
-                    val buf = ByteArray(65_536)
-                    var remaining = 64 * 1024 // 64 KB is enough for all text tags
-                    while (remaining > 0) {
-                        val n = input.read(buf, 0, minOf(buf.size, remaining))
-                        if (n < 0) break
-                        out.write(buf, 0, n)
-                        remaining -= n
+    private suspend fun extractTextMetadata(file: DocumentFile): Pair<String?, String?> =
+        withContext(Dispatchers.IO) {
+            val tempFile = File(application.cacheDir, "meta_txt_${System.currentTimeMillis()}")
+            val retriever = MediaMetadataRetriever()
+            try {
+                application.contentResolver.openInputStream(file.uri)?.use { input ->
+                    FileOutputStream(tempFile).use { out ->
+                        val buf = ByteArray(65_536)
+                        var remaining = 64 * 1024 // 64 KB is enough for all text tags
+                        while (remaining > 0) {
+                            val n = input.read(buf, 0, minOf(buf.size, remaining))
+                            if (n < 0) break
+                            out.write(buf, 0, n)
+                            remaining -= n
+                        }
                     }
                 }
+                retriever.setDataSource(tempFile.absolutePath)
+                val album = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)
+                val artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
+                Pair(album, artist)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Pair(null, null)
+            } finally {
+                retriever.release()
+                tempFile.delete()
             }
-            retriever.setDataSource(tempFile.absolutePath)
-            val album = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)
-            val artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
-            Pair(album, artist)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Pair(null, null)
-        } finally {
-            retriever.release()
-            tempFile.delete()
         }
-    }
 
-    private suspend fun createAudiobookPublication(file: DocumentFile): Publication? {
+    private fun createAudiobookPublication(file: DocumentFile): Publication? {
         val audioFiles = if (file.isDirectory) {
             file.listFiles()
                 .filter {
-                    it.isFile && isAudioFile(
+                    it.isFile && AudioFormats.isSupported(
                         it.name?.substringAfterLast('.', "").orEmpty().lowercase()
                     )
                 }
@@ -300,40 +286,42 @@ class BookImporter(private val application: Application) {
         }?.uri
     }
 
-    fun extractEmbeddedCover(file: DocumentFile, cacheName: String): Uri? {
-        // Copy the first 5 MB of the audio file to a temp path so MediaMetadataRetriever
-        // can use setDataSource(absolutePath) — the most reliable variant across Android versions.
-        // 5 MB is more than enough to contain any ID3v2 tag with album art.
-        val tempFile = File(application.cacheDir, "meta_tmp_${System.currentTimeMillis()}")
-        val retriever = MediaMetadataRetriever()
-        return try {
-            val written = application.contentResolver.openInputStream(file.uri)?.use { input ->
-                FileOutputStream(tempFile).use { out ->
-                    val buf = ByteArray(65_536)
-                    var remaining = 5 * 1024 * 1024
-                    while (remaining > 0) {
-                        val n = input.read(buf, 0, minOf(buf.size, remaining))
-                        if (n < 0) break
-                        out.write(buf, 0, n)
-                        remaining -= n
+    suspend fun extractEmbeddedCover(file: DocumentFile, cacheName: String): Uri? =
+        withContext(Dispatchers.IO) {
+            // Copy the first 5 MB of the audio file to a temp path so MediaMetadataRetriever
+            // can use setDataSource(absolutePath) — the most reliable variant across Android versions.
+            // 5 MB is more than enough to contain any ID3v2 tag with album art.
+            val tempFile = File(application.cacheDir, "meta_tmp_${System.currentTimeMillis()}")
+            val retriever = MediaMetadataRetriever()
+            try {
+                val written = application.contentResolver.openInputStream(file.uri)?.use { input ->
+                    FileOutputStream(tempFile).use { out ->
+                        val buf = ByteArray(65_536)
+                        var remaining = 5 * 1024 * 1024
+                        while (remaining > 0) {
+                            val n = input.read(buf, 0, minOf(buf.size, remaining))
+                            if (n < 0) break
+                            out.write(buf, 0, n)
+                            remaining -= n
+                        }
                     }
-                }
-                true
-            } ?: false
-            if (!written) return null
+                    true
+                } ?: false
+                if (!written) return@withContext null
 
-            retriever.setDataSource(tempFile.absolutePath)
-            val art = retriever.embeddedPicture ?: return null
-            val bitmap = BitmapFactory.decodeByteArray(art, 0, art.size) ?: return null
-            saveBitmapToCache(bitmap, cacheName)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        } finally {
-            retriever.release()
-            tempFile.delete()
+                retriever.setDataSource(tempFile.absolutePath)
+                val art = retriever.embeddedPicture ?: return@withContext null
+                val bitmap =
+                    BitmapFactory.decodeByteArray(art, 0, art.size) ?: return@withContext null
+                saveBitmapToCache(bitmap, cacheName)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                null
+            } finally {
+                retriever.release()
+                tempFile.delete()
+            }
         }
-    }
 
     /**
      * Minimal Resource implementation for ContentResolver URIs.
@@ -441,7 +429,7 @@ class BookImporter(private val application: Application) {
     private fun generateFallbackCover(title: String, author: String?): Bitmap {
         val width = 600
         val height = 900
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(width, height)
         val canvas = Canvas(bitmap)
 
         // Background color based on title hash
@@ -488,16 +476,14 @@ class BookImporter(private val application: Application) {
             titleLayout.height + (if (authorLayout != null) authorLayout.height + 40 else 0)
         val startY = (height - contentHeight) / 2f
 
-        canvas.save()
-        canvas.translate(padding.toFloat(), startY)
-        titleLayout.draw(canvas)
-        canvas.restore()
+        canvas.withTranslation(padding.toFloat(), startY) {
+            titleLayout.draw(this)
+        }
 
         if (authorLayout != null) {
-            canvas.save()
-            canvas.translate(padding.toFloat(), startY + titleLayout.height + 40)
-            authorLayout.draw(canvas)
-            canvas.restore()
+            canvas.withTranslation(padding.toFloat(), startY + titleLayout.height + 40) {
+                authorLayout.draw(this)
+            }
         }
 
         return bitmap

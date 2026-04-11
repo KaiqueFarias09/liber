@@ -1,6 +1,5 @@
 package com.example.liber.feature.library
 
-import android.net.Uri
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -30,14 +29,12 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.liber.R
 import com.example.liber.core.designsystem.BookGrid
 import com.example.liber.core.designsystem.EmptyState
 import com.example.liber.core.designsystem.LiberHeader
 import com.example.liber.core.designsystem.LiberTabBar
-import com.example.liber.core.designsystem.LiberTheme
 import com.example.liber.core.designsystem.ScanProgressBanner
 import com.example.liber.data.model.Book
 import com.example.liber.data.model.ScanState
@@ -55,13 +52,14 @@ fun LibraryScreen(
     isLoading: Boolean,
     onBookClick: (Book) -> Unit,
     onAddBooks: () -> Unit,
-    scanState: ScanState = ScanState.Idle,
-    onDismissScanBanner: () -> Unit = {},
     onToggleWantToRead: (Book) -> Unit,
     onToggleFinished: (Book) -> Unit,
     onRenameBook: (Book, String) -> Unit,
     onDeleteBook: (Book) -> Unit,
     onShareBook: (Book) -> Unit,
+    modifier: Modifier = Modifier,
+    scanState: ScanState = ScanState.Idle,
+    onDismissScanBanner: () -> Unit = {},
     onAddToCollection: (Book, Long) -> Unit = { _, _ -> },
     collections: List<CollectionUiState> = emptyList(),
     onCreateCollection: (String) -> Unit = {},
@@ -79,7 +77,6 @@ fun LibraryScreen(
     onTabSelected: (Int) -> Unit = {},
     activeBookId: String? = null,
     isPlaying: Boolean = false,
-    modifier: Modifier = Modifier,
 ) {
     val pagerState = rememberPagerState(initialPage = selectedTabIndex) { 3 }
     val scope = rememberCoroutineScope()
@@ -294,6 +291,13 @@ fun LibraryScreen(
     }
 }
 
+@Composable
+private fun LoadingState() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator()
+    }
+}
+
 // ── Convenience overload that reads directly from the ViewModel ───────────────
 
 @Composable
@@ -304,9 +308,9 @@ fun LibraryScreen(
     onShareBook: (Book) -> Unit,
     collectionsViewModel: CollectionsViewModel,
     liberAppViewModel: com.example.liber.ui.LiberAppViewModel,
-    selectedCollectionId: Long? = null,
     onCollectionClick: (Long?) -> Unit,
     modifier: Modifier = Modifier,
+    selectedCollectionId: Long? = null,
 ) {
     val books by viewModel.books.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -324,100 +328,52 @@ fun LibraryScreen(
         isLoading = isLoading,
         onBookClick = onBookClick,
         onAddBooks = onAddBooks,
-        scanState = scanState,
-        onDismissScanBanner = { viewModel.dismissScanBanner() },
         onToggleWantToRead = { book -> viewModel.toggleWantToRead(book.id, book.wantToRead) },
         onToggleFinished = { book ->
-            viewModel.toggleFinished(
-                book.id,
-                book.readingProgress == 100
-            )
+            viewModel.toggleFinished(book.id, book.readingProgress == 100)
         },
         onRenameBook = { book, newTitle ->
-            viewModel.updateMetadata(
+            viewModel.updateFullMetadata(
                 book.id,
                 newTitle,
                 book.author,
+                book.coverUri?.toString(),
                 book.narrator
             )
         },
         onDeleteBook = { book -> viewModel.deleteBook(book.id) },
-        onShareBook = onShareBook,
+        onShareBook = { book -> onShareBook(book) },
         onAddToCollection = { book, collectionId ->
             collectionsViewModel.addBookToCollection(collectionId, book.id)
         },
         collections = collections,
         onCreateCollection = { collectionsViewModel.createCollection(it) },
         onRenameCollection = { id, name -> collectionsViewModel.renameCollection(id, name) },
-        onDeleteCollection = { collectionsViewModel.deleteCollection(it) },
+        onDeleteCollection = { id -> collectionsViewModel.deleteCollection(id) },
         onAddBookToCollection = { id, bookId ->
-            collectionsViewModel.addBookToCollection(id, bookId)
+            collectionsViewModel.addBookToCollection(
+                id,
+                bookId
+            )
         },
         onRemoveBookFromCollection = { id, bookId ->
-            collectionsViewModel.removeBookFromCollection(id, bookId)
+            collectionsViewModel.removeBookFromCollection(
+                id,
+                bookId
+            )
         },
         viewMode = viewMode,
         onViewModeChange = { viewModel.setLibraryViewMode(it) },
         sortOption = sortOption,
         onSortOptionChange = { viewModel.setLibrarySortOption(it) },
+        modifier = modifier,
+        scanState = scanState,
+        onDismissScanBanner = { viewModel.dismissScanBanner() },
         selectedCollectionId = selectedCollectionId,
         onCollectionClick = onCollectionClick,
         selectedTabIndex = selectedTabIndex,
         onTabSelected = { liberAppViewModel.setLibraryTabIndex(it) },
         activeBookId = activeBook?.id,
         isPlaying = isPlaying,
-        modifier = modifier,
     )
-}
-
-@Composable
-private fun LoadingState() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-    }
-}
-
-// ── Previews ──────────────────────────────────────────────────────────────────
-
-private val previewBooks = listOf(
-    Book("1", "Lean UX", "Jeff Gothelf", null, Uri.EMPTY),
-    Book("2", "Emotional Design", "Donald A. Norman", null, Uri.EMPTY, wantToRead = true),
-    Book("3", "100 Things Every Designer Needs to Know", "Susan Weinschenk", null, Uri.EMPTY),
-    Book("4", "The Design of Everyday Things", "Don Norman", null, Uri.EMPTY),
-)
-
-@Preview(showBackground = true, heightDp = 800)
-@Composable
-private fun LibraryScreenPreview() {
-    LiberTheme {
-        LibraryScreen(
-            books = previewBooks,
-            isLoading = false,
-            onBookClick = {},
-            onAddBooks = {},
-            onToggleWantToRead = {},
-            onToggleFinished = {},
-            onRenameBook = { _, _ -> },
-            onDeleteBook = {},
-            onShareBook = {},
-        )
-    }
-}
-
-@Preview(showBackground = true, heightDp = 600)
-@Composable
-private fun LibraryScreenEmptyPreview() {
-    LiberTheme {
-        LibraryScreen(
-            books = emptyList(),
-            isLoading = false,
-            onBookClick = {},
-            onAddBooks = {},
-            onToggleWantToRead = {},
-            onToggleFinished = {},
-            onRenameBook = { _, _ -> },
-            onDeleteBook = {},
-            onShareBook = {},
-        )
-    }
 }

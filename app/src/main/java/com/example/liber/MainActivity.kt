@@ -31,11 +31,9 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Fix for Android 15+ setRequestedFrameRate(NaN) log spam by resetting refresh rates to system default
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val params = window.attributes
-            // Using reflection because these fields might be unavailable in some build configurations
-            // though they were added in API 30/31.
+
             runCatching {
                 val fieldMin = params.javaClass.getField("preferredMinDisplayRefreshRate")
                 val fieldMax = params.javaClass.getField("preferredMaxDisplayRefreshRate")

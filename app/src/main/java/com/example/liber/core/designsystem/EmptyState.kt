@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun EmptyState(
     title: String,
+    modifier: Modifier = Modifier,
     subtitle: String? = null,
     @DrawableRes image: Int? = null,
     actionLabel: String? = null,
@@ -39,7 +40,6 @@ fun EmptyState(
     subtitleColor: Color = (if (showBackground) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface).copy(
         alpha = 0.7f
     ),
-    modifier: Modifier = Modifier,
 ) {
     val isDarkTheme = MaterialTheme.extendedColors.isDark
 

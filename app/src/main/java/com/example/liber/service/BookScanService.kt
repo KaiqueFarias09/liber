@@ -9,10 +9,12 @@ import android.content.Intent
 import android.net.Uri
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import com.example.liber.R
 import com.example.liber.data.local.AppDatabase
 import com.example.liber.data.local.ScanStateHolder
+import com.example.liber.data.model.AudioFormats
 import com.example.liber.data.model.ScanState
 import com.example.liber.data.model.toEntity
 import com.example.liber.data.repository.BookImporter
@@ -55,7 +57,7 @@ class BookScanService : Service() {
 
         val treeUriStr = intent.getStringExtra(EXTRA_TREE_URI) ?: return START_NOT_STICKY
         val folderName = intent.getStringExtra(EXTRA_FOLDER_NAME) ?: "Folder"
-        val treeUri = Uri.parse(treeUriStr)
+        val treeUri = treeUriStr.toUri()
 
         startForeground(NOTIFICATION_ID, buildNotification(folderName, 0, 0))
 
@@ -99,7 +101,6 @@ class BookScanService : Service() {
             if (existingBook == null) {
                 val book = importer.parseBook(file)
                 if (book != null) {
-                    // Secondary dedup check by contentId after parsing
                     val existsByContentId = book.contentId
                         ?.let { bookRepo.getBookByContentId(it) } != null
                     if (!existsByContentId) {
@@ -112,9 +113,13 @@ class BookScanService : Service() {
                     skipped++
                 }
             } else {
-                // Book already in DB — refresh cover if the cached file is missing
-                val coverMissing = existingBook.coverPath == null ||
-                        !java.io.File(existingBook.coverPath).exists()
+                val coverPath = existingBook.coverPath
+                val coverMissing = coverPath == null || run {
+                    val uri = coverPath.toUri()
+                    if (uri.scheme == "file") {
+                        !java.io.File(uri.path ?: "").exists()
+                    } else false
+                }
                 if (coverMissing && file.isDirectory) {
                     refreshAudiobookCover(file, existingBook.id, importer, bookRepo)
                 }
@@ -132,17 +137,15 @@ class BookScanService : Service() {
         importer: BookImporter,
         bookRepo: BookRepository
     ) {
-        // Re-parse the full book to pick up any cover image added since last scan
         val freshBook = importer.parseBook(folder) ?: return
-        bookRepo.updateCoverPath(bookId, freshBook.coverUri?.path)
+        bookRepo.updateCoverPath(bookId, freshBook.coverUri?.toString())
     }
 
     private fun collectBookFiles(dir: DocumentFile): List<DocumentFile> {
         val results = mutableListOf<DocumentFile>()
         val files = dir.listFiles()
 
-        // Consider it an audiobook folder if it contains any audio files directly.
-        val audioFiles = files.filter { it.isFile && isSupportedAudioFile(it.name) }
+        val audioFiles = files.filter { it.isFile && AudioFormats.isSupportedFile(it.name) }
         val isAudiobookFolder = audioFiles.isNotEmpty()
 
         if (isAudiobookFolder) {
@@ -151,14 +154,12 @@ class BookScanService : Service() {
 
         files.forEach { child ->
             when {
-                // If it's an audiobook folder, we don't recurse into subdirectories
-                // for MORE books, but we might want to if there are nested folders?
-                // For now, let's keep it simple: one folder = one audiobook.
+                // TODO: Recursively scan subdirectories for more books, since there are audiobooks that come as a collection of books, for example Harry Potter collection or Lord of the Rings, where each folder has more items and etc...
+                // TODO: Maybe the user should have the option during the importing to choose between allowing these subdirectories to count as just one audiobook item or to be considered separately
                 child.isDirectory && !isAudiobookFolder -> results += collectBookFiles(child)
                 child.isFile -> {
                     if (isSupportedFile(child.name)) {
-                        val isAudio = isSupportedAudioFile(child.name)
-                        // Add non-audio books (epub) OR audio files only if the folder isn't the book.
+                        val isAudio = AudioFormats.isSupportedFile(child.name)
                         if (!isAudio || !isAudiobookFolder) {
                             results += child
                         }
@@ -170,28 +171,8 @@ class BookScanService : Service() {
     }
 
     private fun isSupportedFile(name: String?): Boolean {
-        val ext = name?.substringAfterLast('.', "")?.lowercase() ?: return false
-        return ext == "epub" || isSupportedAudioFile(name)
-    }
-
-    private fun isSupportedAudioFile(name: String?): Boolean {
-        val ext = name?.substringAfterLast('.', "")?.lowercase() ?: return false
-        // Basic list for testing, you could add flac, ogg, etc.
-        // TODO: This list could probably become a constant because it's being used in multiple places at the same time
-        return ext in setOf(
-            "mp3",
-            "m4a",
-            "m4b",
-            "aac",
-            "wav",
-            "flac",
-            "ogg",
-            "opus",
-            "amr",
-            "awb",
-            "3gp",
-            "mka"
-        )
+        return name?.substringAfterLast('.', "")
+            ?.lowercase() == "epub" || AudioFormats.isSupportedFile(name)
     }
 
     private fun createNotificationChannel() {

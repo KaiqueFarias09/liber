@@ -39,9 +39,9 @@ fun HomeScreen(
     wantToReadBooks: List<Book>,
     previousBooks: List<Book>,
     onBookClick: (Book) -> Unit,
+    modifier: Modifier = Modifier,
     activeBookId: String? = null,
     isPlaying: Boolean = false,
-    modifier: Modifier = Modifier,
 ) {
     LiberScrollableScreen(
         title = "Liber",

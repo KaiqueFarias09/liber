@@ -56,6 +56,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -73,6 +74,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewModelScope
@@ -115,6 +117,7 @@ import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.io.File
 import java.io.FileOutputStream
 import java.net.URL
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -148,7 +151,6 @@ fun AudioPlayerScreen(
         }
     }
 
-    // Background metadata update if needed
     androidx.compose.runtime.LaunchedEffect(book.id) {
         if (book.isAudiobook && (book.author == null || book.coverUri == null)) {
             val updatedBook = homeViewModel.bookImporter.fillAudiobookMetadata(book)
@@ -167,7 +169,7 @@ fun AudioPlayerScreen(
     val globalIsPlaying by liberAppViewModel.isPlaying.collectAsState()
 
     var isDragging by remember { mutableStateOf(false) }
-    var dragPosition by remember { mutableStateOf(0f) }
+    var dragPosition by remember { mutableFloatStateOf(0f) }
 
     val currentSliderPosition = if (isDragging) dragPosition else {
         if (durationMs > 0) positionMs / durationMs.toFloat() else 0f
@@ -321,7 +323,7 @@ fun AudioPlayerScreen(
                     // Vinyl Disk
                     Box(
                         modifier = Modifier
-                            .offset(y = vinylOffset)
+                            .offset { IntOffset(0, vinylOffset.value.roundToInt()) }
                             .fillMaxWidth(0.8f)
                             .aspectRatio(1f)
                             .graphicsLayer {

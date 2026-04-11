@@ -510,6 +510,7 @@ private fun BookListItem(
 fun BookGridItem(
     book: Book,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     onToggleWantToRead: () -> Unit,
     onToggleFinished: () -> Unit,
     onRenameBook: (String) -> Unit,
@@ -520,7 +521,6 @@ fun BookGridItem(
     showAddToCollection: Boolean = false,
     onAddToCollection: (Long) -> Unit = {},
     collections: List<CollectionUiState> = emptyList(),
-    modifier: Modifier = Modifier,
     isActive: Boolean = false,
     isPlaying: Boolean = false,
 ) {

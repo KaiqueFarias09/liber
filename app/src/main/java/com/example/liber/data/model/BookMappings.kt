@@ -1,13 +1,12 @@
 package com.example.liber.data.model
 
-import android.net.Uri
 import androidx.core.net.toUri
 
 fun BookEntity.toBook() = Book(
     id = id,
     title = title,
     author = author,
-    coverUri = coverPath?.let { Uri.parse(it) },
+    coverUri = coverPath?.toUri(),
     fileUri = fileUri.toUri(),
     lastOpenedAt = lastOpenedAt,
     wantToRead = wantToRead,

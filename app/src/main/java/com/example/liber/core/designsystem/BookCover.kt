@@ -38,6 +38,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -45,6 +46,7 @@ import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.Headphones
 import com.example.liber.data.model.Book
+import kotlin.math.roundToInt
 
 /**
  * Unified book cover component that automatically chooses between
@@ -152,7 +154,7 @@ fun AudiobookCover(
                 modifier = Modifier
                     .fillMaxSize(0.85f)
                     .align(Alignment.Center)
-                    .offset(y = vinylOffset)
+                    .offset { IntOffset(0, vinylOffset.value.roundToInt()) }
                     .rotate(if (isActive && isPlaying) rotation else 0f)
                     .clip(CircleShape)
                     .background(
