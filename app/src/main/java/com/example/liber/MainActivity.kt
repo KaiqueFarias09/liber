@@ -62,21 +62,26 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleIntent(intent: Intent?) {
-        val action = intent?.action
-        val type = intent?.type
+        runCatching {
+            val action = intent?.action
+            val type = intent?.type
 
-        if (Intent.ACTION_VIEW == action) {
-            intent.data?.let { uri ->
-                homeViewModel.importAndOpenBook(uri, liberAppViewModel)
+            if (Intent.ACTION_VIEW == action) {
+                intent.data?.let { uri ->
+                    homeViewModel.importAndOpenBook(uri, liberAppViewModel)
+                }
+            } else if (Intent.ACTION_SEND == action && type != null) {
+                val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+                } else {
+                    @Suppress("DEPRECATION")
+                    intent.getParcelableExtra(Intent.EXTRA_STREAM)
+                }
+                uri?.let { homeViewModel.importAndOpenBook(it, liberAppViewModel) }
             }
-        } else if (Intent.ACTION_SEND == action && type != null) {
-            val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
-            } else {
-                @Suppress("DEPRECATION")
-                intent.getParcelableExtra(Intent.EXTRA_STREAM)
-            }
-            uri?.let { homeViewModel.importAndOpenBook(it, liberAppViewModel) }
+        }.onFailure { exception ->
+            // Catch SecurityException or IllegalArgumentException from malicious/bad intents
+            exception.printStackTrace()
         }
     }
 }
