@@ -150,7 +150,7 @@ fun BookCover(
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .background(brush = style.gradient),
+                .background(brush = style.hardcoverGradient),
         )
     }
 }
@@ -487,6 +487,37 @@ val CoverStyle.gradient: Brush
                     0.01f to shadow,
                     0.02f to highlight.copy(alpha = highlightAlpha * 0.5f),
                     0.04f to Color.Transparent,
+                ),
+            )
+        }
+    }
+
+val CoverStyle.hardcoverGradient: Brush
+    @Composable
+    get() {
+        val isDark = isSystemInDarkTheme()
+        val highlight = Color.White.copy(alpha = if (isDark) 0.3f else 0.5f)
+        val shadow = Color.Black.copy(alpha = if (isDark) 0.5f else 0.3f)
+
+        return when (this) {
+            CoverStyle.SMALL -> Brush.horizontalGradient(
+                colorStops = arrayOf(
+                    0.00f to highlight,
+                    0.04f to shadow,
+                    0.06f to highlight.copy(alpha = highlight.alpha * 0.5f),
+                    0.10f to Color.Transparent,
+                ),
+            )
+
+            CoverStyle.LARGE -> Brush.horizontalGradient(
+                colorStops = arrayOf(
+                    0.00f to highlight,
+                    0.01f to Color.Transparent,
+                    0.03f to shadow.copy(alpha = shadow.alpha * 1.5f),
+                    0.04f to highlight,
+                    0.06f to Color.Transparent,
+                    0.98f to Color.Transparent,
+                    1.00f to shadow,
                 ),
             )
         }

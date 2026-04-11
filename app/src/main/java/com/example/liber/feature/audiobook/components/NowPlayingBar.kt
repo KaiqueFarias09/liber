@@ -59,7 +59,7 @@ fun NowPlayingBar(
     onForward: () -> Unit = {},
     onClick: () -> Unit,
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "vinyl")
+    rememberInfiniteTransition(label = "vinyl")
     val isDark = isSystemInDarkTheme()
 
     Surface(
