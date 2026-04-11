@@ -12,17 +12,17 @@ import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSiz
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import com.example.liber.core.designsystem.LiberTheme
+import com.example.liber.feature.home.HomeViewModel
+import com.example.liber.feature.settings.SettingsViewModel
 import com.example.liber.ui.LiberApp
 import com.example.liber.ui.LiberAppViewModel
-import com.example.liber.ui.collections.CollectionsViewModel
-import com.example.liber.ui.home.HomeViewModel
-import com.example.liber.ui.settings.SettingsViewModel
-import com.example.liber.ui.theme.LiberTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
-    private val viewModel: HomeViewModel by viewModels()
-    private val collectionsViewModel: CollectionsViewModel by viewModels()
+    private val homeViewModel: HomeViewModel by viewModels()
     private val liberAppViewModel: LiberAppViewModel by viewModels()
     private val settingsViewModel: SettingsViewModel by viewModels()
 
@@ -52,10 +52,6 @@ class MainActivity : AppCompatActivity() {
             LiberTheme(themeMode = themeMode) {
                 val windowSizeClass = calculateWindowSizeClass(this)
                 LiberApp(
-                    viewModel = viewModel,
-                    collectionsViewModel = collectionsViewModel,
-                    liberAppViewModel = liberAppViewModel,
-                    settingsViewModel = settingsViewModel,
                     windowSizeClass = windowSizeClass
                 )
             }
@@ -73,7 +69,7 @@ class MainActivity : AppCompatActivity() {
 
         if (Intent.ACTION_VIEW == action) {
             intent.data?.let { uri ->
-                viewModel.importAndOpenBook(uri, liberAppViewModel)
+                homeViewModel.importAndOpenBook(uri, liberAppViewModel)
             }
         } else if (Intent.ACTION_SEND == action && type != null) {
             val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -82,7 +78,7 @@ class MainActivity : AppCompatActivity() {
                 @Suppress("DEPRECATION")
                 intent.getParcelableExtra(Intent.EXTRA_STREAM)
             }
-            uri?.let { viewModel.importAndOpenBook(it, liberAppViewModel) }
+            uri?.let { homeViewModel.importAndOpenBook(it, liberAppViewModel) }
         }
     }
 }

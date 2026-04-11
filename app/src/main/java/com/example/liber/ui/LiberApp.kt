@@ -1,7 +1,6 @@
 package com.example.liber.ui
 
 import android.Manifest
-import android.app.Application
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -24,8 +23,10 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -36,24 +37,25 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.documentfile.provider.DocumentFile
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.liber.data.AnnotationEntity
-import com.example.liber.data.Book
-import com.example.liber.data.BookmarkEntity
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import com.example.liber.core.designsystem.LiberBottomNav
+import com.example.liber.core.designsystem.LiberNavRail
+import com.example.liber.core.navigation.AppNavHost
+import com.example.liber.core.navigation.AppRoute
+import com.example.liber.core.navigation.AppTab
+import com.example.liber.data.model.AnnotationEntity
+import com.example.liber.data.model.Book
+import com.example.liber.data.model.BookmarkEntity
+import com.example.liber.feature.audiobook.AudioPlayerScreen
+import com.example.liber.feature.audiobook.AudiobookPlayerViewModel
+import com.example.liber.feature.audiobook.components.NowPlayingBar
+import com.example.liber.feature.collections.CollectionsViewModel
+import com.example.liber.feature.home.HomeViewModel
+import com.example.liber.feature.reader.ReaderScreen
+import com.example.liber.feature.settings.SettingsViewModel
 import com.example.liber.service.BookScanService
-import com.example.liber.ui.collections.CollectionsViewModel
-import com.example.liber.ui.components.LiberBottomNav
-import com.example.liber.ui.components.LiberNavRail
-import com.example.liber.ui.components.NowPlayingBar
-import com.example.liber.ui.home.HomeScreen
-import com.example.liber.ui.home.HomeViewModel
-import com.example.liber.ui.library.LibraryScreen
-import com.example.liber.ui.navigation.AppTab
-import com.example.liber.ui.reader.AudioPlayerScreen
-import com.example.liber.ui.reader.AudiobookPlayerViewModel
-import com.example.liber.ui.reader.ReaderScreen
-import com.example.liber.ui.settings.SettingsScreen
-import com.example.liber.ui.settings.SettingsViewModel
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import org.readium.r2.shared.ExperimentalReadiumApi
@@ -61,76 +63,91 @@ import org.readium.r2.shared.publication.LocalizedString
 
 /**
  * Root composable for app-level navigation.
+ * ViewModels are obtained via Hilt — no manual passing from MainActivity.
  */
 @OptIn(ExperimentalReadiumApi::class, ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 fun LiberApp(
-    viewModel: HomeViewModel,
-    collectionsViewModel: CollectionsViewModel,
-    liberAppViewModel: LiberAppViewModel,
-    settingsViewModel: SettingsViewModel,
-    windowSizeClass: androidx.compose.material3.windowsizeclass.WindowSizeClass
+    windowSizeClass: WindowSizeClass,
 ) {
     val context = LocalContext.current
-    val showNavRail = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
     val scope = rememberCoroutineScope()
+    val showNavRail = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
 
-    val audiobookPlayerViewModel: AudiobookPlayerViewModel = viewModel(
-        factory = AudiobookPlayerViewModel.Factory(
-            context.applicationContext as Application,
-            viewModel.bookRepository
-        )
-    )
+    // ── ViewModels via Hilt ──────────────────────────────────────────────────
+    val homeViewModel: HomeViewModel = hiltViewModel()
+    val collectionsViewModel: CollectionsViewModel = hiltViewModel()
+    val liberAppViewModel: LiberAppViewModel = hiltViewModel()
+    val settingsViewModel: SettingsViewModel = hiltViewModel()
+    val audiobookPlayerViewModel: AudiobookPlayerViewModel = hiltViewModel()
 
+    // ── Navigation ───────────────────────────────────────────────────────────
+    val navController = rememberNavController()
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = backStackEntry?.destination?.route
+
+    val activeTab = when (currentRoute) {
+        AppRoute.LIBRARY -> AppTab.LIBRARY
+        AppRoute.SETTINGS -> AppTab.SETTINGS
+        else -> AppTab.HOME
+    }
+
+    val onTabChange: (AppTab) -> Unit = { tab ->
+        val route = when (tab) {
+            AppTab.HOME -> AppRoute.HOME
+            AppTab.LIBRARY -> AppRoute.LIBRARY
+            AppTab.SETTINGS -> AppRoute.SETTINGS
+        }
+        navController.navigate(route) {
+            popUpTo(AppRoute.HOME) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
+
+    // ── App state ────────────────────────────────────────────────────────────
     val activeBook by liberAppViewModel.activeBook.collectAsState()
-    val allBooks by viewModel.books.collectAsState()
+    val allBooks by homeViewModel.books.collectAsState()
     val book = remember(activeBook?.id, allBooks) {
         allBooks.find { it.id == activeBook?.id } ?: activeBook
     }
     val activePublication by liberAppViewModel.activePublication.collectAsState()
     val isReaderOpen by liberAppViewModel.isReaderOpen.collectAsState()
-    val activeTab by liberAppViewModel.activeTab.collectAsState()
     val isPlayingGlobal by liberAppViewModel.isPlaying.collectAsState()
     val playWhenReadyGlobal by liberAppViewModel.playWhenReady.collectAsState()
     val selectedCollectionId by liberAppViewModel.selectedCollectionId.collectAsState()
-    val scanSources by viewModel.scanSources.collectAsState()
 
-    // Sync player state back to global state
+    // ── Audiobook player state sync ──────────────────────────────────────────
     val playerIsPlaying by audiobookPlayerViewModel.isPlaying.collectAsState()
     val playerPlayWhenReady by audiobookPlayerViewModel.playWhenReady.collectAsState()
     val playerPositionMs by audiobookPlayerViewModel.positionMs.collectAsState()
     val playerDurationMs by audiobookPlayerViewModel.durationMs.collectAsState()
 
-    androidx.compose.runtime.LaunchedEffect(book?.id) {
+    LaunchedEffect(book?.id) {
         if (book != null && book.isAudiobook) {
             audiobookPlayerViewModel.loadBook(book)
         }
     }
 
-    androidx.compose.runtime.LaunchedEffect(
-        book?.title,
-        book?.author,
-        book?.coverUri,
-        book?.narrator
-    ) {
+    LaunchedEffect(book?.title, book?.author, book?.coverUri, book?.narrator) {
         if (book != null && book.isAudiobook) {
             audiobookPlayerViewModel.updateMetadataIfLoaded(book)
         }
     }
 
-    androidx.compose.runtime.LaunchedEffect(playerIsPlaying) {
+    LaunchedEffect(playerIsPlaying) {
         if (playerIsPlaying != isPlayingGlobal) {
             liberAppViewModel.setPlaying(playerIsPlaying)
         }
     }
 
-    androidx.compose.runtime.LaunchedEffect(playerPlayWhenReady) {
+    LaunchedEffect(playerPlayWhenReady) {
         if (playerPlayWhenReady != playWhenReadyGlobal) {
             liberAppViewModel.setPlayWhenReady(playerPlayWhenReady)
         }
     }
 
-    androidx.compose.runtime.LaunchedEffect(playerPositionMs, playerDurationMs) {
+    LaunchedEffect(playerPositionMs, playerDurationMs) {
         if (playerDurationMs > 0) {
             liberAppViewModel.setPlayerProgress(playerPositionMs.toFloat() / playerDurationMs.toFloat())
         }
@@ -144,15 +161,16 @@ fun LiberApp(
         }
     }
 
+    // ── Activity result launchers ────────────────────────────────────────────
     val bookLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments(),
     ) { uris ->
-        if (uris.isNotEmpty()) viewModel.loadBooksFromUris(uris)
+        if (uris.isNotEmpty()) homeViewModel.loadBooksFromUris(uris)
     }
 
     val notificationPermLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
-    ) { /* scan proceeds regardless of whether notification permission was granted */ }
+    ) { /* scan proceeds regardless */ }
 
     val folderLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
@@ -162,13 +180,25 @@ fun LiberApp(
             treeUri, Intent.FLAG_GRANT_READ_URI_PERMISSION
         )
         val folderName = DocumentFile.fromTreeUri(context, treeUri)?.name ?: "Folder"
-        viewModel.addScanSource(treeUri, folderName)
+        homeViewModel.addScanSource(treeUri, folderName)
         val intent = BookScanService.buildIntent(context, treeUri, folderName)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(intent)
         } else {
             context.startService(intent)
         }
+    }
+
+    val onAddBooks: () -> Unit = {
+        bookLauncher.launch(
+            arrayOf(
+                "application/epub+zip",
+                "application/x-cbz",
+                "application/audiobook+zip",
+                "application/lpf+zip",
+                "application/webpub+json"
+            )
+        )
     }
 
     val onScanFolder: () -> Unit = {
@@ -181,7 +211,7 @@ fun LiberApp(
         folderLauncher.launch(null)
     }
 
-    val onRescanFolder: (com.example.liber.data.ScanSourceEntity) -> Unit = { source ->
+    val onRescanFolder: (com.example.liber.data.model.ScanSourceEntity) -> Unit = { source ->
         if (Build.VERSION.SDK_INT >= 33 &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
             != PackageManager.PERMISSION_GRANTED
@@ -197,44 +227,39 @@ fun LiberApp(
         }
     }
 
-    val onOpenBook: (Book) -> Unit = { book ->
-        if (book.isAudiobook) {
-            liberAppViewModel.openAudiobook(book)
-            // Still update the last opened timestamp in background
-            scope.launch {
-                viewModel.openBook(book)
-            }
+    val onOpenBook: (Book) -> Unit = { bookToOpen ->
+        if (bookToOpen.isAudiobook) {
+            liberAppViewModel.openAudiobook(bookToOpen)
+            scope.launch { homeViewModel.openBook(bookToOpen) }
         } else {
             scope.launch {
-                val publication = viewModel.openBook(book)
-                when {
-                    publication != null -> {
-                        // This handles EPUBs and synthesized audiobook publications
-                        liberAppViewModel.openEpub(book, publication)
-                    }
+                val publication = homeViewModel.openBook(bookToOpen)
+                if (publication != null) {
+                    liberAppViewModel.openEpub(bookToOpen, publication)
                 }
             }
         }
     }
 
+    // ── Annotation / bookmark flows ──────────────────────────────────────────
     val annotationsFlow = remember(activeBook?.id) {
-        activeBook?.id?.let { viewModel.getAnnotationsForBook(it) } ?: emptyFlow()
+        activeBook?.id?.let { homeViewModel.getAnnotationsForBook(it) } ?: emptyFlow()
     }
     val annotations by annotationsFlow.collectAsState(initial = emptyList<AnnotationEntity>())
 
     val bookmarksFlow = remember(activeBook?.id) {
-        activeBook?.id?.let { viewModel.getBookmarksForBook(it) } ?: emptyFlow()
+        activeBook?.id?.let { homeViewModel.getBookmarksForBook(it) } ?: emptyFlow()
     }
     val bookmarks by bookmarksFlow.collectAsState(initial = emptyList<BookmarkEntity>())
 
-    val pendingAnnotationRequest by viewModel.pendingAnnotationRequest.collectAsState()
-
+    val pendingAnnotationRequest by homeViewModel.pendingAnnotationRequest.collectAsState()
     val publication = activePublication
     val playerProgress by liberAppViewModel.playerProgress.collectAsState()
 
+    // ── Root layout ──────────────────────────────────────────────────────────
     Box(modifier = Modifier.fillMaxSize()) {
         if (isReaderOpen && book != null) {
-            if (publication != null && (book.mediaType != "audio/mpeg" && book.mediaType != "audiobook")) {
+            if (publication != null && book.mediaType != "audio/mpeg" && book.mediaType != "audiobook") {
                 ReaderScreen(
                     publication = publication,
                     bookId = book.id,
@@ -242,19 +267,23 @@ fun LiberApp(
                     annotations = annotations,
                     bookmarks = bookmarks,
                     pendingAnnotationRequest = pendingAnnotationRequest,
-                    onRequestAnnotation = { request -> viewModel.requestAnnotation(request) },
+                    onRequestAnnotation = { request -> homeViewModel.requestAnnotation(request) },
                     onSaveLocator = { json, progress ->
-                        viewModel.saveLocator(
+                        homeViewModel.saveLocator(
                             book.id,
                             json,
                             progress
                         )
                     },
-                    onSaveAnnotation = { annotation -> viewModel.saveAnnotation(annotation) },
-                    onDeleteAnnotation = { annotationId -> viewModel.deleteAnnotation(annotationId) },
-                    onSaveBookmark = { bookmark -> viewModel.saveBookmark(bookmark) },
-                    onDeleteBookmark = { bookmarkId -> viewModel.deleteBookmark(bookmarkId) },
-                    onClearPendingAnnotation = { viewModel.clearPendingAnnotation() },
+                    onSaveAnnotation = { annotation -> homeViewModel.saveAnnotation(annotation) },
+                    onDeleteAnnotation = { annotationId ->
+                        homeViewModel.deleteAnnotation(
+                            annotationId
+                        )
+                    },
+                    onSaveBookmark = { bookmark -> homeViewModel.saveBookmark(bookmark) },
+                    onDeleteBookmark = { bookmarkId -> homeViewModel.deleteBookmark(bookmarkId) },
+                    onClearPendingAnnotation = { homeViewModel.clearPendingAnnotation() },
                     onBack = { liberAppViewModel.closeReader() },
                 )
             }
@@ -266,7 +295,7 @@ fun LiberApp(
                     if (!showNavRail) {
                         LiberBottomNav(
                             activeTab = activeTab,
-                            onTabChange = { liberAppViewModel.setActiveTab(it) },
+                            onTabChange = onTabChange,
                         )
                     }
                 },
@@ -279,7 +308,7 @@ fun LiberApp(
                     if (showNavRail) {
                         LiberNavRail(
                             activeTab = activeTab,
-                            onTabChange = { liberAppViewModel.setActiveTab(it) },
+                            onTabChange = onTabChange,
                         )
                     }
 
@@ -295,94 +324,58 @@ fun LiberApp(
                                 .widthIn(max = 840.dp)
                                 .fillMaxSize()
                         ) {
-                            when (activeTab) {
-                                AppTab.HOME -> HomeScreen(
-                                    viewModel = viewModel,
-                                    onBookClick = onOpenBook,
-                                    liberAppViewModel = liberAppViewModel,
-                                    modifier = Modifier.fillMaxSize()
-                                )
-
-                                AppTab.LIBRARY -> LibraryScreen(
-                                    viewModel = viewModel,
-                                    onBookClick = onOpenBook,
-                                    onAddBooks = {
-                                        bookLauncher.launch(
-                                            arrayOf(
-                                                "application/epub+zip",
-                                                "application/x-cbz",
-                                                "application/audiobook+zip",
-                                                "application/lpf+zip",
-                                                "application/webpub+json"
-                                            )
+                            AppNavHost(
+                                navController = navController,
+                                homeViewModel = homeViewModel,
+                                collectionsViewModel = collectionsViewModel,
+                                liberAppViewModel = liberAppViewModel,
+                                settingsViewModel = settingsViewModel,
+                                onOpenBook = onOpenBook,
+                                onAddBooks = onAddBooks,
+                                onShareBook = { bookToShare ->
+                                    val intent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "application/epub+zip"
+                                        putExtra(Intent.EXTRA_STREAM, bookToShare.fileUri)
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    context.startActivity(
+                                        Intent.createChooser(
+                                            intent,
+                                            "Share Book"
                                         )
-                                    },
-                                    onShareBook = { bookToShare: Book ->
-                                        val intent = Intent(Intent.ACTION_SEND).apply {
-                                            type = "application/epub+zip"
-                                            putExtra(Intent.EXTRA_STREAM, bookToShare.fileUri)
-                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                        }
-                                        context.startActivity(
-                                            Intent.createChooser(
-                                                intent,
-                                                "Share Book"
-                                            )
-                                        )
-                                    },
-                                    collectionsViewModel = collectionsViewModel,
-                                    liberAppViewModel = liberAppViewModel,
-                                    selectedCollectionId = selectedCollectionId,
-                                    onCollectionClick = { id: Long? ->
-                                        liberAppViewModel.setSelectedCollectionId(
-                                            id
-                                        )
-                                    },
-                                    modifier = Modifier.fillMaxSize()
-                                )
-
-                                AppTab.SETTINGS -> SettingsScreen(
-                                    viewModel = settingsViewModel,
-                                    scanSources = scanSources,
-                                    onAddBooks = {
-                                        bookLauncher.launch(
-                                            arrayOf(
-                                                "application/epub+zip",
-                                                "application/x-cbz",
-                                                "application/audiobook+zip",
-                                                "application/lpf+zip",
-                                                "application/webpub+json"
-                                            )
-                                        )
-                                    },
-                                    onAddScanFolder = onScanFolder,
-                                    onRescanFolder = onRescanFolder,
-                                    onRemoveFolder = { source -> viewModel.removeScanSource(source.treeUri) },
-                                    modifier = Modifier.fillMaxSize(),
-                                )
-                            }
+                                    )
+                                },
+                                onScanFolder = onScanFolder,
+                                onRescanFolder = onRescanFolder,
+                                onRemoveScanFolder = { source ->
+                                    homeViewModel.removeScanSource(
+                                        source.treeUri
+                                    )
+                                },
+                                selectedCollectionId = selectedCollectionId,
+                                modifier = Modifier.fillMaxSize(),
+                            )
                         }
                     }
                 }
             }
         }
 
-        // Overlay the NowPlayingBar and AudioPlayerScreen
+        // ── Audiobook overlays ───────────────────────────────────────────────
         val isAudiobook =
             book != null && (book.mediaType == "audio/mpeg" || book.mediaType == "audiobook")
 
         if (isAudiobook) {
-            // AudioPlayerScreen with slide animation
             AnimatedVisibility(
                 visible = isReaderOpen,
                 enter = slideInVertically(
                     initialOffsetY = { it },
-                    animationSpec = tween(durationMillis = 500)
+                    animationSpec = tween(500)
                 ) + fadeIn(),
                 exit = slideOutVertically(
                     targetOffsetY = { it },
-                    animationSpec = tween(durationMillis = 500)
-                ) + fadeOut()
+                    animationSpec = tween(500)
+                ) + fadeOut(),
             ) {
                 AudioPlayerScreen(
                     book = book!!,
@@ -394,57 +387,36 @@ fun LiberApp(
                         )
                     ),
                     liberAppViewModel = liberAppViewModel,
-                    homeViewModel = viewModel,
+                    homeViewModel = homeViewModel,
                     audiobookPlayerViewModel = audiobookPlayerViewModel,
                     onBack = { liberAppViewModel.closeReader() },
                     onSaveLocator = { json, progress ->
-                        viewModel.saveLocator(
+                        homeViewModel.saveLocator(
                             book.id,
                             json,
                             progress
                         )
-                    }
+                    },
                 )
             }
 
-            // NowPlayingBar with fade animation
             AnimatedVisibility(
                 visible = !isReaderOpen,
                 enter = fadeIn(),
                 exit = fadeOut(),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = if (showNavRail) 16.dp else 80.dp) // Adjusted for BottomNav
+                    .padding(bottom = if (showNavRail) 16.dp else 80.dp)
                     .navigationBarsPadding()
             ) {
                 NowPlayingBar(
                     book = book!!,
                     isPlaying = playWhenReadyGlobal,
                     progress = playerProgress,
-                    onTogglePlay = {
-                        if (book.isAudiobook) {
-                            audiobookPlayerViewModel.togglePlayPause()
-                        } else {
-                            liberAppViewModel.setPlayWhenReady(!playWhenReadyGlobal)
-                        }
-                    },
-                    onRewind = {
-                        if (book.isAudiobook) {
-                            audiobookPlayerViewModel.skipBackward(15)
-                        } else {
-                            liberAppViewModel.seekBy(-15)
-                        }
-                    },
-                    onForward = {
-                        if (book.isAudiobook) {
-                            audiobookPlayerViewModel.skipForward(15)
-                        } else {
-                            liberAppViewModel.seekBy(15)
-                        }
-                    },
-                    onClick = {
-                        liberAppViewModel.openReader()
-                    }
+                    onTogglePlay = { audiobookPlayerViewModel.togglePlayPause() },
+                    onRewind = { audiobookPlayerViewModel.skipBackward(15) },
+                    onForward = { audiobookPlayerViewModel.skipForward(15) },
+                    onClick = { liberAppViewModel.openReader() },
                 )
             }
         }

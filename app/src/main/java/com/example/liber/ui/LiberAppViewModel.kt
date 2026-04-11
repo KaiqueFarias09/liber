@@ -2,13 +2,17 @@ package com.example.liber.ui
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import com.example.liber.data.Book
-import com.example.liber.ui.navigation.AppTab
+import com.example.liber.core.navigation.AppTab
+import com.example.liber.data.model.Book
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import org.readium.r2.shared.publication.Publication
+import javax.inject.Inject
 
-class LiberAppViewModel(application: Application) : AndroidViewModel(application) {
+@HiltViewModel
+class LiberAppViewModel @Inject constructor(application: Application) :
+    AndroidViewModel(application) {
 
     private val _activeTab = MutableStateFlow(AppTab.HOME)
     val activeTab: StateFlow<AppTab> = _activeTab
