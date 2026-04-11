@@ -72,7 +72,7 @@ fun BookCover(
     } else {
         BookCover(
             coverUri = book.coverUri,
-            contentDescription = book.title,
+            title = book.title,
             modifier = modifier,
             style = style,
             fillBounds = fillBounds,
@@ -82,27 +82,68 @@ fun BookCover(
 
 /**
  * Physical book cover image with a hardcover spine/lighting effect overlay.
+ * If coverUri is null, renders a generated fallback.
  */
 @Composable
 fun BookCover(
     coverUri: Uri?,
-    contentDescription: String,
+    title: String,
     modifier: Modifier = Modifier,
     style: CoverStyle = CoverStyle.SMALL,
     fillBounds: Boolean = false,
 ) {
-    Box(modifier = modifier) {
-        AsyncImage(
-            model = coverUri,
-            contentDescription = contentDescription,
-            modifier = if (fillBounds) Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-            else Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentScale = if (fillBounds) ContentScale.Crop else ContentScale.FillWidth,
-        )
+    Box(
+        modifier = modifier
+            .then(
+                if (fillBounds) Modifier.fillMaxSize() else Modifier.fillMaxWidth()
+            )
+            .clip(RoundedCornerShape(if (style == CoverStyle.SMALL) 4.dp else 8.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        if (coverUri != null) {
+            AsyncImage(
+                model = coverUri,
+                contentDescription = title,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = if (fillBounds) ContentScale.Crop else ContentScale.FillWidth,
+            )
+        } else {
+            val colors = listOf(
+                Color(0xFF5C6BC0), // Indigo 400
+                Color(0xFF26A69A), // Teal 400
+                Color(0xFF7E57C2), // Deep Purple 400
+                Color(0xFF42A5F5), // Blue 400
+                Color(0xFF9CCC65), // Light Green 400
+                Color(0xFF8D6E63), // Brown 400
+                Color(0xFF78909C), // Blue Grey 400
+                Color(0xFFEC407A), // Pink 400
+                Color(0xFFFF7043), // Deep Orange 400
+                Color(0xFF26C6DA)  // Cyan 400
+            )
+            val bgColor = colors[kotlin.math.abs(title.hashCode()) % colors.size]
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(bgColor)
+                    .padding(if (style == CoverStyle.SMALL) 8.dp else 16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = title,
+                    style = if (style == CoverStyle.SMALL)
+                        MaterialTheme.typography.labelSmall
+                    else
+                        MaterialTheme.typography.headlineSmall,
+                    color = Color.White,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis,
+                    fontFamily = Gambetta
+                )
+            }
+        }
+
         // Hardcover lighting overlay — mimics spine highlight + shadow
         Box(
             modifier = Modifier
