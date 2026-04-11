@@ -76,23 +76,34 @@ class HomeViewModel @Inject constructor(
     val scanSources: StateFlow<List<ScanSourceEntity>> = scanSourceRepository.getAllSources()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // ── Library UI preferences (persist across tab navigation) ───────────────
+    private val _booksViewMode = MutableStateFlow(LibraryViewMode.GRID)
+    val booksViewMode: StateFlow<LibraryViewMode> = _booksViewMode
 
-    private val _libraryViewMode = MutableStateFlow(LibraryViewMode.GRID)
-    val libraryViewMode: StateFlow<LibraryViewMode> = _libraryViewMode
+    private val _booksSortOption = MutableStateFlow(LibrarySortOption.RECENT)
+    val booksSortOption: StateFlow<LibrarySortOption> = _booksSortOption
 
-    private val _librarySortOption = MutableStateFlow(LibrarySortOption.RECENT)
-    val librarySortOption: StateFlow<LibrarySortOption> = _librarySortOption
+    private val _audiobooksViewMode = MutableStateFlow(LibraryViewMode.GRID)
+    val audiobooksViewMode: StateFlow<LibraryViewMode> = _audiobooksViewMode
 
-    fun setLibraryViewMode(mode: LibraryViewMode) {
-        _libraryViewMode.value = mode
+    private val _audiobooksSortOption = MutableStateFlow(LibrarySortOption.RECENT)
+    val audiobooksSortOption: StateFlow<LibrarySortOption> = _audiobooksSortOption
+
+    fun setBooksViewMode(mode: LibraryViewMode) {
+        _booksViewMode.value = mode
     }
 
-    fun setLibrarySortOption(option: LibrarySortOption) {
-        _librarySortOption.value = option
+    fun setBooksSortOption(option: LibrarySortOption) {
+        _booksSortOption.value = option
     }
 
-    // Posted by MainActivity when the user taps Highlight / Add Note in the text-selection menu.
+    fun setAudiobooksViewMode(mode: LibraryViewMode) {
+        _audiobooksViewMode.value = mode
+    }
+
+    fun setAudiobooksSortOption(option: LibrarySortOption) {
+        _audiobooksSortOption.value = option
+    }
+
     private val _pendingAnnotationRequest = MutableStateFlow<AnnotationRequest?>(null)
     val pendingAnnotationRequest: StateFlow<AnnotationRequest?> = _pendingAnnotationRequest
 

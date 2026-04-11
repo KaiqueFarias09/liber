@@ -70,10 +70,14 @@ fun LibraryScreen(
     onDeleteCollection: (Long) -> Unit = {},
     onAddBookToCollection: (Long, String) -> Unit = { _, _ -> },
     onRemoveBookFromCollection: (Long, String) -> Unit = { _, _ -> },
-    viewMode: LibraryViewMode = LibraryViewMode.GRID,
-    onViewModeChange: (LibraryViewMode) -> Unit = {},
-    sortOption: LibrarySortOption = LibrarySortOption.RECENT,
-    onSortOptionChange: (LibrarySortOption) -> Unit = {},
+    booksViewMode: LibraryViewMode = LibraryViewMode.GRID,
+    onBooksViewModeChange: (LibraryViewMode) -> Unit = {},
+    booksSortOption: LibrarySortOption = LibrarySortOption.RECENT,
+    onBooksSortOptionChange: (LibrarySortOption) -> Unit = {},
+    audiobooksViewMode: LibraryViewMode = LibraryViewMode.GRID,
+    onAudiobooksViewModeChange: (LibraryViewMode) -> Unit = {},
+    audiobooksSortOption: LibrarySortOption = LibrarySortOption.RECENT,
+    onAudiobooksSortOptionChange: (LibrarySortOption) -> Unit = {},
     selectedCollectionId: Long? = null,
     onCollectionClick: (Long?) -> Unit = {},
     selectedTabIndex: Int = 0,
@@ -163,10 +167,10 @@ fun LibraryScreen(
                             onShareBook = onShareBook,
                             onAddToCollection = onAddToCollection,
                             collections = collections,
-                            viewMode = viewMode,
-                            onViewModeChange = onViewModeChange,
-                            sortOption = sortOption,
-                            onSortOptionChange = onSortOptionChange,
+                            viewMode = booksViewMode,
+                            onViewModeChange = onBooksViewModeChange,
+                            sortOption = booksSortOption,
+                            onSortOptionChange = onBooksSortOptionChange,
                             activeBookId = activeBookId,
                             isPlaying = isPlaying
                         )
@@ -185,10 +189,10 @@ fun LibraryScreen(
                             onShareBook = onShareBook,
                             onAddToCollection = onAddToCollection,
                             collections = collections,
-                            viewMode = viewMode,
-                            onViewModeChange = onViewModeChange,
-                            sortOption = sortOption,
-                            onSortOptionChange = onSortOptionChange,
+                            viewMode = audiobooksViewMode,
+                            onViewModeChange = onAudiobooksViewModeChange,
+                            sortOption = audiobooksSortOption,
+                            onSortOptionChange = onAudiobooksSortOptionChange,
                             activeBookId = activeBookId,
                             isPlaying = isPlaying
                         )
@@ -255,10 +259,10 @@ fun LibraryScreen(
                     onToggleWantToRead = onToggleWantToRead,
                     onToggleFinished = onToggleFinished,
                     onShowDetails = onShowDetails,
-                    viewMode = viewMode,
-                    onViewModeChange = onViewModeChange,
-                    sortOption = sortOption,
-                    onSortOptionChange = onSortOptionChange,
+                    viewMode = booksViewMode,
+                    onViewModeChange = onBooksViewModeChange,
+                    sortOption = booksSortOption,
+                    onSortOptionChange = onBooksSortOptionChange,
                     activeAudiobookId = activeBookId,
                     isAudiobookPlaying = isPlaying,
                 )
@@ -381,8 +385,10 @@ fun LibraryScreen(
 ) {
     val booksState by viewModel.booksState.collectAsState()
     val collectionsState by collectionsViewModel.collectionsState.collectAsState()
-    val viewMode by viewModel.libraryViewMode.collectAsState()
-    val sortOption by viewModel.librarySortOption.collectAsState()
+    val booksViewMode by viewModel.booksViewMode.collectAsState()
+    val booksSortOption by viewModel.booksSortOption.collectAsState()
+    val audiobooksViewMode by viewModel.audiobooksViewMode.collectAsState()
+    val audiobooksSortOption by viewModel.audiobooksSortOption.collectAsState()
     val scanState by viewModel.scanState.collectAsState()
 
     val activeBook by liberAppViewModel.activeBook.collectAsState()
@@ -421,10 +427,14 @@ fun LibraryScreen(
                 bookId
             )
         },
-        viewMode = viewMode,
-        onViewModeChange = { viewModel.setLibraryViewMode(it) },
-        sortOption = sortOption,
-        onSortOptionChange = { viewModel.setLibrarySortOption(it) },
+        booksViewMode = booksViewMode,
+        onBooksViewModeChange = { viewModel.setBooksViewMode(it) },
+        booksSortOption = booksSortOption,
+        onBooksSortOptionChange = { viewModel.setBooksSortOption(it) },
+        audiobooksViewMode = audiobooksViewMode,
+        onAudiobooksViewModeChange = { viewModel.setAudiobooksViewMode(it) },
+        audiobooksSortOption = audiobooksSortOption,
+        onAudiobooksSortOptionChange = { viewModel.setAudiobooksSortOption(it) },
         modifier = modifier,
         scanState = scanState,
         onDismissScanBanner = { viewModel.dismissScanBanner() },
