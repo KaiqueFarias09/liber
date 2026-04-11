@@ -22,7 +22,7 @@ fun BookActionMenu(
     onShare: () -> Unit,
     onToggleWantToRead: () -> Unit,
     onToggleFinished: () -> Unit,
-    onRename: () -> Unit,
+    onShowDetails: () -> Unit,
     onDelete: () -> Unit,
     deleteLabel: String = "Remove…",
     showAddToCollection: Boolean = false,
@@ -55,9 +55,9 @@ fun BookActionMenu(
             onClick = { onToggleFinished(); onDismiss() },
         )
         LiberContextMenuItem(
-            label = "Rename…",
+            label = "Edit / Details…",
             icon = PhosphorIcons.Regular.PencilSimple,
-            onClick = { onRename(); onDismiss() },
+            onClick = { onShowDetails(); onDismiss() },
         )
         LiberContextMenuDivider()
         LiberContextMenuItem(

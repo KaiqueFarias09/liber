@@ -62,7 +62,7 @@ fun BookGrid(
     onBookClick: (Book) -> Unit,
     onToggleWantToRead: (Book) -> Unit,
     onToggleFinished: (Book) -> Unit,
-    onRenameBook: (Book, String) -> Unit,
+    onShowDetails: (Book) -> Unit,
     onDeleteBook: (Book) -> Unit,
     onShareBook: (Book) -> Unit,
     modifier: Modifier = Modifier,
@@ -136,7 +136,7 @@ fun BookGrid(
                                         onClick = { onBookClick(book) },
                                         onToggleWantToRead = { onToggleWantToRead(book) },
                                         onToggleFinished = { onToggleFinished(book) },
-                                        onRenameBook = { onRenameBook(book, it) },
+                                        onShowDetails = { onShowDetails(book) },
                                         onDeleteBook = { onDeleteBook(book) },
                                         onShareBook = { onShareBook(book) },
                                         deleteLabel = deleteLabel,
@@ -183,7 +183,7 @@ fun BookGrid(
                                 onClick = { onBookClick(book) },
                                 onToggleWantToRead = { onToggleWantToRead(book) },
                                 onToggleFinished = { onToggleFinished(book) },
-                                onRenameBook = { onRenameBook(book, it) },
+                                onShowDetails = { onShowDetails(book) },
                                 onDeleteBook = { onDeleteBook(book) },
                                 onShareBook = { onShareBook(book) },
                                 deleteLabel = deleteLabel,
@@ -359,7 +359,7 @@ private fun BookListItem(
     onClick: () -> Unit,
     onToggleWantToRead: () -> Unit,
     onToggleFinished: () -> Unit,
-    onRenameBook: (String) -> Unit,
+    onShowDetails: () -> Unit,
     onDeleteBook: () -> Unit,
     onShareBook: () -> Unit,
     deleteLabel: String = "Delete…",
@@ -371,7 +371,6 @@ private fun BookListItem(
     isPlaying: Boolean = false,
 ) {
     var showMenu by remember { mutableStateOf(false) }
-    var showRenameDialog by remember { mutableStateOf(false) }
     var showCollectionPicker by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
@@ -454,7 +453,7 @@ private fun BookListItem(
                 onShare = onShareBook,
                 onToggleWantToRead = onToggleWantToRead,
                 onToggleFinished = onToggleFinished,
-                onRename = { showRenameDialog = true },
+                onShowDetails = onShowDetails,
                 onDelete = {
                     if (confirmDelete) {
                         showDeleteDialog = true
@@ -480,17 +479,6 @@ private fun BookListItem(
         )
     }
 
-    if (showRenameDialog) {
-        RenameBookDialog(
-            currentTitle = book.title,
-            onConfirm = { newTitle ->
-                onRenameBook(newTitle)
-                showRenameDialog = false
-            },
-            onDismiss = { showRenameDialog = false },
-        )
-    }
-
     if (showDeleteDialog) {
         DeleteBookConfirmationDialog(
             bookTitle = book.title,
@@ -513,7 +501,7 @@ fun BookGridItem(
     modifier: Modifier = Modifier,
     onToggleWantToRead: () -> Unit,
     onToggleFinished: () -> Unit,
-    onRenameBook: (String) -> Unit,
+    onShowDetails: () -> Unit,
     onDeleteBook: () -> Unit,
     onShareBook: () -> Unit,
     deleteLabel: String = "Delete…",
@@ -525,7 +513,6 @@ fun BookGridItem(
     isPlaying: Boolean = false,
 ) {
     var showMenu by remember { mutableStateOf(false) }
-    var showRenameDialog by remember { mutableStateOf(false) }
     var showCollectionPicker by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
@@ -593,7 +580,7 @@ fun BookGridItem(
                     onShare = onShareBook,
                     onToggleWantToRead = onToggleWantToRead,
                     onToggleFinished = onToggleFinished,
-                    onRename = { showRenameDialog = true },
+                    onShowDetails = onShowDetails,
                     onDelete = {
                         if (confirmDelete) {
                             showDeleteDialog = true
@@ -617,17 +604,6 @@ fun BookGridItem(
                 showCollectionPicker = false
             },
             onDismiss = { showCollectionPicker = false },
-        )
-    }
-
-    if (showRenameDialog) {
-        RenameBookDialog(
-            currentTitle = book.title,
-            onConfirm = { newTitle ->
-                onRenameBook(newTitle)
-                showRenameDialog = false
-            },
-            onDismiss = { showRenameDialog = false },
         )
     }
 

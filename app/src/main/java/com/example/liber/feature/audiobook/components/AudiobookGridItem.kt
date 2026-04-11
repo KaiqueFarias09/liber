@@ -34,7 +34,6 @@ import com.example.liber.core.designsystem.BookActionMenu
 import com.example.liber.core.designsystem.BookCover
 import com.example.liber.core.designsystem.CoverStyle
 import com.example.liber.core.designsystem.DeleteBookConfirmationDialog
-import com.example.liber.core.designsystem.RenameBookDialog
 import com.example.liber.data.model.Book
 
 @Composable
@@ -45,13 +44,12 @@ fun AudiobookGridItem(
     onShareBook: () -> Unit,
     onToggleWantToRead: () -> Unit,
     onToggleFinished: () -> Unit,
-    onRenameBook: (String) -> Unit,
+    onShowDetails: () -> Unit,
     modifier: Modifier = Modifier,
     isActive: Boolean = false,
     isPlaying: Boolean = false,
 ) {
     var showMenu by remember { mutableStateOf(false) }
-    var showRenameDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     Column(
@@ -147,23 +145,12 @@ fun AudiobookGridItem(
                     onShare = onShareBook,
                     onToggleWantToRead = onToggleWantToRead,
                     onToggleFinished = onToggleFinished,
-                    onRename = { showRenameDialog = true },
+                    onShowDetails = onShowDetails,
                     onDelete = { showDeleteDialog = true },
                     deleteLabel = "Delete",
                 )
             }
         }
-    }
-
-    if (showRenameDialog) {
-        RenameBookDialog(
-            currentTitle = book.title,
-            onConfirm = { newTitle ->
-                onRenameBook(newTitle)
-                showRenameDialog = false
-            },
-            onDismiss = { showRenameDialog = false },
-        )
     }
 
     if (showDeleteDialog) {

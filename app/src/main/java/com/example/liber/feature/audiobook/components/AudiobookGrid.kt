@@ -60,7 +60,7 @@ fun AudiobookGrid(
     onShareBook: (Book) -> Unit,
     onToggleWantToRead: (Book) -> Unit,
     onToggleFinished: (Book) -> Unit,
-    onRenameBook: (Book, String) -> Unit,
+    onShowDetails: (Book) -> Unit,
     modifier: Modifier = Modifier,
     activeBookId: String? = null,
     isPlaying: Boolean = false,
@@ -117,7 +117,7 @@ fun AudiobookGrid(
                             onShareBook = { onShareBook(book) },
                             onToggleWantToRead = { onToggleWantToRead(book) },
                             onToggleFinished = { onToggleFinished(book) },
-                            onRenameBook = { onRenameBook(book, it) },
+                            onShowDetails = { onShowDetails(book) },
                             isActive = book.id == activeBookId,
                             isPlaying = isPlaying
                         )
@@ -149,7 +149,7 @@ fun AudiobookGrid(
                             onShareBook = { onShareBook(book) },
                             onToggleWantToRead = { onToggleWantToRead(book) },
                             onToggleFinished = { onToggleFinished(book) },
-                            onRenameBook = { onRenameBook(book, it) },
+                            onShowDetails = { onShowDetails(book) },
                             isActive = book.id == activeBookId,
                             isPlaying = isPlaying,
                         )

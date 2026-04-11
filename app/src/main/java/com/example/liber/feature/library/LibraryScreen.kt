@@ -18,8 +18,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -44,6 +46,7 @@ import com.example.liber.feature.collections.CollectionUiState
 import com.example.liber.feature.collections.CollectionsListScreen
 import com.example.liber.feature.collections.CollectionsViewModel
 import com.example.liber.feature.home.HomeViewModel
+import com.example.liber.feature.home.components.BookDetailsBottomSheet
 import kotlinx.coroutines.launch
 
 @Composable
@@ -54,7 +57,7 @@ fun LibraryScreen(
     onAddBooks: () -> Unit,
     onToggleWantToRead: (Book) -> Unit,
     onToggleFinished: (Book) -> Unit,
-    onRenameBook: (Book, String) -> Unit,
+    onShowDetails: (Book) -> Unit,
     onDeleteBook: (Book) -> Unit,
     onShareBook: (Book) -> Unit,
     modifier: Modifier = Modifier,
@@ -173,7 +176,7 @@ fun LibraryScreen(
                                 onBookClick = onBookClick,
                                 onToggleWantToRead = onToggleWantToRead,
                                 onToggleFinished = onToggleFinished,
-                                onRenameBook = onRenameBook,
+                                onShowDetails = onShowDetails,
                                 onDeleteBook = onDeleteBook,
                                 onShareBook = onShareBook,
                                 showAddToCollection = true,
@@ -213,7 +216,7 @@ fun LibraryScreen(
                                 onShareBook = onShareBook,
                                 onToggleWantToRead = onToggleWantToRead,
                                 onToggleFinished = onToggleFinished,
-                                onRenameBook = onRenameBook,
+                                onShowDetails = onShowDetails,
                                 activeBookId = activeBookId,
                                 isPlaying = isPlaying,
                                 viewMode = viewMode,
@@ -278,7 +281,7 @@ fun LibraryScreen(
                     onShareBook = onShareBook,
                     onToggleWantToRead = onToggleWantToRead,
                     onToggleFinished = onToggleFinished,
-                    onRenameBook = onRenameBook,
+                    onShowDetails = onShowDetails,
                     viewMode = viewMode,
                     onViewModeChange = onViewModeChange,
                     sortOption = sortOption,
@@ -323,6 +326,8 @@ fun LibraryScreen(
     val isPlaying by liberAppViewModel.isPlaying.collectAsState()
     val selectedTabIndex by liberAppViewModel.libraryTabIndex.collectAsState()
 
+    var selectedBookForDetails by remember { mutableStateOf<Book?>(null) }
+
     LibraryScreen(
         books = books,
         isLoading = isLoading,
@@ -332,15 +337,7 @@ fun LibraryScreen(
         onToggleFinished = { book ->
             viewModel.toggleFinished(book.id, book.readingProgress == 100)
         },
-        onRenameBook = { book, newTitle ->
-            viewModel.updateFullMetadata(
-                book.id,
-                newTitle,
-                book.author,
-                book.coverUri?.toString(),
-                book.narrator
-            )
-        },
+        onShowDetails = { selectedBookForDetails = it },
         onDeleteBook = { book -> viewModel.deleteBook(book.id) },
         onShareBook = { book -> onShareBook(book) },
         onAddToCollection = { book, collectionId ->
@@ -376,4 +373,14 @@ fun LibraryScreen(
         activeBookId = activeBook?.id,
         isPlaying = isPlaying,
     )
+
+    selectedBookForDetails?.let { book ->
+        BookDetailsBottomSheet(
+            book = book,
+            homeViewModel = viewModel,
+            onDismiss = { selectedBookForDetails = null },
+            onDelete = { viewModel.deleteBook(book.id) },
+            onShare = { onShareBook(book) },
+        )
+    }
 }
