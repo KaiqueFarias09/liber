@@ -3,6 +3,7 @@ package com.example.liber.feature.audiobook
 import android.app.Application
 import android.content.ComponentName
 import android.net.Uri
+import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -54,7 +55,7 @@ class AudiobookPlayerViewModel @Inject constructor(
             val array = JSONArray(this)
             for (i in 0 until array.length()) {
                 val obj = array.getJSONObject(i)
-                list.add(TrackInfo(obj.getString("name"), Uri.parse(obj.getString("uri"))))
+                list.add(TrackInfo(obj.getString("name"), obj.getString("uri").toUri()))
             }
         } catch (e: Exception) {
             e.printStackTrace()

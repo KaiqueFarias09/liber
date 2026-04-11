@@ -199,7 +199,6 @@ fun AudiobookCover(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(if (isActive && !isSmall) 0.dp else 4.dp)
                 .shadow(
                     elevation = if (isActive) 12.dp else 4.dp,
                     shape = RoundedCornerShape(8.dp),

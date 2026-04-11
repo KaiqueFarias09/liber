@@ -2,6 +2,7 @@ package com.example.liber.feature.reader
 
 import android.app.Application
 import android.content.Context
+import androidx.core.content.edit
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -62,13 +63,13 @@ class ReaderViewModel(
 
     fun setTheme(id: String) {
         _themeId.value = id
-        prefs.edit().putString(KEY_THEME, id).apply()
+        prefs.edit { putString(KEY_THEME, id) }
     }
 
     fun adjustFontSize(delta: Double) {
         val next = (_fontSize.value + delta).coerceIn(0.5, 2.0)
         _fontSize.value = next
-        prefs.edit().putFloat(KEY_FONT, next.toFloat()).apply()
+        prefs.edit { putFloat(KEY_FONT, next.toFloat()) }
     }
 
     // ── Page flipping (scroll mode) ──────────────────────────────────────────
@@ -78,7 +79,7 @@ class ReaderViewModel(
 
     fun setPageScroll(scrollMode: Boolean) {
         _pageScroll.value = scrollMode
-        prefs.edit().putBoolean(KEY_SCROLL, scrollMode).apply()
+        prefs.edit { putBoolean(KEY_SCROLL, scrollMode) }
     }
 
     // ── Layout customization (persisted) ─────────────────────────────────────
@@ -88,7 +89,7 @@ class ReaderViewModel(
 
     fun setCustomizeLayout(enabled: Boolean) {
         _customizeLayout.value = enabled
-        prefs.edit().putBoolean(KEY_CUSTOMIZE, enabled).apply()
+        prefs.edit { putBoolean(KEY_CUSTOMIZE, enabled) }
     }
 
     private val _lineSpacing =
@@ -97,7 +98,7 @@ class ReaderViewModel(
 
     fun setLineSpacing(value: Double) {
         _lineSpacing.value = value.coerceIn(0.8, 2.5)
-        prefs.edit().putFloat(KEY_LINE_SPACING, _lineSpacing.value.toFloat()).apply()
+        prefs.edit { putFloat(KEY_LINE_SPACING, _lineSpacing.value.toFloat()) }
     }
 
     private val _characterSpacing =
@@ -106,7 +107,7 @@ class ReaderViewModel(
 
     fun setCharacterSpacing(value: Double) {
         _characterSpacing.value = value.coerceIn(-10.0, 10.0)
-        prefs.edit().putFloat(KEY_CHAR_SPACING, _characterSpacing.value.toFloat()).apply()
+        prefs.edit { putFloat(KEY_CHAR_SPACING, _characterSpacing.value.toFloat()) }
     }
 
     private val _wordSpacing =
@@ -115,7 +116,7 @@ class ReaderViewModel(
 
     fun setWordSpacing(value: Double) {
         _wordSpacing.value = value.coerceIn(-20.0, 20.0)
-        prefs.edit().putFloat(KEY_WORD_SPACING, _wordSpacing.value.toFloat()).apply()
+        prefs.edit { putFloat(KEY_WORD_SPACING, _wordSpacing.value.toFloat()) }
     }
 
     private val _margins =
@@ -124,7 +125,7 @@ class ReaderViewModel(
 
     fun setMargins(value: Double) {
         _margins.value = value.coerceIn(-10.0, 10.0)
-        prefs.edit().putFloat(KEY_MARGINS, _margins.value.toFloat()).apply()
+        prefs.edit { putFloat(KEY_MARGINS, _margins.value.toFloat()) }
     }
 
     // "auto" | "one" | "two"
@@ -134,7 +135,7 @@ class ReaderViewModel(
 
     fun setColumnCount(value: String) {
         _columnCount.value = value
-        prefs.edit().putString(KEY_COLUMNS, value).apply()
+        prefs.edit { putString(KEY_COLUMNS, value) }
     }
 
     private val _justifyText = MutableStateFlow(prefs.getBoolean(KEY_JUSTIFY, false))
@@ -142,7 +143,7 @@ class ReaderViewModel(
 
     fun setJustifyText(value: Boolean) {
         _justifyText.value = value
-        prefs.edit().putBoolean(KEY_JUSTIFY, value).apply()
+        prefs.edit { putBoolean(KEY_JUSTIFY, value) }
     }
 
     /** Resets all layout / typography settings to their defaults. */
@@ -150,13 +151,15 @@ class ReaderViewModel(
         setPageScroll(false)
         setCustomizeLayout(false)
         _lineSpacing.value = DEFAULT_LINE_SPACING.toDouble()
-        prefs.edit().putFloat(KEY_LINE_SPACING, DEFAULT_LINE_SPACING).apply()
         _characterSpacing.value = DEFAULT_CHAR_SPACING.toDouble()
-        prefs.edit().putFloat(KEY_CHAR_SPACING, DEFAULT_CHAR_SPACING).apply()
         _wordSpacing.value = DEFAULT_WORD_SPACING.toDouble()
-        prefs.edit().putFloat(KEY_WORD_SPACING, DEFAULT_WORD_SPACING).apply()
         _margins.value = DEFAULT_MARGINS.toDouble()
-        prefs.edit().putFloat(KEY_MARGINS, DEFAULT_MARGINS).apply()
+        prefs.edit {
+            putFloat(KEY_LINE_SPACING, DEFAULT_LINE_SPACING)
+            putFloat(KEY_CHAR_SPACING, DEFAULT_CHAR_SPACING)
+            putFloat(KEY_WORD_SPACING, DEFAULT_WORD_SPACING)
+            putFloat(KEY_MARGINS, DEFAULT_MARGINS)
+        }
         setColumnCount("auto")
         setJustifyText(false)
     }

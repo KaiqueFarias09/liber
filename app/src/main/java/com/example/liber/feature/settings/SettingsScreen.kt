@@ -42,12 +42,12 @@ import com.example.liber.data.repository.ThemeMode
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
+    modifier: Modifier = Modifier,
     scanSources: List<ScanSourceEntity> = emptyList(),
     onAddBooks: () -> Unit = {},
     onAddScanFolder: () -> Unit = {},
     onRescanFolder: (ScanSourceEntity) -> Unit = {},
     onRemoveFolder: (ScanSourceEntity) -> Unit = {},
-    modifier: Modifier = Modifier,
 ) {
     val themeMode by viewModel.themeMode.collectAsState()
 

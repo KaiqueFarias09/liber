@@ -196,8 +196,8 @@ fun AnnotationList(
     emptyMessage: String,
     onNoteClick: (AnnotationEntity) -> Unit,
     onDeleteNote: (AnnotationEntity) -> Unit,
-    @androidx.annotation.DrawableRes emptyImage: Int? = null,
     modifier: Modifier = Modifier,
+    @androidx.annotation.DrawableRes emptyImage: Int? = null,
 ) {
     if (annotations.isEmpty()) {
         EmptyState(

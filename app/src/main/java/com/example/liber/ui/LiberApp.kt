@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -218,7 +219,7 @@ fun LiberApp(
         ) {
             notificationPermLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
-        val treeUri = android.net.Uri.parse(source.treeUri)
+        val treeUri = source.treeUri.toUri()
         val intent = BookScanService.buildIntent(context, treeUri, source.displayName)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(intent)
