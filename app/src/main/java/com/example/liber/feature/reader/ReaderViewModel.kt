@@ -176,7 +176,6 @@ class ReaderViewModel(
     val isSearching: StateFlow<Boolean> = _isSearching
 
     private val _positions = MutableStateFlow<List<Locator>>(emptyList())
-    val positions: StateFlow<List<Locator>> = _positions
 
     init {
         viewModelScope.launch {
@@ -234,6 +233,9 @@ class ReaderViewModel(
     private val _pendingSelectedText = MutableStateFlow<String?>(null)
     val pendingSelectedText: StateFlow<String?> = _pendingSelectedText
 
+    private val _pendingLocator = MutableStateFlow<Locator?>(null)
+    val pendingLocator: StateFlow<Locator?> = _pendingLocator
+
     private val _pendingAnnotationType = MutableStateFlow("note")
     val pendingAnnotationType: StateFlow<String> = _pendingAnnotationType
 
@@ -243,9 +245,14 @@ class ReaderViewModel(
     private val _annotationColorArgb = MutableStateFlow(DEFAULT_ANNOTATION_COLOR)
     val annotationColorArgb: StateFlow<Int> = _annotationColorArgb
 
-    fun startAnnotation(type: String = "note", prefilledText: String? = null) {
+    fun startAnnotation(
+        type: String = "note",
+        prefilledText: String? = null,
+        locator: Locator? = null
+    ) {
         _pendingAnnotationType.value = type
         _pendingSelectedText.value = prefilledText
+        _pendingLocator.value = locator
         _annotationNoteText.value = ""
         _annotationColorArgb.value = DEFAULT_ANNOTATION_COLOR
         _showAnnotationCreator.value = true
@@ -263,6 +270,7 @@ class ReaderViewModel(
         _showAnnotationCreator.value = false
         _editingAnnotationId.value = null
         _pendingSelectedText.value = null
+        _pendingLocator.value = null
         _pendingAnnotationType.value = "note"
         _annotationNoteText.value = ""
         _annotationColorArgb.value = DEFAULT_ANNOTATION_COLOR
@@ -273,14 +281,19 @@ class ReaderViewModel(
     private val _showHighlightColorPicker = MutableStateFlow(false)
     val showHighlightColorPicker: StateFlow<Boolean> = _showHighlightColorPicker
 
-    fun startHighlightColorPicker(text: String?) {
+    fun startHighlightColorPicker(
+        text: String?,
+        locator: Locator? = null
+    ) {
         _pendingSelectedText.value = text
+        _pendingLocator.value = locator
         _showHighlightColorPicker.value = true
     }
 
     fun dismissHighlightColorPicker() {
         _showHighlightColorPicker.value = false
         _pendingSelectedText.value = null
+        _pendingLocator.value = null
     }
 
     // ── Annotation action menu (tap on existing highlight) ───────────────────

@@ -260,11 +260,15 @@ fun ReaderScreen(
     LaunchedEffect(pendingAnnotationRequest) {
         pendingAnnotationRequest ?: return@LaunchedEffect
         if (pendingAnnotationRequest is AnnotationRequest.Highlight) {
-            viewModel.startHighlightColorPicker(pendingAnnotationRequest.selectedText)
+            viewModel.startHighlightColorPicker(
+                pendingAnnotationRequest.selectedText,
+                pendingAnnotationRequest.locator
+            )
         } else {
             viewModel.startAnnotation(
                 type = "note",
-                prefilledText = pendingAnnotationRequest.selectedText
+                prefilledText = pendingAnnotationRequest.selectedText,
+                locator = pendingAnnotationRequest.locator
             )
         }
         onClearPendingAnnotation()
@@ -615,47 +619,77 @@ fun ReaderScreen(
                                     ID_SHARE
                                 )
                             ) return false
-                            val wvs = findAllWebViews(fragmentActivity.window.decorView)
-                            wvs.forEach { wv ->
-                                wv.evaluateJavascript("window.getSelection().toString()") { raw ->
-                                    // Use JSONTokener to correctly unescape the JS result so that
-                                    // embedded \n sequences become real newlines instead of literals.
-                                    val text = raw?.let {
-                                        runCatching {
-                                            org.json.JSONTokener(it).nextValue()?.toString()
-                                        }.getOrNull() ?: it.removeSurrounding("\"")
-                                    }?.takeIf { it.isNotBlank() }
-                                    when (item.itemId) {
-                                        ID_HIGHLIGHT -> onRequestAnnotation(
-                                            AnnotationRequest.Highlight(
-                                                text
-                                            )
-                                        )
 
-                                        ID_ADD_NOTE -> onRequestAnnotation(
-                                            AnnotationRequest.Note(
-                                                text
-                                            )
-                                        )
+                            coroutineScope.launch {
+                                val selectable = navigator as? SelectableNavigator
+                                val selection = selectable?.currentSelection()
+                                val locator = selection?.locator
 
-                                        ID_SHARE -> if (text != null) {
-                                            val shareText = formatShareText(text, publication)
-                                            val intent = Intent(Intent.ACTION_SEND).apply {
-                                                type = "text/plain"
-                                                putExtra(Intent.EXTRA_TEXT, shareText)
+                                val wvs = findAllWebViews(fragmentActivity.window.decorView)
+                                var textFromJs: String? = null
+
+                                if (wvs.isNotEmpty()) {
+                                    for (wv in wvs) {
+                                        val t =
+                                            kotlin.coroutines.suspendCoroutine<String?> { cont ->
+                                                val js = """
+                                                    (function() {
+                                                        var sel = window.getSelection().toString();
+                                                        if (sel) return sel;
+                                                        var iframes = document.querySelectorAll('iframe');
+                                                        for (var i = 0; i < iframes.length; i++) {
+                                                            try {
+                                                                sel = iframes[i].contentWindow.getSelection().toString();
+                                                                if (sel) return sel;
+                                                            } catch (e) {}
+                                                        }
+                                                        return "";
+                                                    })()
+                                                """.trimIndent()
+                                                wv.evaluateJavascript(js) { raw ->
+                                                    val unescaped = raw?.let {
+                                                        runCatching {
+                                                            org.json.JSONTokener(it)
+                                                                .nextValue()?.toString()
+                                                        }.getOrNull()
+                                                            ?: it.removeSurrounding("\"")
+                                                    }?.takeIf { it.isNotBlank() }
+                                                    cont.resumeWith(Result.success(unescaped))
+                                                }
                                             }
-                                            context.startActivity(
-                                                Intent.createChooser(
-                                                    intent,
-                                                    null
-                                                )
-                                            )
+                                        if (t != null) {
+                                            textFromJs = t
+                                            break
                                         }
                                     }
-                                    mode.finish()
                                 }
-                            }
-                            if (wvs.isEmpty()) {
+
+                                val finalText = textFromJs ?: locator?.text?.highlight
+
+                                when (item.itemId) {
+                                    ID_HIGHLIGHT -> onRequestAnnotation(
+                                        AnnotationRequest.Highlight(finalText, locator)
+                                    )
+
+                                    ID_ADD_NOTE -> onRequestAnnotation(
+                                        AnnotationRequest.Note(finalText, locator)
+                                    )
+
+                                    ID_SHARE -> if (finalText != null) {
+                                        val shareText =
+                                            formatShareText(finalText, publication)
+                                        val intent = Intent(Intent.ACTION_SEND).apply {
+                                            type = "text/plain"
+                                            putExtra(Intent.EXTRA_TEXT, shareText)
+                                        }
+                                        context.startActivity(
+                                            Intent.createChooser(
+                                                intent,
+                                                null
+                                            )
+                                        )
+                                    }
+                                }
                                 mode.finish()
                             }
                             return true
@@ -822,6 +856,8 @@ fun ReaderScreen(
         // ── Inline Highlight Color Picker ─────────────────────────────────────
         if (showHighlightColorPicker) {
             val pendingHighlightText by viewModel.pendingSelectedText.collectAsState()
+            val pendingLocator by viewModel.pendingLocator.collectAsState()
+
             HighlightColorPicker(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -830,16 +866,21 @@ fun ReaderScreen(
                 onColorSelected = { colorArgb ->
                     coroutineScope.launch {
                         val selectable = navigator as? SelectableNavigator
-                        val locator = selectable?.currentSelection()?.locator
+                        val locator = pendingLocator
+                            ?: selectable?.currentSelection()?.locator
                             ?: navigator?.currentLocator?.value
                             ?: run { viewModel.dismissHighlightColorPicker(); return@launch }
+
+                        val textToSave = pendingHighlightText
+                            ?: locator.text.highlight
+
                         onSaveAnnotation(
                             AnnotationEntity(
                                 bookId = bookId,
                                 type = "highlight",
                                 color = colorArgb,
                                 locator = locator.toJSON().toString(),
-                                text = pendingHighlightText,
+                                text = textToSave,
                                 note = null,
                             )
                         )
@@ -1129,17 +1170,23 @@ fun ReaderScreen(
                             }
                         } else {
                             // Brand-new annotation from the current text selection
+                            val pendingLocator = viewModel.pendingLocator.value
                             val selectable = navigator as? SelectableNavigator
-                            val locator = selectable?.currentSelection()?.locator
+                            val locator = pendingLocator
+                                ?: selectable?.currentSelection()?.locator
                                 ?: navigator?.currentLocator?.value
                                 ?: return@launch
+
+                            val textToSave = selectedText
+                                ?: locator.text.highlight
+
                             onSaveAnnotation(
                                 AnnotationEntity(
                                     bookId = bookId,
                                     type = annotationType,
                                     color = selectedColor,
                                     locator = locator.toJSON().toString(),
-                                    text = selectedText,
+                                    text = textToSave,
                                     note = noteText.ifBlank { null },
                                 )
                             )
