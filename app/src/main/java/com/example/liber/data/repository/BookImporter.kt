@@ -7,6 +7,7 @@ import android.media.MediaMetadataRetriever
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
 import com.example.liber.core.util.FileSecurityUtils
+import com.example.liber.core.util.sanitizeForFileName
 import com.example.liber.data.model.AudioFormats
 import com.example.liber.data.model.Book
 import kotlinx.coroutines.Dispatchers
@@ -358,7 +359,7 @@ class BookImporter(private val application: Application) {
     }
 
     private fun saveBitmapToCache(bitmap: Bitmap, fileName: String): Uri? {
-        val safeFileName = FileSecurityUtils.sanitizeFileName(fileName)
+        val safeFileName = fileName.sanitizeForFileName()
         val coverFile = File(
             application.cacheDir,
             "cover_${safeFileName}_${System.currentTimeMillis()}.png"

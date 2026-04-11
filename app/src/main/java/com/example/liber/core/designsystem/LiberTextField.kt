@@ -18,6 +18,7 @@ import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.MagnifyingGlass
 import com.adamglin.phosphoricons.regular.X
+import com.example.liber.core.util.UiText
 
 /**
  * A standardized text field with the app's "Soft Material" styling.
@@ -28,8 +29,8 @@ fun LiberTextField(
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
-    label: String? = null,
-    placeholder: String? = null,
+    label: UiText? = null,
+    placeholder: UiText? = null,
     leadingIcon: (@Composable () -> Unit)? = null,
     trailingIcon: (@Composable () -> Unit)? = null,
     isError: Boolean = false,
@@ -47,8 +48,8 @@ fun LiberTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier.fillMaxWidth(),
-        label = label?.let { { Text(it) } },
-        placeholder = placeholder?.let { { Text(it) } },
+        label = label?.let { { Text(it.asString()) } },
+        placeholder = placeholder?.let { { Text(it.asString()) } },
         leadingIcon = leadingIcon,
         trailingIcon = trailingIcon,
         isError = isError,
@@ -84,7 +85,7 @@ fun LiberSearchField(
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
-    placeholder: String = "Search…",
+    placeholder: UiText = UiText.DynamicString("Search…"),
     leadingIcon: ImageVector = PhosphorIcons.Regular.MagnifyingGlass,
     onClear: (() -> Unit)? = null,
     enabled: Boolean = true,
@@ -95,7 +96,7 @@ fun LiberSearchField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier.fillMaxWidth(),
-        placeholder = { Text(placeholder, style = MaterialTheme.typography.bodyMedium) },
+        placeholder = { Text(placeholder.asString(), style = MaterialTheme.typography.bodyMedium) },
         leadingIcon = {
             Icon(
                 imageVector = leadingIcon,

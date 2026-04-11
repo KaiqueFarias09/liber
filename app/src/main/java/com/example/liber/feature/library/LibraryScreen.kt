@@ -12,6 +12,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -24,10 +25,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -38,6 +37,8 @@ import com.example.liber.core.designsystem.EmptyState
 import com.example.liber.core.designsystem.LiberHeader
 import com.example.liber.core.designsystem.LiberTabBar
 import com.example.liber.core.designsystem.ScanProgressBanner
+import com.example.liber.core.util.UiState
+import com.example.liber.core.util.UiText
 import com.example.liber.data.model.Book
 import com.example.liber.data.model.ScanState
 import com.example.liber.feature.audiobook.components.AudiobookGrid
@@ -51,8 +52,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun LibraryScreen(
-    books: List<Book>,
-    isLoading: Boolean,
+    booksState: UiState<List<Book>>,
     onBookClick: (Book) -> Unit,
     onAddBooks: () -> Unit,
     onToggleWantToRead: (Book) -> Unit,
@@ -64,7 +64,7 @@ fun LibraryScreen(
     scanState: ScanState = ScanState.Idle,
     onDismissScanBanner: () -> Unit = {},
     onAddToCollection: (Book, Long) -> Unit = { _, _ -> },
-    collections: List<CollectionUiState> = emptyList(),
+    collectionsState: UiState<List<CollectionUiState>> = UiState.Loading,
     onCreateCollection: (String) -> Unit = {},
     onRenameCollection: (Long, String) -> Unit = { _, _ -> },
     onDeleteCollection: (Long) -> Unit = {},
@@ -83,6 +83,9 @@ fun LibraryScreen(
 ) {
     val pagerState = rememberPagerState(initialPage = selectedTabIndex) { 3 }
     val scope = rememberCoroutineScope()
+
+    val books = (booksState as? UiState.Success)?.data ?: emptyList()
+    val collections = (collectionsState as? UiState.Success)?.data ?: emptyList()
     val selectedCollection = collections.find { it.id == selectedCollectionId }
 
     val currentTabIndex = pagerState.currentPage
@@ -100,14 +103,6 @@ fun LibraryScreen(
 
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                val delta = available.y
-                val maxScroll = headerHeightState.intValue.toFloat()
-                val oldScrolled = scrolledPxState.floatValue
-                scrolledPxState.floatValue = (oldScrolled - delta).coerceIn(0f, maxScroll)
-                val consumed = -(scrolledPxState.floatValue - oldScrolled)
-                return Offset(0f, consumed)
-            }
         }
     }
 
@@ -134,7 +129,11 @@ fun LibraryScreen(
             )
 
             LiberTabBar(
-                tabs = listOf("Books", "Audiobooks", "Collections"),
+                tabs = listOf(
+                    UiText.StringResource(R.string.tab_books),
+                    UiText.StringResource(R.string.tab_audiobooks),
+                    UiText.StringResource(R.string.tab_collections)
+                ),
                 selectedTabIndex = currentTabIndex,
                 onTabSelected = { index ->
                     scope.launch {
@@ -145,9 +144,6 @@ fun LibraryScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            val audiobooks = remember(books) { books.filter { it.isAudiobook } }
-            val regularBooks = remember(books) { books.filter { !it.isAudiobook } }
-
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier.weight(1f),
@@ -155,84 +151,61 @@ fun LibraryScreen(
             ) { page ->
                 when (page) {
                     0 -> {
-                        when {
-                            isLoading -> LoadingState()
-                            regularBooks.isEmpty() -> Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                EmptyState(
-                                    title = "Your library is empty",
-                                    subtitle = "Tap + to add books",
-                                    image = R.drawable.library_empty,
-                                    actionLabel = "Add Books",
-                                    onAction = onAddBooks,
-                                    modifier = Modifier.padding(horizontal = 24.dp),
-                                )
-                            }
-
-                            else -> BookGrid(
-                                books = regularBooks,
-                                onBookClick = onBookClick,
-                                onToggleWantToRead = onToggleWantToRead,
-                                onToggleFinished = onToggleFinished,
-                                onShowDetails = onShowDetails,
-                                onDeleteBook = onDeleteBook,
-                                onShareBook = onShareBook,
-                                showAddToCollection = true,
-                                onAddToCollection = onAddToCollection,
-                                collections = collections,
-                                viewMode = viewMode,
-                                onViewModeChange = onViewModeChange,
-                                sortOption = sortOption,
-                                onSortOptionChange = onSortOptionChange,
-                                activeAudiobookId = activeBookId,
-                                isAudiobookPlaying = isPlaying,
-                            )
-                        }
+                        LibraryBooksTab(
+                            booksState = booksState,
+                            isAudiobook = false,
+                            onBookClick = onBookClick,
+                            onAddBooks = onAddBooks,
+                            onToggleWantToRead = onToggleWantToRead,
+                            onToggleFinished = onToggleFinished,
+                            onShowDetails = onShowDetails,
+                            onDeleteBook = onDeleteBook,
+                            onShareBook = onShareBook,
+                            onAddToCollection = onAddToCollection,
+                            collections = collections,
+                            viewMode = viewMode,
+                            onViewModeChange = onViewModeChange,
+                            sortOption = sortOption,
+                            onSortOptionChange = onSortOptionChange,
+                            activeBookId = activeBookId,
+                            isPlaying = isPlaying
+                        )
                     }
 
                     1 -> {
-                        when {
-                            isLoading -> LoadingState()
-                            audiobooks.isEmpty() -> Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                EmptyState(
-                                    title = "No audiobooks",
-                                    subtitle = "Add a folder with mp3 files to listen",
-                                    image = R.drawable.audiobooks_empty, // Consider using a different icon
-                                    actionLabel = "Import Folder",
-                                    onAction = onAddBooks, // Assume + is also used for folders
-                                    modifier = Modifier.padding(horizontal = 24.dp),
-                                )
-                            }
-
-                            else -> AudiobookGrid(
-                                audiobooks = audiobooks,
-                                onBookClick = onBookClick,
-                                onDeleteBook = onDeleteBook,
-                                onShareBook = onShareBook,
-                                onToggleWantToRead = onToggleWantToRead,
-                                onToggleFinished = onToggleFinished,
-                                onShowDetails = onShowDetails,
-                                activeBookId = activeBookId,
-                                isPlaying = isPlaying,
-                                viewMode = viewMode,
-                                onViewModeChange = onViewModeChange,
-                                sortOption = sortOption,
-                                onSortOptionChange = onSortOptionChange,
-                            )
-                        }
+                        LibraryBooksTab(
+                            booksState = booksState,
+                            isAudiobook = true,
+                            onBookClick = onBookClick,
+                            onAddBooks = onAddBooks,
+                            onToggleWantToRead = onToggleWantToRead,
+                            onToggleFinished = onToggleFinished,
+                            onShowDetails = onShowDetails,
+                            onDeleteBook = onDeleteBook,
+                            onShareBook = onShareBook,
+                            onAddToCollection = onAddToCollection,
+                            collections = collections,
+                            viewMode = viewMode,
+                            onViewModeChange = onViewModeChange,
+                            sortOption = sortOption,
+                            onSortOptionChange = onSortOptionChange,
+                            activeBookId = activeBookId,
+                            isPlaying = isPlaying
+                        )
                     }
 
                     2 -> {
-                        CollectionsListScreen(
-                            collections = collections,
-                            onCollectionClick = { onCollectionClick(it.id) },
-                            onCreateCollection = onCreateCollection,
-                        )
+                        when (collectionsState) {
+                            is UiState.Loading -> LoadingState()
+                            is UiState.Error -> ErrorState(collectionsState.message)
+                            is UiState.Success -> {
+                                CollectionsListScreen(
+                                    collections = collectionsState.data,
+                                    onCollectionClick = { onCollectionClick(it.id) },
+                                    onCreateCollection = onCreateCollection,
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -252,7 +225,7 @@ fun LibraryScreen(
                 }
         ) {
             LiberHeader(
-                title = "Library"
+                title = UiText.DynamicString("Library")
             )
         }
 
@@ -295,9 +268,100 @@ fun LibraryScreen(
 }
 
 @Composable
+private fun LibraryBooksTab(
+    booksState: UiState<List<Book>>,
+    isAudiobook: Boolean,
+    onBookClick: (Book) -> Unit,
+    onAddBooks: () -> Unit,
+    onToggleWantToRead: (Book) -> Unit,
+    onToggleFinished: (Book) -> Unit,
+    onShowDetails: (Book) -> Unit,
+    onDeleteBook: (Book) -> Unit,
+    onShareBook: (Book) -> Unit,
+    onAddToCollection: (Book, Long) -> Unit,
+    collections: List<CollectionUiState>,
+    viewMode: LibraryViewMode,
+    onViewModeChange: (LibraryViewMode) -> Unit,
+    sortOption: LibrarySortOption,
+    onSortOptionChange: (LibrarySortOption) -> Unit,
+    activeBookId: String?,
+    isPlaying: Boolean,
+) {
+    when (booksState) {
+        is UiState.Loading -> LoadingState()
+        is UiState.Error -> ErrorState(booksState.message)
+        is UiState.Success -> {
+            val books = booksState.data.filter { it.isAudiobook == isAudiobook }
+            if (books.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    EmptyState(
+                        title = if (isAudiobook) UiText.StringResource(R.string.empty_audiobooks_title)
+                        else UiText.StringResource(R.string.empty_library_title),
+                        subtitle = if (isAudiobook) UiText.StringResource(R.string.empty_audiobooks_subtitle)
+                        else UiText.StringResource(R.string.empty_library_subtitle),
+                        image = if (isAudiobook) R.drawable.audiobooks_empty else R.drawable.library_empty,
+                        actionLabel = if (isAudiobook) UiText.StringResource(R.string.empty_audiobooks_action)
+                        else UiText.StringResource(R.string.empty_library_action),
+                        onAction = onAddBooks,
+                        modifier = Modifier.padding(horizontal = 24.dp),
+                    )
+                }
+            } else {
+                if (isAudiobook) {
+                    AudiobookGrid(
+                        audiobooks = books,
+                        onBookClick = onBookClick,
+                        onDeleteBook = onDeleteBook,
+                        onShareBook = onShareBook,
+                        onToggleWantToRead = onToggleWantToRead,
+                        onToggleFinished = onToggleFinished,
+                        onShowDetails = onShowDetails,
+                        activeBookId = activeBookId,
+                        isPlaying = isPlaying,
+                        viewMode = viewMode,
+                        onViewModeChange = onViewModeChange,
+                        sortOption = sortOption,
+                        onSortOptionChange = onSortOptionChange,
+                    )
+                } else {
+                    BookGrid(
+                        books = books,
+                        onBookClick = onBookClick,
+                        onToggleWantToRead = onToggleWantToRead,
+                        onToggleFinished = onToggleFinished,
+                        onShowDetails = onShowDetails,
+                        onDeleteBook = onDeleteBook,
+                        onShareBook = onShareBook,
+                        showAddToCollection = true,
+                        onAddToCollection = onAddToCollection,
+                        collections = collections,
+                        viewMode = viewMode,
+                        onViewModeChange = onViewModeChange,
+                        sortOption = sortOption,
+                        onSortOptionChange = onSortOptionChange,
+                        activeAudiobookId = activeBookId,
+                        isAudiobookPlaying = isPlaying,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun LoadingState() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         CircularProgressIndicator()
+    }
+}
+
+@Composable
+private fun ErrorState(message: UiText) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(text = message.asString(), color = MaterialTheme.colorScheme.error)
     }
 }
 
@@ -315,9 +379,8 @@ fun LibraryScreen(
     modifier: Modifier = Modifier,
     selectedCollectionId: Long? = null,
 ) {
-    val books by viewModel.books.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val collections by collectionsViewModel.collections.collectAsState()
+    val booksState by viewModel.booksState.collectAsState()
+    val collectionsState by collectionsViewModel.collectionsState.collectAsState()
     val viewMode by viewModel.libraryViewMode.collectAsState()
     val sortOption by viewModel.librarySortOption.collectAsState()
     val scanState by viewModel.scanState.collectAsState()
@@ -329,8 +392,7 @@ fun LibraryScreen(
     var selectedBookForDetails by remember { mutableStateOf<Book?>(null) }
 
     LibraryScreen(
-        books = books,
-        isLoading = isLoading,
+        booksState = booksState,
         onBookClick = onBookClick,
         onAddBooks = onAddBooks,
         onToggleWantToRead = { book -> viewModel.toggleWantToRead(book.id, book.wantToRead) },
@@ -343,7 +405,7 @@ fun LibraryScreen(
         onAddToCollection = { book, collectionId ->
             collectionsViewModel.addBookToCollection(collectionId, book.id)
         },
-        collections = collections,
+        collectionsState = collectionsState,
         onCreateCollection = { collectionsViewModel.createCollection(it) },
         onRenameCollection = { id, name -> collectionsViewModel.renameCollection(id, name) },
         onDeleteCollection = { id -> collectionsViewModel.deleteCollection(id) },

@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import com.example.liber.R
 import com.example.liber.core.designsystem.EmptyState
 import com.example.liber.core.designsystem.LiberSearchField
+import com.example.liber.core.util.UiText
 import com.example.liber.feature.reader.ReaderViewModel
 import org.readium.r2.shared.publication.Locator
 
@@ -50,7 +51,7 @@ fun SearchView(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 8.dp),
-            placeholder = "Search in book…",
+            placeholder = UiText.StringResource(R.string.reader_search_placeholder),
             onClear = { viewModel.search("") },
         )
 
@@ -63,8 +64,8 @@ fun SearchView(
             }
         } else if (searchResults.isEmpty() && searchQuery.isNotBlank() && !isSearching) {
             EmptyState(
-                title = "No results found",
-                subtitle = "Try a different search term.",
+                title = UiText.StringResource(R.string.reader_search_no_results),
+                subtitle = UiText.StringResource(R.string.reader_search_no_results_subtitle),
                 image = R.drawable.want_to_read_empty,
                 showImage = false,
                 showBackground = false,

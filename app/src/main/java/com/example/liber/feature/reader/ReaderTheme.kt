@@ -1,10 +1,12 @@
 package com.example.liber.feature.reader
 
 import androidx.compose.ui.graphics.Color
+import com.example.liber.R
+import com.example.liber.core.util.UiText
 
 data class ReaderTheme(
     val id: String,
-    val name: String,
+    val name: UiText,
     val background: Color,
     val textColor: Color,
     val isDark: Boolean,
@@ -17,7 +19,7 @@ val ReaderThemes = listOf(
     // Dark themes → blue-family selection
     ReaderTheme(
         "original",
-        "Original",
+        UiText.StringResource(R.string.reader_theme_original),
         Color(0xFF111111),
         Color(0xFFE5E5EA),
         true,
@@ -25,7 +27,7 @@ val ReaderThemes = listOf(
     ), // iOS blue
     ReaderTheme(
         "quiet",
-        "Quiet",
+        UiText.StringResource(R.string.reader_theme_quiet),
         Color(0xFF2C2C2E),
         Color(0xFFD1D1D6),
         true,
@@ -33,7 +35,7 @@ val ReaderThemes = listOf(
     ), // softer blue
     ReaderTheme(
         "bold",
-        "Bold",
+        UiText.StringResource(R.string.reader_theme_bold),
         Color(0xFF000000),
         Color(0xFFFFFFFF),
         true,
@@ -41,7 +43,7 @@ val ReaderThemes = listOf(
     ), // vivid iOS blue on pure black
     ReaderTheme(
         "focus",
-        "Focus",
+        UiText.StringResource(R.string.reader_theme_focus),
         Color(0xFF2D2822),
         Color(0xFFE0D6C8),
         true,
@@ -51,7 +53,7 @@ val ReaderThemes = listOf(
     // Light/beige themes → warm selection
     ReaderTheme(
         "paper",
-        "Paper",
+        UiText.StringResource(R.string.reader_theme_paper),
         Color(0xFFF4F4F0),
         Color(0xFF111111),
         false,
@@ -59,7 +61,7 @@ val ReaderThemes = listOf(
     ), // standard blue on white
     ReaderTheme(
         "calm",
-        "Calm",
+        UiText.StringResource(R.string.reader_theme_calm),
         Color(0xFFF5EBD9),
         Color(0xFF4A3F32),
         false,

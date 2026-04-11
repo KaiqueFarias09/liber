@@ -31,18 +31,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.Export
 import com.adamglin.phosphoricons.regular.NotePencil
 import com.adamglin.phosphoricons.regular.Trash
+import com.adamglin.phosphoricons.regular.X
+import com.example.liber.R
 import com.example.liber.core.designsystem.LiberTextField
 import com.example.liber.core.util.InputValidator
+import com.example.liber.core.util.UiText
 import com.example.liber.data.model.AnnotationEntity
 
 /** Semi-transparent highlight color options. */
@@ -60,7 +62,6 @@ fun AnnotationActionsSheet(
     onEditNote: () -> Unit,
     onShare: () -> Unit,
     onDelete: () -> Unit,
-    onDismiss: () -> Unit,
 ) {
     val highlightColor = Color(annotation.color.toLong() and 0xFFFFFFFFL).copy(alpha = 1f)
     val hasNote = !annotation.note.isNullOrBlank()
@@ -130,17 +131,11 @@ fun AnnotationActionsSheet(
 
         AnnotationActionRow(
             icon = PhosphorIcons.Regular.NotePencil,
-            label = if (hasNote) "Edit note" else "Add note", onClick = onEditNote
+            label = if (hasNote) UiText.StringResource(R.string.reader_annotation_edit_note) else UiText.StringResource(
+                R.string.reader_annotation_add_note
+            ),
+            onClick = onEditNote
         )
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(0.5.dp)
-                .padding(start = 56.dp)
-                .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-        )
-
-        AnnotationActionRow(icon = PhosphorIcons.Regular.Export, label = "Share", onClick = onShare)
         Box(
             Modifier
                 .fillMaxWidth()
@@ -150,8 +145,23 @@ fun AnnotationActionsSheet(
         )
 
         AnnotationActionRow(
-            icon = PhosphorIcons.Regular.Trash, label = "Remove highlight",
-            tint = MaterialTheme.colorScheme.error, onClick = onDelete
+            icon = PhosphorIcons.Regular.Export,
+            label = UiText.StringResource(R.string.action_share),
+            onClick = onShare
+        )
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(0.5.dp)
+                .padding(start = 56.dp)
+                .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        )
+
+        AnnotationActionRow(
+            icon = PhosphorIcons.Regular.Trash,
+            label = UiText.StringResource(R.string.reader_annotation_remove_highlight),
+            tint = MaterialTheme.colorScheme.error,
+            onClick = onDelete
         )
 
         Spacer(Modifier.navigationBarsPadding())
@@ -161,7 +171,7 @@ fun AnnotationActionsSheet(
 @Composable
 private fun AnnotationActionRow(
     icon: ImageVector,
-    label: String,
+    label: UiText,
     onClick: () -> Unit,
     tint: Color = MaterialTheme.colorScheme.onSurface,
 ) {
@@ -174,7 +184,7 @@ private fun AnnotationActionRow(
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
-        Text(text = label, style = MaterialTheme.typography.bodyLarge, color = tint)
+        Text(text = label.asString(), style = MaterialTheme.typography.bodyLarge, color = tint)
     }
 }
 
@@ -212,7 +222,12 @@ fun HighlightColorPicker(
                     .clickable(onClick = onDismiss),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("✕", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Icon(
+                    PhosphorIcons.Regular.X,
+                    contentDescription = stringResource(R.string.action_cancel),
+                    tint = Color.White,
+                    modifier = Modifier.size(12.dp)
+                )
             }
         }
     }
@@ -231,7 +246,11 @@ fun CreateAnnotationSheet(
     onCancel: () -> Unit,
 ) {
     val isHighlight = annotationType == "highlight"
-    val saveLabel = if (isHighlight) "Save highlight" else "Save note"
+    val saveLabel = if (isHighlight) {
+        stringResource(R.string.reader_annotation_save_highlight)
+    } else {
+        stringResource(R.string.reader_annotation_save_note)
+    }
 
     Column(
         modifier = Modifier
@@ -272,7 +291,8 @@ fun CreateAnnotationSheet(
         }
 
         Text(
-            "Color", style = MaterialTheme.typography.labelMedium,
+            stringResource(R.string.reader_annotation_color_label),
+            style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 8.dp)
         )
@@ -304,7 +324,11 @@ fun CreateAnnotationSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(120.dp),
-            placeholder = if (isHighlight) "Add a note… (optional)" else "Write your note…",
+            placeholder = if (isHighlight) {
+                UiText.StringResource(R.string.reader_annotation_placeholder_optional)
+            } else {
+                UiText.StringResource(R.string.reader_annotation_placeholder_required)
+            },
             maxLines = 5,
         )
 
@@ -318,7 +342,7 @@ fun CreateAnnotationSheet(
                 onClick = onCancel, modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-            ) { Text("Cancel") }
+            ) { Text(stringResource(R.string.action_cancel)) }
             Button(
                 onClick = onSave, modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),

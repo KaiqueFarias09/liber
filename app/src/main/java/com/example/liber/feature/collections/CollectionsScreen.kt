@@ -42,6 +42,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.adamglin.PhosphorIcons
@@ -64,6 +65,7 @@ import com.example.liber.core.designsystem.LiberDropdownMenu
 import com.example.liber.core.designsystem.LiberFAB
 import com.example.liber.core.designsystem.LiberTextField
 import com.example.liber.core.util.InputValidator
+import com.example.liber.core.util.UiText
 import com.example.liber.data.model.Book
 import com.example.liber.feature.library.LibrarySortOption
 import com.example.liber.feature.library.LibraryViewMode
@@ -86,7 +88,7 @@ fun CollectionsListScreen(
                 LiberFAB(
                     onClick = { showCreateDialog = true },
                     icon = PhosphorIcons.Regular.Plus,
-                    contentDescription = "New collection",
+                    contentDescription = stringResource(R.string.action_new_collection),
                 )
             }
         },
@@ -99,10 +101,10 @@ fun CollectionsListScreen(
                 contentAlignment = Alignment.Center
             ) {
                 EmptyState(
-                    title = "No collections yet",
-                    subtitle = "Curate your reading by grouping books into collections.",
+                    title = UiText.StringResource(R.string.empty_collections_title),
+                    subtitle = UiText.StringResource(R.string.empty_collections_subtitle),
                     image = R.drawable.collections_empty,
-                    actionLabel = "Create Collection",
+                    actionLabel = UiText.StringResource(R.string.empty_collections_action),
                     onAction = { showCreateDialog = true },
                     modifier = Modifier.padding(horizontal = 24.dp)
                 )
@@ -130,7 +132,7 @@ fun CollectionsListScreen(
 
     if (showCreateDialog) {
         CollectionNameDialog(
-            title = "New collection",
+            title = UiText.StringResource(R.string.dialog_title_new_collection),
             initialName = "",
             onConfirm = { name ->
                 onCreateCollection(name)
@@ -350,18 +352,18 @@ fun CollectionDetailScreen(
                     onDismissRequest = { showMenu = false },
                 ) {
                     LiberContextMenuItem(
-                        label = "Add books",
+                        label = UiText.DynamicString("Add books"),
                         icon = PhosphorIcons.Regular.Plus,
                         onClick = { showMenu = false; showAddBooksSheet = true },
                     )
                     LiberContextMenuItem(
-                        label = "Rename",
+                        label = UiText.DynamicString("Rename"),
                         icon = PhosphorIcons.Regular.PencilSimple,
                         onClick = { showMenu = false; showRenameDialog = true },
                     )
                     LiberContextMenuDivider()
                     LiberContextMenuItem(
-                        label = "Delete collection",
+                        label = UiText.DynamicString("Delete collection"),
                         icon = PhosphorIcons.Regular.Trash,
                         destructive = true,
                         onClick = { showMenu = false; showDeleteDialog = true },
@@ -380,10 +382,10 @@ fun CollectionDetailScreen(
                 contentAlignment = Alignment.Center,
             ) {
                 EmptyState(
-                    title = "This collection is empty",
-                    subtitle = "Add books from your library to this collection.",
+                    title = UiText.StringResource(R.string.empty_collection_detail_title),
+                    subtitle = UiText.StringResource(R.string.empty_collection_detail_subtitle),
                     image = R.drawable.collections_empty,
-                    actionLabel = "Add books",
+                    actionLabel = UiText.StringResource(R.string.empty_collection_detail_action),
                     onAction = { showAddBooksSheet = true },
                 )
             }
@@ -398,7 +400,7 @@ fun CollectionDetailScreen(
                 onShareBook = onShareBook,
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
-                deleteLabel = "Remove from collection",
+                deleteLabel = UiText.DynamicString("Remove from collection"),
                 confirmDelete = false,
                 showAddToCollection = false,
                 viewMode = viewMode,
@@ -413,7 +415,7 @@ fun CollectionDetailScreen(
 
     if (showRenameDialog) {
         CollectionNameDialog(
-            title = "Rename collection",
+            title = UiText.StringResource(R.string.dialog_title_rename_collection),
             initialName = collection.name,
             onConfirm = { name ->
                 onRename(name)
@@ -448,7 +450,7 @@ fun CollectionDetailScreen(
 
 @Composable
 private fun CollectionNameDialog(
-    title: String,
+    title: UiText,
     initialName: String,
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit,
@@ -459,16 +461,15 @@ private fun CollectionNameDialog(
     LiberDialog(
         onDismissRequest = onDismiss,
         title = title,
-        confirmLabel = "Save",
+        confirmLabel = UiText.StringResource(R.string.action_save),
         onConfirm = { if (name.isNotBlank()) onConfirm(name) },
         confirmEnabled = name.isNotBlank(),
-        dismissLabel = "Cancel",
-        onDismiss = onDismiss,
+        dismissLabel = UiText.StringResource(R.string.action_cancel),
     ) {
         LiberTextField(
             value = name,
             onValueChange = { name = InputValidator.validatedCollectionName(it) },
-            label = "Name",
+            label = UiText.StringResource(R.string.field_label_name),
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { if (name.isNotBlank()) onConfirm(name) }),
@@ -488,15 +489,13 @@ private fun DeleteCollectionDialog(
 ) {
     LiberDialog(
         onDismissRequest = onDismiss,
-        title = "Delete collection?",
-        confirmLabel = "Delete",
+        title = UiText.StringResource(R.string.dialog_title_delete_collection),
+        confirmLabel = UiText.StringResource(R.string.action_delete),
         onConfirm = onConfirm,
-        dismissLabel = "Cancel",
-        onDismiss = onDismiss,
+        dismissLabel = UiText.StringResource(R.string.action_cancel),
     ) {
         Text(
-            "\"$collectionName\" will be permanently removed. " +
-                    "The books inside will remain in your library.",
+            stringResource(R.string.dialog_message_delete_collection, collectionName),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -517,15 +516,14 @@ private fun AddBooksDialog(
 
     LiberDialog(
         onDismissRequest = onDismiss,
-        title = "Add books",
+        title = UiText.StringResource(R.string.dialog_title_add_books),
         confirmLabel = null,
         onConfirm = null,
-        dismissLabel = "Done",
-        onDismiss = onDismiss,
+        dismissLabel = UiText.StringResource(R.string.action_done),
     ) {
         if (availableBooks.isEmpty()) {
             Text(
-                "All your library books are already in this collection.",
+                stringResource(R.string.dialog_message_all_books_added),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

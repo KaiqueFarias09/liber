@@ -6,13 +6,11 @@ sealed class ScanState {
         val folderName: String,
         val current: Int,
         val total: Int,
-        val newlyAdded: Int,
     ) : ScanState()
 
     data class Finished(
         val folderName: String,
         val added: Int,
-        val skipped: Int,
     ) : ScanState()
 
     data class Failed(val reason: String) : ScanState()

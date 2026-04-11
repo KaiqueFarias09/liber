@@ -9,23 +9,20 @@ import java.io.FileOutputStream
 object FileSecurityUtils {
     private const val MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024L
 
-    fun sanitizeFileName(name: String?): String {
-        if (name.isNullOrBlank()) return "file"
-        return name.replace(Regex("[^a-zA-Z0-9._]"), "_")
-    }
-
     fun copyToTempFileSafe(context: Context, uri: Uri, prefix: String = "temp_"): File? {
         val documentFile = DocumentFile.fromSingleUri(context, uri)
         val rawName = documentFile?.name ?: "file"
         val extension = rawName.substringAfterLast('.', "epub")
-        val safeName = sanitizeFileName(rawName.substringBeforeLast('.'))
+        val safeName = rawName.substringBeforeLast('.').sanitizeForFileName()
 
-        val tempFile =
-            File(context.cacheDir, "${prefix}${safeName}_${System.currentTimeMillis()}.$extension")
+        val tempFile = File(
+            context.cacheDir,
+            "${prefix}${safeName}_${System.currentTimeMillis()}.$extension"
+        )
 
         var totalBytes = 0L
 
-        try {
+        return try {
             context.contentResolver.openInputStream(uri)?.use { input ->
                 FileOutputStream(tempFile).use { output ->
                     val buffer = ByteArray(8192)
@@ -42,11 +39,11 @@ object FileSecurityUtils {
                     }
                 }
             }
-            return tempFile
+            tempFile
         } catch (e: Exception) {
             e.printStackTrace()
             tempFile.delete()
-            return null
+            null
         }
     }
 }

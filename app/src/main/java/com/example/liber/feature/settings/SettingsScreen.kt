@@ -24,6 +24,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
@@ -35,7 +36,9 @@ import com.adamglin.phosphoricons.regular.Palette
 import com.adamglin.phosphoricons.regular.Sun
 import com.adamglin.phosphoricons.regular.SunHorizon
 import com.adamglin.phosphoricons.regular.Trash
+import com.example.liber.R
 import com.example.liber.core.designsystem.LiberScreen
+import com.example.liber.core.util.UiText
 import com.example.liber.data.model.ScanSourceEntity
 import com.example.liber.data.repository.ThemeMode
 
@@ -52,7 +55,7 @@ fun SettingsScreen(
     val themeMode by viewModel.themeMode.collectAsState()
 
     LiberScreen(
-        title = "Settings",
+        title = UiText.StringResource(R.string.tab_settings),
         modifier = modifier,
     ) {
         Column(
@@ -62,7 +65,7 @@ fun SettingsScreen(
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 32.dp),
         ) {
-            SettingsSection(title = "Library") {
+            SettingsSection(title = UiText.StringResource(R.string.settings_section_library)) {
                 LibrarySection(
                     scanSources = scanSources,
                     onAddBooks = onAddBooks,
@@ -72,7 +75,7 @@ fun SettingsScreen(
                 )
             }
 
-            SettingsSection(title = "Appearance") {
+            SettingsSection(title = UiText.StringResource(R.string.settings_section_appearance)) {
                 ThemeSetting(
                     currentMode = themeMode,
                     onModeSelected = { viewModel.setThemeMode(it) }
@@ -84,12 +87,12 @@ fun SettingsScreen(
 
 @Composable
 private fun SettingsSection(
-    title: String,
+    title: UiText,
     content: @Composable () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
-            text = title,
+            text = title.asString(),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(bottom = 16.dp),
@@ -112,7 +115,7 @@ private fun LibrarySection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
-            text = "Scan folders",
+            text = stringResource(R.string.settings_label_scan_folders),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 4.dp),
@@ -120,7 +123,7 @@ private fun LibrarySection(
 
         if (scanSources.isEmpty()) {
             Text(
-                text = "No folders added yet",
+                text = stringResource(R.string.settings_empty_scan_folders),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 modifier = Modifier.padding(bottom = 8.dp),
@@ -137,13 +140,13 @@ private fun LibrarySection(
 
         SettingsActionRow(
             icon = PhosphorIcons.Regular.FolderOpen,
-            label = "Add scan folder…",
+            label = UiText.StringResource(R.string.settings_action_add_scan_folder),
             onClick = onAddScanFolder,
         )
 
         SettingsActionRow(
             icon = PhosphorIcons.Regular.FilePlus,
-            label = "Add books from files",
+            label = UiText.StringResource(R.string.settings_action_add_books_from_files),
             onClick = onAddBooks,
         )
     }
@@ -152,7 +155,7 @@ private fun LibrarySection(
 @Composable
 private fun SettingsActionRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
+    label: UiText,
     onClick: () -> Unit,
 ) {
     Surface(
@@ -174,7 +177,7 @@ private fun SettingsActionRow(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                text = label,
+                text = label.asString(),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
@@ -191,9 +194,14 @@ private fun ScanSourceRow(
     val subtitle = source.lastScannedAt?.let { ts ->
         val relative = DateUtils.getRelativeTimeSpanString(
             ts, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS
-        )
-        "Last scanned $relative · ${source.bookCount} book${if (source.bookCount == 1) "" else "s"}"
-    } ?: "Never scanned"
+        ).toString()
+        val bookCountLabel = if (source.bookCount == 1) {
+            stringResource(R.string.label_singular_book, source.bookCount)
+        } else {
+            stringResource(R.string.label_plural_books, source.bookCount)
+        }
+        stringResource(R.string.settings_last_scanned, relative, bookCountLabel)
+    } ?: stringResource(R.string.settings_never_scanned)
 
     Row(
         modifier = Modifier
@@ -230,7 +238,7 @@ private fun ScanSourceRow(
             IconButton(onClick = onRescan) {
                 Icon(
                     imageVector = PhosphorIcons.Regular.ArrowClockwise,
-                    contentDescription = "Rescan",
+                    contentDescription = stringResource(R.string.settings_action_rescan),
                     modifier = Modifier.size(18.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -238,7 +246,7 @@ private fun ScanSourceRow(
             IconButton(onClick = onRemove) {
                 Icon(
                     imageVector = PhosphorIcons.Regular.Trash,
-                    contentDescription = "Remove folder",
+                    contentDescription = stringResource(R.string.settings_action_remove_folder),
                     modifier = Modifier.size(18.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -265,7 +273,7 @@ private fun ThemeSetting(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                text = "Theme",
+                text = stringResource(R.string.settings_label_theme),
                 style = MaterialTheme.typography.titleMedium,
             )
         }
@@ -296,9 +304,9 @@ private fun ThemeSetting(
                 ) {
                     Text(
                         text = when (mode) {
-                            ThemeMode.AUTO -> "Auto"
-                            ThemeMode.LIGHT -> "Light"
-                            ThemeMode.DARK -> "Dark"
+                            ThemeMode.AUTO -> stringResource(R.string.settings_theme_auto)
+                            ThemeMode.LIGHT -> stringResource(R.string.settings_theme_light)
+                            ThemeMode.DARK -> stringResource(R.string.settings_theme_dark)
                         },
                     )
                 }

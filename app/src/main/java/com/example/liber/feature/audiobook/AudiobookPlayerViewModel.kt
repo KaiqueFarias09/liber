@@ -12,6 +12,8 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import com.example.liber.core.util.UiState
+import com.example.liber.core.util.UiText
 import com.example.liber.data.model.Book
 import com.example.liber.data.repository.BookRepository
 import com.example.liber.feature.audiobook.service.PlaybackService
@@ -75,6 +77,9 @@ class AudiobookPlayerViewModel @Inject constructor(
 
     private val _tracks = MutableStateFlow<List<TrackInfo>>(emptyList())
     val tracks: StateFlow<List<TrackInfo>> = _tracks
+
+    private val _uiState = MutableStateFlow<UiState<Unit>>(UiState.Loading)
+    val uiState: StateFlow<UiState<Unit>> = _uiState
 
     private val _currentTrackIndex = MutableStateFlow(0)
     val currentTrackIndex: StateFlow<Int> = _currentTrackIndex
@@ -173,6 +178,7 @@ class AudiobookPlayerViewModel @Inject constructor(
         _tracks.value = emptyList()
         _positionMs.value = 0L
         _durationMs.value = 0L
+        _uiState.value = UiState.Loading
 
         loadTracks(book)
     }
@@ -237,7 +243,11 @@ class AudiobookPlayerViewModel @Inject constructor(
                 bookRepository.updateTracks(book.id, trackList.toJson())
                 withContext(Dispatchers.Main) {
                     prepareTracks(trackList, book)
+                    _uiState.value = UiState.Success(Unit)
                 }
+            } else {
+                _uiState.value =
+                    UiState.Error(UiText.StringResource(com.example.liber.R.string.error_unknown))
             }
         }
     }

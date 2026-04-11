@@ -50,6 +50,7 @@ import com.adamglin.phosphoricons.regular.Check
 import com.adamglin.phosphoricons.regular.DotsThree
 import com.adamglin.phosphoricons.regular.Rows
 import com.adamglin.phosphoricons.regular.SquaresFour
+import com.example.liber.core.util.UiText
 import com.example.liber.data.model.Book
 import com.example.liber.feature.collections.CollectionUiState
 import com.example.liber.feature.collections.components.AddToCollectionDialog
@@ -67,7 +68,7 @@ fun BookGrid(
     onShareBook: (Book) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
-    deleteLabel: String = "Delete…",
+    deleteLabel: UiText = UiText.DynamicString("Delete…"),
     confirmDelete: Boolean = true,
     showAddToCollection: Boolean = false,
     onAddToCollection: (Book, Long) -> Unit = { _, _ -> },
@@ -248,7 +249,7 @@ private fun BooksToolbar(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
-                        text = sortOption.label,
+                        text = sortOption.label.asString(),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onBackground,
                     )
@@ -362,7 +363,7 @@ private fun BookListItem(
     onShowDetails: () -> Unit,
     onDeleteBook: () -> Unit,
     onShareBook: () -> Unit,
-    deleteLabel: String = "Delete…",
+    deleteLabel: UiText = UiText.DynamicString("Delete…"),
     confirmDelete: Boolean = true,
     showAddToCollection: Boolean = false,
     onAddToCollection: (Long) -> Unit = {},
@@ -482,7 +483,7 @@ private fun BookListItem(
     if (showDeleteDialog) {
         DeleteBookConfirmationDialog(
             bookTitle = book.title,
-            actionLabel = deleteLabel,
+            action = deleteLabel,
             onConfirm = {
                 showDeleteDialog = false
                 onDeleteBook()
@@ -504,7 +505,7 @@ fun BookGridItem(
     onShowDetails: () -> Unit,
     onDeleteBook: () -> Unit,
     onShareBook: () -> Unit,
-    deleteLabel: String = "Delete…",
+    deleteLabel: UiText = UiText.DynamicString("Delete…"),
     confirmDelete: Boolean = true,
     showAddToCollection: Boolean = false,
     onAddToCollection: (Long) -> Unit = {},
@@ -610,7 +611,7 @@ fun BookGridItem(
     if (showDeleteDialog) {
         DeleteBookConfirmationDialog(
             bookTitle = book.title,
-            actionLabel = deleteLabel,
+            action = deleteLabel,
             onConfirm = {
                 showDeleteDialog = false
                 onDeleteBook()

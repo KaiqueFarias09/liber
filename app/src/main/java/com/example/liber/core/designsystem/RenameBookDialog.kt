@@ -7,7 +7,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.example.liber.R
 import com.example.liber.core.util.InputValidator
+import com.example.liber.core.util.UiText
 
 @Composable
 fun RenameBookDialog(
@@ -18,17 +20,16 @@ fun RenameBookDialog(
     var title by remember { mutableStateOf(currentTitle) }
     LiberDialog(
         onDismissRequest = onDismiss,
-        title = "Rename book",
-        confirmLabel = "Save",
+        title = UiText.StringResource(R.string.dialog_title_rename_book),
+        confirmLabel = UiText.StringResource(R.string.action_save),
         onConfirm = { onConfirm(title) },
         confirmEnabled = title.isNotBlank(),
-        dismissLabel = "Cancel",
-        onDismiss = onDismiss,
+        dismissLabel = UiText.StringResource(R.string.action_cancel),
     ) {
         LiberTextField(
             value = title,
             onValueChange = { title = InputValidator.validatedBookTitle(it) },
-            label = "Title",
+            label = UiText.StringResource(R.string.field_label_title),
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )

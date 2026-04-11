@@ -31,6 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -41,6 +42,7 @@ import com.adamglin.phosphoricons.regular.LineSegments
 import com.adamglin.phosphoricons.regular.Minus
 import com.adamglin.phosphoricons.regular.Paragraph
 import com.adamglin.phosphoricons.regular.TextAa
+import com.example.liber.R
 import com.example.liber.feature.reader.ReaderTheme
 import com.example.liber.feature.reader.ReaderThemes
 
@@ -50,8 +52,6 @@ fun ThemesSheet(
     onThemeChange: (String) -> Unit,
     onDecreaseFontSize: () -> Unit,
     onIncreaseFontSize: () -> Unit,
-    pageScroll: Boolean,
-    onPageScrollChange: (Boolean) -> Unit,
     customizeLayout: Boolean,
     onCustomizeLayoutChange: (Boolean) -> Unit,
     lineSpacing: Double,
@@ -62,12 +62,7 @@ fun ThemesSheet(
     onWordSpacingChange: (Double) -> Unit,
     margins: Double,
     onMarginsChange: (Double) -> Unit,
-    columnCount: String,
-    onColumnCountChange: (String) -> Unit,
-    justifyText: Boolean,
-    onJustifyTextChange: (Boolean) -> Unit,
     onResetSettings: () -> Unit,
-    onClose: () -> Unit,
 ) {
     val scrollState = rememberScrollState()
     Column(
@@ -100,7 +95,8 @@ fun ThemesSheet(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    PhosphorIcons.Regular.Minus, contentDescription = "Decrease font",
+                    PhosphorIcons.Regular.Minus,
+                    contentDescription = stringResource(R.string.reader_themes_decrease_font),
                     tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp)
                 )
             }
@@ -119,7 +115,8 @@ fun ThemesSheet(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    PhosphorIcons.Regular.TextAa, contentDescription = "Increase font",
+                    PhosphorIcons.Regular.TextAa,
+                    contentDescription = stringResource(R.string.reader_themes_increase_font),
                     tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(24.dp)
                 )
             }
@@ -154,7 +151,8 @@ fun ThemesSheet(
         Spacer(Modifier.height(16.dp))
 
         Text(
-            "Accessibility & Layout Options", style = MaterialTheme.typography.titleSmall,
+            stringResource(R.string.reader_themes_accessibility_layout),
+            style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface
         )
         Spacer(Modifier.height(12.dp))
@@ -176,7 +174,7 @@ fun ThemesSheet(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                "Customize",
+                stringResource(R.string.reader_themes_customize),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -205,7 +203,7 @@ fun ThemesSheet(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 LayoutSliderRow(
-                    "LINE SPACING",
+                    stringResource(R.string.reader_themes_line_spacing),
                     icon = {
                         Icon(
                             PhosphorIcons.Regular.LineSegments,
@@ -218,7 +216,7 @@ fun ThemesSheet(
                     valueRange = 0.8f..2.5f, onValueChange = { onLineSpacingChange(it.toDouble()) })
                 Divider()
                 LayoutSliderRow(
-                    "CHARACTER SPACING",
+                    stringResource(R.string.reader_themes_character_spacing),
                     icon = {
                         Text(
                             "Abc",
@@ -232,7 +230,7 @@ fun ThemesSheet(
                     onValueChange = { onCharacterSpacingChange(it.toDouble()) })
                 Divider()
                 LayoutSliderRow(
-                    "WORD SPACING",
+                    stringResource(R.string.reader_themes_word_spacing),
                     icon = {
                         Icon(
                             PhosphorIcons.Regular.Paragraph,
@@ -246,7 +244,7 @@ fun ThemesSheet(
                     valueRange = -20f..20f, onValueChange = { onWordSpacingChange(it.toDouble()) })
                 Divider()
                 LayoutSliderRow(
-                    "MARGINS",
+                    stringResource(R.string.reader_themes_margins),
                     icon = {
                         Icon(
                             PhosphorIcons.Regular.FrameCorners,
@@ -275,7 +273,7 @@ fun ThemesSheet(
             )
         ) {
             Text(
-                "Reset Theme",
+                stringResource(R.string.reader_themes_reset),
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(vertical = 4.dp)
             )
@@ -317,7 +315,7 @@ private fun ThemePreviewTile(
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                theme.name,
+                theme.name.asString(),
                 style = MaterialTheme.typography.labelSmall,
                 color = theme.textColor.copy(alpha = 0.6f)
             )

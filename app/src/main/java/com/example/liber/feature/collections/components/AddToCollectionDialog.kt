@@ -16,11 +16,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.Stack
+import com.example.liber.R
 import com.example.liber.core.designsystem.LiberDialog
+import com.example.liber.core.util.UiText
 import com.example.liber.feature.collections.CollectionUiState
 
 @Composable
@@ -31,15 +34,14 @@ fun AddToCollectionDialog(
 ) {
     LiberDialog(
         onDismissRequest = onDismiss,
-        title = "Add to Collection",
+        title = UiText.StringResource(R.string.dialog_title_add_books),
         confirmLabel = null,
         onConfirm = null,
-        dismissLabel = "Done",
-        onDismiss = onDismiss,
+        dismissLabel = UiText.StringResource(R.string.action_done),
     ) {
         if (collections.isEmpty()) {
             Text(
-                "You have no collections yet. Create one in the Collections tab.",
+                stringResource(R.string.empty_collections_dialog_message),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -66,8 +68,16 @@ fun AddToCollectionDialog(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface,
                             )
+                            // TODO: Isn't there a better way to do this plural localization?
                             Text(
-                                text = "${collection.books.size} ${if (collection.books.size == 1) "book" else "books"}",
+                                text = if (collection.books.size == 1) {
+                                    stringResource(R.string.label_singular_book, 1)
+                                } else {
+                                    stringResource(
+                                        R.string.label_plural_books,
+                                        collection.books.size
+                                    )
+                                },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )

@@ -25,13 +25,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
+import com.example.liber.core.util.UiText
+
 @Composable
 fun EmptyState(
-    title: String,
+    title: UiText,
     modifier: Modifier = Modifier,
-    subtitle: String? = null,
+    subtitle: UiText? = null,
     @DrawableRes image: Int? = null,
-    actionLabel: String? = null,
+    actionLabel: UiText? = null,
     onAction: (() -> Unit)? = null,
     showImage: Boolean = true,
     showBackground: Boolean = true,
@@ -72,7 +74,7 @@ fun EmptyState(
         }
 
         Text(
-            text = title,
+            text = title.asString(),
             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
             color = titleColor,
             textAlign = TextAlign.Center,
@@ -81,7 +83,7 @@ fun EmptyState(
         if (subtitle != null) {
             Spacer(Modifier.height(8.dp))
             Text(
-                text = subtitle,
+                text = subtitle.asString(),
                 style = MaterialTheme.typography.bodyLarge,
                 color = subtitleColor,
                 textAlign = TextAlign.Center,

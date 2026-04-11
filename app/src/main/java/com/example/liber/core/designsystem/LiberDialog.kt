@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
+import com.example.liber.core.util.UiText
 
 /**
  * A standardized, premium-feeling dialog.
@@ -30,7 +31,7 @@ import androidx.compose.ui.window.DialogProperties
  * - Actions: [dismissLabel] in primary color, [confirmLabel] in onBackground (bold when active)
  *
  * @param onDismissRequest Called when the dialog is dismissed.
- * @param title The dialog title string.
+ * @param title The dialog title.
  * @param confirmLabel The confirm button label. Set null to hide it.
  * @param onConfirm Called when the user taps the confirm button.
  * @param dismissLabel The dismiss/cancel button label. Set null to hide it.
@@ -42,12 +43,12 @@ import androidx.compose.ui.window.DialogProperties
 @Composable
 fun LiberDialog(
     onDismissRequest: () -> Unit,
-    title: String,
+    title: UiText,
     modifier: Modifier = Modifier,
-    confirmLabel: String? = "Save",
+    confirmLabel: UiText? = null,
     onConfirm: (() -> Unit)? = null,
     confirmLabelColor: Color? = null,
-    dismissLabel: String? = "Cancel",
+    dismissLabel: UiText? = null,
     onDismiss: (() -> Unit)? = null,
     confirmEnabled: Boolean = true,
     properties: DialogProperties = DialogProperties(),
@@ -67,7 +68,7 @@ fun LiberDialog(
 
                 // Title — Gambetta serif
                 Text(
-                    text = title,
+                    text = title.asString(),
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -89,7 +90,7 @@ fun LiberDialog(
                             onClick = { (onDismiss ?: onDismissRequest)() },
                         ) {
                             Text(
-                                text = dismissLabel,
+                                text = dismissLabel.asString(),
                                 style = MaterialTheme.typography.labelLarge.copy(
                                     fontWeight = FontWeight.Medium,
                                 ),
@@ -103,7 +104,7 @@ fun LiberDialog(
                             enabled = confirmEnabled,
                         ) {
                             Text(
-                                text = confirmLabel,
+                                text = confirmLabel.asString(),
                                 style = MaterialTheme.typography.labelLarge.copy(
                                     fontWeight = FontWeight.SemiBold,
                                 ),

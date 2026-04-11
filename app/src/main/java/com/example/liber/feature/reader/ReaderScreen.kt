@@ -61,6 +61,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -82,6 +83,7 @@ import com.adamglin.phosphoricons.regular.MagnifyingGlass
 import com.adamglin.phosphoricons.regular.NotePencil
 import com.adamglin.phosphoricons.regular.TextAa
 import com.example.liber.R
+import com.example.liber.core.util.UiText
 import com.example.liber.data.model.AnnotationEntity
 import com.example.liber.data.model.BookmarkEntity
 import com.example.liber.data.repository.UserPreferencesRepository
@@ -140,7 +142,11 @@ private fun findAllWebViews(view: View?): List<WebView> {
 }
 
 
-private fun formatShareText(text: String, publication: Publication): String {
+private fun formatShareText(
+    text: String,
+    publication: Publication,
+    context: android.content.Context
+): String {
     val title = publication.metadata.title
     val author = publication.metadata.authors.firstOrNull()?.name
     val publisher = publication.metadata.publishers.firstOrNull()?.name
@@ -149,11 +155,12 @@ private fun formatShareText(text: String, publication: Publication): String {
     return buildString {
         append("“").append(text).append("”")
         append("\n\n")
-        append("Excerpt From: ")
+        append(context.getString(R.string.reader_share_excerpt_from))
         if (author != null) {
             append(author).append(". ")
         }
-        append("“").append(title ?: "Unknown Title").append(".”")
+        append("“").append(title ?: context.getString(R.string.reader_share_unknown_title))
+            .append(".”")
 
         val metadataParts = mutableListOf<String>()
         if (publisher != null) metadataParts.add(publisher)
@@ -170,7 +177,7 @@ private fun formatShareText(text: String, publication: Publication): String {
 
         append(" Liber.")
         append("\n\n")
-        append("This material may be protected by copyright.")
+        append(context.getString(R.string.reader_share_copyright_notice))
     }
 }
 
@@ -679,7 +686,7 @@ fun ReaderScreen(
 
                                     ID_SHARE -> if (finalText != null) {
                                         val shareText =
-                                            formatShareText(finalText, publication)
+                                            formatShareText(finalText, publication, context)
                                         val intent = Intent(Intent.ACTION_SEND).apply {
                                             type = "text/plain"
                                             putExtra(Intent.EXTRA_TEXT, shareText)
@@ -969,7 +976,7 @@ fun ReaderScreen(
                                     tint = chromeIcon
                                 )
                             },
-                            label = "Contents",
+                            label = UiText.StringResource(R.string.reader_nav_contents),
                             labelColor = chromeLabel,
                             onClick = { showContents = true },
                         )
@@ -981,7 +988,7 @@ fun ReaderScreen(
                                     tint = chromeIcon
                                 )
                             },
-                            label = "Search",
+                            label = UiText.StringResource(R.string.reader_nav_search),
                             labelColor = chromeLabel,
                             onClick = { showSearch = true },
                         )
@@ -1003,7 +1010,7 @@ fun ReaderScreen(
                                     }
                                 }
                             },
-                            label = "Notebook",
+                            label = UiText.StringResource(R.string.reader_nav_notebook),
                             labelColor = chromeLabel,
                             onClick = { showNotebook = true },
                         )
@@ -1015,7 +1022,7 @@ fun ReaderScreen(
                                     tint = chromeIcon
                                 )
                             },
-                            label = "Themes",
+                            label = UiText.StringResource(R.string.reader_nav_themes),
                             labelColor = chromeLabel,
                             onClick = { showThemes = true },
                         )
@@ -1029,7 +1036,7 @@ fun ReaderScreen(
     if (showContents) {
         com.example.liber.core.designsystem.LiberModalBottomSheet(
             onDismissRequest = { showContents = false },
-            title = "Contents",
+            title = UiText.StringResource(R.string.reader_nav_contents),
         ) {
             LazyColumn(
                 modifier = Modifier
@@ -1054,7 +1061,7 @@ fun ReaderScreen(
     if (showSearch) {
         com.example.liber.core.designsystem.LiberModalBottomSheet(
             onDismissRequest = { showSearch = false },
-            title = "Search in Book",
+            title = UiText.StringResource(R.string.reader_search_title),
         ) {
             SearchView(
                 viewModel = viewModel,
@@ -1072,7 +1079,7 @@ fun ReaderScreen(
     if (showNotebook) {
         com.example.liber.core.designsystem.LiberModalBottomSheet(
             onDismissRequest = { showNotebook = false },
-            title = "Notebook",
+            title = UiText.StringResource(R.string.reader_nav_notebook),
         ) {
             NotebookView(
                 bookmarks = bookmarks,
@@ -1104,15 +1111,13 @@ fun ReaderScreen(
     if (showThemes) {
         com.example.liber.core.designsystem.LiberModalBottomSheet(
             onDismissRequest = { showThemes = false },
-            title = "Themes & Settings",
+            title = UiText.StringResource(R.string.reader_themes_title),
         ) {
             ThemesSheet(
                 currentThemeId = themeId,
                 onThemeChange = { id -> viewModel.setTheme(id) },
                 onDecreaseFontSize = { viewModel.adjustFontSize(-0.1) },
                 onIncreaseFontSize = { viewModel.adjustFontSize(+0.1) },
-                pageScroll = pageScroll,
-                onPageScrollChange = { viewModel.setPageScroll(it) },
                 customizeLayout = customizeLayout,
                 onCustomizeLayoutChange = { viewModel.setCustomizeLayout(it) },
                 lineSpacing = lineSpacing,
@@ -1123,12 +1128,7 @@ fun ReaderScreen(
                 onWordSpacingChange = { viewModel.setWordSpacing(it) },
                 margins = margins,
                 onMarginsChange = { viewModel.setMargins(it) },
-                columnCount = columnCount,
-                onColumnCountChange = { viewModel.setColumnCount(it) },
-                justifyText = justifyText,
-                onJustifyTextChange = { viewModel.setJustifyText(it) },
                 onResetSettings = { viewModel.resetLayoutSettings() },
-                onClose = { showThemes = false },
             )
         }
     }
@@ -1139,7 +1139,11 @@ fun ReaderScreen(
         val selectedColor by viewModel.annotationColorArgb.collectAsState()
         val selectedText by viewModel.pendingSelectedText.collectAsState()
         val annotationType by viewModel.pendingAnnotationType.collectAsState()
-        val title = if (annotationType == "highlight") "Highlight" else "New Note"
+        val title = if (annotationType == "highlight") {
+            UiText.StringResource(R.string.reader_annotation_highlight)
+        } else {
+            UiText.StringResource(R.string.reader_annotation_note)
+        }
 
         com.example.liber.core.designsystem.LiberModalBottomSheet(
             onDismissRequest = { viewModel.cancelAnnotation() },
@@ -1205,7 +1209,11 @@ fun ReaderScreen(
     // ── Annotation Action Sheet (tap on existing highlight) ───────────────────
     LocalContext.current
     if (tappedAnnotation != null) {
-        val sheetTitle = if (tappedAnnotation.type == "highlight") "Highlight" else "Note"
+        val sheetTitle = if (tappedAnnotation.type == "highlight") {
+            UiText.StringResource(R.string.reader_annotation_highlight)
+        } else {
+            UiText.StringResource(R.string.reader_annotation_note)
+        }
         com.example.liber.core.designsystem.LiberModalBottomSheet(
             onDismissRequest = { viewModel.dismissAnnotationMenu() },
             title = sheetTitle,
@@ -1216,7 +1224,7 @@ fun ReaderScreen(
                 onShare = {
                     val text = tappedAnnotation.text
                     if (!text.isNullOrBlank()) {
-                        val shareText = formatShareText(text, publication)
+                        val shareText = formatShareText(text, publication, fragmentActivity)
                         val intent = Intent(Intent.ACTION_SEND).apply {
                             type = "text/plain"
                             putExtra(Intent.EXTRA_TEXT, shareText)
@@ -1229,7 +1237,6 @@ fun ReaderScreen(
                     onDeleteAnnotation(tappedAnnotation.id)
                     viewModel.dismissAnnotationMenu()
                 },
-                onDismiss = { viewModel.dismissAnnotationMenu() },
             )
         }
     }
@@ -1326,7 +1333,7 @@ private fun ProgressScrubber(
 @Composable
 internal fun ReaderNavItem(
     icon: @Composable () -> Unit,
-    label: String,
+    label: UiText,
     labelColor: Color,
     onClick: () -> Unit,
 ) {
@@ -1339,7 +1346,7 @@ internal fun ReaderNavItem(
         icon()
         Spacer(Modifier.height(4.dp))
         Text(
-            text = label,
+            text = label.asString(),
             style = MaterialTheme.typography.labelSmall,
             color = labelColor,
             fontSize = 10.sp,
@@ -1369,7 +1376,7 @@ private fun ContentsRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = link.title ?: "Untitled",
+            text = link.title ?: stringResource(R.string.reader_label_untitled),
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = if (depth == 0) FontWeight.SemiBold else FontWeight.Normal,
             color = if (depth == 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,

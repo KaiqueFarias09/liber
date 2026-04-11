@@ -35,6 +35,7 @@ import com.example.liber.core.designsystem.BookActionMenu
 import com.example.liber.core.designsystem.BookCover
 import com.example.liber.core.designsystem.CoverStyle
 import com.example.liber.core.designsystem.DeleteBookConfirmationDialog
+import com.example.liber.core.util.UiText
 import com.example.liber.data.model.Book
 
 @Composable
@@ -177,8 +178,8 @@ fun AudiobookListItem(
                 onToggleWantToRead = onToggleWantToRead,
                 onToggleFinished = onToggleFinished,
                 onShowDetails = onShowDetails,
-                onDelete = { showDeleteDialog = true },
-                deleteLabel = "Delete",
+                onDelete = { showMenu = false; showDeleteDialog = true },
+                deleteLabel = UiText.DynamicString("Delete"),
             )
         }
     }
@@ -186,7 +187,7 @@ fun AudiobookListItem(
     if (showDeleteDialog) {
         DeleteBookConfirmationDialog(
             bookTitle = book.title,
-            actionLabel = "Delete",
+            action = UiText.DynamicString("Delete"),
             onConfirm = {
                 showDeleteDialog = false
                 onDeleteBook()

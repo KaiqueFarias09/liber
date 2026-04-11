@@ -48,6 +48,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -67,9 +68,11 @@ import com.adamglin.phosphoricons.regular.PencilSimple
 import com.adamglin.phosphoricons.regular.PlusCircle
 import com.adamglin.phosphoricons.regular.ShareNetwork
 import com.adamglin.phosphoricons.regular.Trash
+import com.example.liber.R
 import com.example.liber.api.ITunesSearchApi
 import com.example.liber.api.ITunesSearchResult
 import com.example.liber.core.designsystem.LiberModalBottomSheet
+import com.example.liber.core.util.UiText
 import com.example.liber.data.model.Book
 import com.example.liber.feature.home.HomeViewModel
 import kotlinx.coroutines.Dispatchers
@@ -98,10 +101,10 @@ fun BookDetailsBottomSheet(
     LiberModalBottomSheet(
         onDismissRequest = onDismiss,
         title = when (currentSheet) {
-            BookDetailSheet.MORE -> "Details"
-            BookDetailSheet.EDIT_METADATA -> "Edit Book Info"
-            BookDetailSheet.CHANGE_COVER -> "Change Cover Art"
-            BookDetailSheet.SEARCH_WEB -> "Search Web"
+            BookDetailSheet.MORE -> UiText.StringResource(R.string.sheet_title_details)
+            BookDetailSheet.EDIT_METADATA -> UiText.StringResource(R.string.sheet_title_edit_metadata)
+            BookDetailSheet.CHANGE_COVER -> UiText.StringResource(R.string.sheet_title_change_cover)
+            BookDetailSheet.SEARCH_WEB -> UiText.StringResource(R.string.sheet_title_search_web)
         }
     ) {
         AnimatedContent(
@@ -260,7 +263,8 @@ fun MoreOptionsSheet(
                     maxLines = 1
                 )
                 Text(
-                    book.author?.uppercase() ?: "UNKNOWN AUTHOR",
+                    book.author?.uppercase()
+                        ?: stringResource(R.string.label_unknown_author).uppercase(),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     letterSpacing = 1.sp
@@ -270,14 +274,14 @@ fun MoreOptionsSheet(
 
         MoreOptionItem(
             icon = PhosphorIcons.Regular.PencilSimple,
-            title = "Edit Book Info",
-            subtitle = "Change title, author, and narrator",
+            title = UiText.StringResource(R.string.sheet_title_edit_metadata),
+            subtitle = UiText.StringResource(R.string.sheet_subtitle_edit_metadata),
             onClick = onEditMetadata
         )
         MoreOptionItem(
             icon = PhosphorIcons.Regular.PlusCircle,
-            title = "Change Cover Art",
-            subtitle = "Upload or search for a new image",
+            title = UiText.StringResource(R.string.sheet_title_change_cover),
+            subtitle = UiText.StringResource(R.string.sheet_subtitle_change_cover),
             onClick = onChangeCover
         )
 
@@ -291,7 +295,7 @@ fun MoreOptionsSheet(
         if (showShare) {
             MoreOptionItem(
                 icon = PhosphorIcons.Regular.ShareNetwork,
-                title = "Share Audiobook",
+                title = UiText.StringResource(R.string.action_share_audiobook),
                 subtitle = null,
                 onClick = onShare
             )
@@ -300,7 +304,7 @@ fun MoreOptionsSheet(
         if (showDelete) {
             MoreOptionItem(
                 icon = PhosphorIcons.Regular.Trash,
-                title = "Remove Download",
+                title = UiText.StringResource(R.string.action_remove_download),
                 subtitle = null,
                 onClick = onDelete,
                 tint = MaterialTheme.colorScheme.error
@@ -326,24 +330,24 @@ fun EditMetadataSheet(
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         MetadataInputField(
-            label = "Title",
+            label = UiText.StringResource(R.string.field_label_title),
             value = title,
             onValueChange = { title = it },
-            placeholder = "Book Title"
+            placeholder = UiText.StringResource(R.string.placeholder_book_title)
         )
 
         MetadataInputField(
-            label = "Author",
+            label = UiText.StringResource(R.string.field_label_author),
             value = author,
             onValueChange = { author = it },
-            placeholder = "Author Name"
+            placeholder = UiText.StringResource(R.string.placeholder_author_name)
         )
 
         MetadataInputField(
-            label = "Narrator",
+            label = UiText.StringResource(R.string.field_label_narrator),
             value = narrator,
             onValueChange = { narrator = it },
-            placeholder = "Narrated by"
+            placeholder = UiText.StringResource(R.string.placeholder_narrated_by)
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -358,7 +362,7 @@ fun EditMetadataSheet(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                "Save Changes",
+                text = stringResource(R.string.action_save_changes),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.surface
@@ -369,16 +373,16 @@ fun EditMetadataSheet(
 
 @Composable
 fun MetadataInputField(
-    label: String,
+    label: UiText,
     value: String,
     onValueChange: (String) -> Unit,
-    placeholder: String
+    placeholder: UiText
 ) {
     val focusManager = LocalFocusManager.current
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            label,
+            text = label.asString(),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Bold,
@@ -403,7 +407,7 @@ fun MetadataInputField(
             decorationBox = { innerTextField ->
                 if (value.isEmpty()) {
                     Text(
-                        placeholder,
+                        text = placeholder.asString(),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )
@@ -437,20 +441,20 @@ fun ChangeCoverSheet(
     ) {
         MoreOptionItem(
             icon = PhosphorIcons.Regular.Image,
-            title = "Choose from Gallery",
-            subtitle = "Select an image from your device",
+            title = UiText.StringResource(R.string.action_choose_from_gallery),
+            subtitle = UiText.StringResource(R.string.subtitle_choose_from_gallery),
             onClick = { galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
         )
         MoreOptionItem(
             icon = PhosphorIcons.Regular.Globe,
-            title = "Search Web",
-            subtitle = "Find high-resolution covers online",
+            title = UiText.StringResource(R.string.action_search_web),
+            subtitle = UiText.StringResource(R.string.subtitle_search_web),
             onClick = onSearchWebClick
         )
         MoreOptionItem(
             icon = PhosphorIcons.Regular.Camera,
-            title = "Take Photo",
-            subtitle = "Use your camera to capture a cover",
+            title = UiText.StringResource(R.string.action_take_photo),
+            subtitle = UiText.StringResource(R.string.subtitle_take_photo),
             onClick = onCameraClick
         )
     }
@@ -534,7 +538,7 @@ fun SearchWebSheet(
                 decorationBox = { innerTextField ->
                     if (query.isEmpty()) {
                         Text(
-                            "Search for a book...",
+                            text = stringResource(R.string.placeholder_search_book),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                         )
@@ -551,7 +555,7 @@ fun SearchWebSheet(
         } else if (results.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
-                    "No results found",
+                    text = stringResource(R.string.error_no_results),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -609,8 +613,8 @@ suspend fun downloadAndSaveCover(
 @Composable
 fun MoreOptionItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    subtitle: String?,
+    title: UiText,
+    subtitle: UiText?,
     onClick: () -> Unit,
     tint: Color = MaterialTheme.colorScheme.onSurface
 ) {
@@ -631,14 +635,14 @@ fun MoreOptionItem(
         )
         Column {
             Text(
-                title,
+                text = title.asString(),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 color = tint
             )
             if (subtitle != null) {
                 Text(
-                    subtitle,
+                    text = subtitle.asString(),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

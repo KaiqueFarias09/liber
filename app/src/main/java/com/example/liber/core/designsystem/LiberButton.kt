@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.liber.core.util.UiText
 
 enum class LiberButtonType {
     PRIMARY,
@@ -23,7 +24,7 @@ enum class LiberButtonType {
 
 @Composable
 fun LiberButton(
-    text: String,
+    text: UiText,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     type: LiberButtonType = LiberButtonType.PRIMARY,
@@ -58,7 +59,7 @@ fun LiberButton(
         contentPadding = PaddingValues(horizontal = 24.dp)
     ) {
         Text(
-            text = text,
+            text = text.asString(),
             style = MaterialTheme.typography.labelLarge.copy(
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = 0.5.sp

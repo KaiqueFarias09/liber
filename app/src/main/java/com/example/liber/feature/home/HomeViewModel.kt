@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.liber.core.util.UiState
 import com.example.liber.data.local.ScanStateHolder
 import com.example.liber.data.model.AnnotationEntity
 import com.example.liber.data.model.Book
@@ -25,6 +26,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -45,7 +47,13 @@ class HomeViewModel @Inject constructor(
 
     // ── State flows ──────────────────────────────────────────────────────────
 
-    val books: StateFlow<List<Book>> = bookRepository.getAllBooks()
+    val booksState: StateFlow<UiState<List<Book>>> = bookRepository.getAllBooks()
+        .map { UiState.Success(it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UiState.Loading)
+
+    // For compatibility with simple list consumers
+    val books: StateFlow<List<Book>> = booksState
+        .map { (it as? UiState.Success)?.data ?: emptyList() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val continueReadingBooks: StateFlow<List<Book>> = bookRepository

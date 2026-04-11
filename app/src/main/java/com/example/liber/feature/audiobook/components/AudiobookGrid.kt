@@ -202,7 +202,7 @@ private fun AudiobooksToolbar(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
-                        text = sortOption.label,
+                        text = sortOption.label.asString(),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onBackground,
                     )

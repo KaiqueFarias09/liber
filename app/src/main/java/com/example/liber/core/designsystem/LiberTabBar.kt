@@ -13,11 +13,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.liber.core.util.UiText
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LiberTabBar(
-    tabs: List<String>,
+    tabs: List<UiText>,
     selectedTabIndex: Int,
     onTabSelected: (Int) -> Unit,
     modifier: Modifier = Modifier
@@ -48,7 +49,7 @@ fun LiberTabBar(
                 unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 text = {
                     Text(
-                        text = title,
+                        text = title.asString(),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal
                     )

@@ -25,6 +25,8 @@ import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.FolderOpen
 import com.adamglin.phosphoricons.regular.X
+import com.example.liber.R
+import com.example.liber.core.util.UiText
 import com.example.liber.data.model.ScanState
 
 @Composable
@@ -63,7 +65,7 @@ fun ScanProgressBanner(
                         modifier = Modifier.size(18.dp),
                     )
                     Text(
-                        text = bannerTitle(state),
+                        text = bannerTitle(state).asString(),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
@@ -108,23 +110,28 @@ fun ScanProgressBanner(
     }
 }
 
-private fun bannerTitle(state: ScanState): String = when (state) {
+private fun bannerTitle(state: ScanState): UiText = when (state) {
     is ScanState.Scanning -> {
         val folder = state.folderName
         if (state.total <= 0) {
-            "Scanning $folder…"
+            UiText.StringResource(R.string.scan_state_scanning, folder)
         } else {
-            "${state.current} of ${state.total} files · $folder"
+            UiText.StringResource(R.string.scan_state_progress, state.current, state.total, folder)
         }
     }
 
     is ScanState.Finished -> {
         val added = state.added
         val folder = state.folderName
-        if (added == 0) "No new books found in $folder"
-        else "$added book${if (added == 1) "" else "s"} added from $folder"
+        if (added == 0) UiText.StringResource(R.string.scan_state_finished_none, folder)
+        else if (added == 1) UiText.StringResource(
+            R.string.scan_state_finished_singular,
+            added,
+            folder
+        )
+        else UiText.StringResource(R.string.scan_state_finished_plural, added, folder)
     }
 
-    is ScanState.Failed -> "Scan failed: ${state.reason}"
-    ScanState.Idle -> ""
+    is ScanState.Failed -> UiText.StringResource(R.string.scan_state_failed, state.reason)
+    ScanState.Idle -> UiText.DynamicString("")
 }

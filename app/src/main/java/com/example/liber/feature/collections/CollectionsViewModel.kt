@@ -3,6 +3,7 @@ package com.example.liber.feature.collections
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.liber.core.util.UiState
 import com.example.liber.data.local.CollectionWithBooksRelation
 import com.example.liber.data.model.Book
 import com.example.liber.data.model.BookCollectionEntity
@@ -11,7 +12,6 @@ import com.example.liber.data.model.toBook
 import com.example.liber.data.repository.CollectionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -31,9 +31,17 @@ class CollectionsViewModel @Inject constructor(
     private val collectionRepository: CollectionRepository,
 ) : AndroidViewModel(application) {
 
-    val collections: StateFlow<List<CollectionUiState>> = collectionRepository
+    val collectionsState: StateFlow<UiState<List<CollectionUiState>>> = collectionRepository
         .getAllCollectionsWithBooks()
-        .map { relations -> relations.map { it.toUiState() } }
+        .map { relations ->
+            val data = relations.map { it.toUiState() }
+            UiState.Success(data)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UiState.Loading)
+
+    // Keep the old one for compatibility if needed, but ideally we migrate usages
+    val collections: StateFlow<List<CollectionUiState>> = collectionsState
+        .map { state -> (state as? UiState.Success)?.data ?: emptyList() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun createCollection(name: String) {
@@ -65,9 +73,6 @@ class CollectionsViewModel @Inject constructor(
             collectionRepository.removeBookFromCollection(collectionId, bookId)
         }
     }
-
-    fun getCollectionIdsForBook(bookId: String): Flow<List<Long>> =
-        collectionRepository.getCollectionIdsForBook(bookId)
 
     private fun CollectionWithBooksRelation.toUiState() = CollectionUiState(
         id = collection.id,

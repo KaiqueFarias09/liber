@@ -20,13 +20,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.liber.core.util.UiText
 
 /**
  * A standard screen layout for Liber app to ensure consistent spacing and header style.
  */
 @Composable
 fun LiberScreen(
-    title: String?,
+    title: UiText?,
     modifier: Modifier = Modifier,
     headerActions: (@Composable RowScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
@@ -44,7 +45,7 @@ fun LiberScreen(
  */
 @Composable
 fun LiberScrollableScreen(
-    title: String?,
+    title: UiText?,
     modifier: Modifier = Modifier,
     headerActions: (@Composable RowScope.() -> Unit)? = null,
     contentPadding: PaddingValues = PaddingValues(bottom = 24.dp),
@@ -63,12 +64,12 @@ fun LiberScrollableScreen(
 
 @Composable
 fun LiberHeader(
-    title: String?,
+    title: UiText?,
     modifier: Modifier = Modifier,
     actions: (@Composable RowScope.() -> Unit)? = null
 ) {
     // If absolutely nothing to show, just provide a standard top margin
-    if (title.isNullOrEmpty() && actions == null) {
+    if (title == null && actions == null) {
         Spacer(modifier = modifier.height(24.dp))
         return
     }
@@ -82,9 +83,9 @@ fun LiberHeader(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (!title.isNullOrEmpty()) {
+        if (title != null) {
             Text(
-                text = title,
+                text = title.asString(),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground,
             )

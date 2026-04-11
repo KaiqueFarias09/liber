@@ -19,6 +19,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.adamglin.PhosphorIcons
@@ -31,6 +32,7 @@ import com.example.liber.core.designsystem.EmptyState
 import com.example.liber.core.designsystem.LiberScrollableScreen
 import com.example.liber.core.designsystem.LiberTheme
 import com.example.liber.core.designsystem.WantToReadCover
+import com.example.liber.core.util.UiText
 import com.example.liber.data.model.Book
 
 @Composable
@@ -44,14 +46,14 @@ fun HomeScreen(
     isPlaying: Boolean = false,
 ) {
     LiberScrollableScreen(
-        title = "Liber",
+        title = UiText.DynamicString("Liber"),
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 100.dp),
     ) {
         // ── Continue ────────────────────────────────────────────────────────
         if (continueBooks.isNotEmpty()) {
             item {
-                SectionTitle(text = "Continue")
+                SectionTitle(text = UiText.StringResource(R.string.home_section_continue))
             }
             item {
                 LazyRow(
@@ -77,9 +79,9 @@ fun HomeScreen(
         item { SectionDivider() }
         item {
             Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-                SectionTitleWithChevron(text = "Want to Read")
+                SectionTitleWithChevron(text = UiText.StringResource(R.string.home_section_want_to_read))
                 Text(
-                    text = "Books you would like to read next.",
+                    text = stringResource(R.string.home_subtitle_want_to_read),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
@@ -89,8 +91,8 @@ fun HomeScreen(
         item {
             if (wantToReadBooks.isEmpty()) {
                 EmptyState(
-                    title = "No books yet",
-                    subtitle = "Tap the bookmark icon in Library to add.",
+                    title = UiText.StringResource(R.string.home_empty_title_want_to_read),
+                    subtitle = UiText.StringResource(R.string.home_empty_subtitle_want_to_read),
                     image = R.drawable.want_to_read_empty,
                     showImage = true,
                     modifier = Modifier.padding(horizontal = 24.dp)
@@ -113,7 +115,7 @@ fun HomeScreen(
             item { SectionDivider() }
             item {
                 SectionTitleWithChevron(
-                    text = "Previous",
+                    text = UiText.StringResource(R.string.home_section_previous),
                     modifier = Modifier.padding(start = 24.dp, bottom = 12.dp),
                 )
             }
@@ -168,9 +170,9 @@ fun HomeScreen(
 // ── Private sub-composables ───────────────────────────────────────────────────
 
 @Composable
-private fun SectionTitle(text: String, modifier: Modifier = Modifier) {
+private fun SectionTitle(text: UiText, modifier: Modifier = Modifier) {
     Text(
-        text = text,
+        text = text.asString(),
         style = MaterialTheme.typography.titleLarge,
         color = MaterialTheme.colorScheme.onBackground,
         modifier = modifier.padding(start = 24.dp, bottom = 12.dp),
@@ -178,13 +180,13 @@ private fun SectionTitle(text: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun SectionTitleWithChevron(text: String, modifier: Modifier = Modifier) {
+private fun SectionTitleWithChevron(text: UiText, modifier: Modifier = Modifier) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier,
     ) {
         Text(
-            text = text,
+            text = text.asString(),
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground,
         )
@@ -209,9 +211,10 @@ private fun SectionDivider() {
 
 @Composable
 private fun ProgressText(book: Book) {
-    val typeLabel = if (book.isAudiobook) "Audiobook" else "Book"
+    val typeLabel = if (book.isAudiobook) stringResource(R.string.home_label_audiobook)
+    else stringResource(R.string.home_label_book)
     Text(
-        text = "$typeLabel \u2022 ${book.readingProgress}%",
+        text = stringResource(R.string.home_label_progress, typeLabel, book.readingProgress),
         style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(top = 4.dp),
@@ -231,9 +234,10 @@ private fun PreviousStatusContent(book: Book) {
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(13.dp),
             )
-            val typeLabel = if (book.isAudiobook) "Audiobook" else "Book"
+            val typeLabel = if (book.isAudiobook) stringResource(R.string.home_label_audiobook)
+            else stringResource(R.string.home_label_book)
             Text(
-                text = " $typeLabel \u2022 Finished",
+                text = " " + stringResource(R.string.home_label_finished_status, typeLabel),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

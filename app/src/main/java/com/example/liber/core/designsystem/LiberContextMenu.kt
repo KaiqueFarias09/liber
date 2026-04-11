@@ -21,6 +21,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.PopupProperties
 
+import com.example.liber.core.util.UiText
+
 /**
  * A standardized dropdown menu with Soft Material styling.
  *
@@ -60,7 +62,7 @@ fun LiberDropdownMenu(
  */
 @Composable
 fun LiberContextMenuItem(
-    label: String,
+    label: UiText,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
@@ -76,7 +78,7 @@ fun LiberContextMenuItem(
     DropdownMenuItem(
         text = {
             Text(
-                text = label,
+                text = label.asString(),
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontWeight = FontWeight.Medium,
                     fontSize = 15.sp,

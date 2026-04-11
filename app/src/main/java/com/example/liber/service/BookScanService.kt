@@ -85,7 +85,7 @@ class BookScanService : Service() {
             return
         }
 
-        ScanStateHolder.update(ScanState.Scanning(folderName, 0, -1, 0))
+        ScanStateHolder.update(ScanState.Scanning(folderName, 0, -1))
         updateNotification(folderName, 0, -1)
 
         val bookFiles = collectBookFiles(folder)
@@ -94,7 +94,7 @@ class BookScanService : Service() {
         var skipped = 0
 
         bookFiles.forEachIndexed { index, file ->
-            ScanStateHolder.update(ScanState.Scanning(folderName, index + 1, total, newlyAdded))
+            ScanStateHolder.update(ScanState.Scanning(folderName, index + 1, total))
             updateNotification(folderName, index + 1, total)
 
             val existingBook = bookRepo.getBookByFileUri(file.uri.toString())
@@ -128,7 +128,7 @@ class BookScanService : Service() {
         }
 
         sourceRepo.updateScanResult(treeUri.toString(), System.currentTimeMillis(), newlyAdded)
-        ScanStateHolder.update(ScanState.Finished(folderName, newlyAdded, skipped))
+        ScanStateHolder.update(ScanState.Finished(folderName, newlyAdded))
     }
 
     private suspend fun refreshAudiobookCover(

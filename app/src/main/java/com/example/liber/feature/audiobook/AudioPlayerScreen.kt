@@ -56,6 +56,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
@@ -74,8 +75,11 @@ import com.adamglin.phosphoricons.regular.CaretDown
 import com.adamglin.phosphoricons.regular.Clock
 import com.adamglin.phosphoricons.regular.DotsThree
 import com.adamglin.phosphoricons.regular.List
+import com.example.liber.R
 import com.example.liber.core.designsystem.LiberDialog
 import com.example.liber.core.designsystem.LiberModalBottomSheet
+import com.example.liber.core.util.UiText
+import com.example.liber.core.util.toFormattedPlaybackTime
 import com.example.liber.data.model.Book
 import com.example.liber.feature.home.HomeViewModel
 import com.example.liber.feature.home.components.BookDetailsBottomSheet
@@ -174,18 +178,18 @@ fun AudioPlayerScreen(
     if (showDeleteConfirmation) {
         LiberDialog(
             onDismissRequest = { showDeleteConfirmation = false },
-            title = "Remove Download",
-            confirmLabel = "Remove",
+            title = UiText.StringResource(R.string.dialog_title_remove_download),
+            confirmLabel = UiText.StringResource(R.string.action_remove),
             confirmLabelColor = MaterialTheme.colorScheme.error,
             onConfirm = {
                 homeViewModel.deleteBook(book.id)
                 showDeleteConfirmation = false
                 onBack()
             },
-            dismissLabel = "Cancel"
+            dismissLabel = UiText.StringResource(R.string.action_cancel)
         ) {
             Text(
-                "Are you sure you want to remove this audiobook from your library? This action cannot be undone.",
+                stringResource(R.string.dialog_message_remove_download),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -206,7 +210,10 @@ fun AudioPlayerScreen(
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                     ) {
-                        Icon(PhosphorIcons.Regular.CaretDown, contentDescription = "Back")
+                        Icon(
+                            imageVector = PhosphorIcons.Regular.CaretDown,
+                            contentDescription = stringResource(R.string.audio_control_back)
+                        )
                     }
                 },
                 actions = {
@@ -218,7 +225,10 @@ fun AudioPlayerScreen(
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                     ) {
-                        Icon(PhosphorIcons.Regular.DotsThree, contentDescription = "More")
+                        Icon(
+                            imageVector = PhosphorIcons.Regular.DotsThree,
+                            contentDescription = stringResource(R.string.audio_control_more)
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -402,7 +412,7 @@ fun AudioPlayerScreen(
                     maxLines = 2
                 )
                 Text(
-                    text = book.author ?: "Unknown Author",
+                    text = book.author ?: stringResource(R.string.label_unknown_author),
                     style = MaterialTheme.typography.bodyMedium, // Switzer
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -436,12 +446,12 @@ fun AudioPlayerScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            formatTime(positionMs),
+                            positionMs.toFormattedPlaybackTime(),
                             style = MaterialTheme.typography.labelSmall.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            "- ${formatTime(durationMs - positionMs)}",
+                            "- ${(durationMs - positionMs).toFormattedPlaybackTime()}",
                             style = MaterialTheme.typography.labelSmall.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -459,13 +469,13 @@ fun AudioPlayerScreen(
                     IconButton(onClick = { audiobookPlayerViewModel.skipBackward(15) }) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
-                                PhosphorIcons.Regular.ArrowCounterClockwise,
-                                contentDescription = "-15s",
+                                imageVector = PhosphorIcons.Regular.ArrowCounterClockwise,
+                                contentDescription = stringResource(R.string.audio_control_skip_backward),
                                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                                 modifier = Modifier.size(28.dp)
                             )
                             Text(
-                                "-15s",
+                                text = stringResource(R.string.audio_label_skip_backward_short),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
@@ -489,7 +499,9 @@ fun AudioPlayerScreen(
                     ) {
                         Icon(
                             imageVector = if (playWhenReady) PhosphorIcons.Fill.Pause else PhosphorIcons.Fill.Play,
-                            contentDescription = if (playWhenReady) "Pause" else "Play",
+                            contentDescription = if (playWhenReady) stringResource(R.string.audio_control_pause) else stringResource(
+                                R.string.audio_control_play
+                            ),
                             tint = if (playWhenReady) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surface,
                             modifier = Modifier.size(32.dp)
                         )
@@ -500,13 +512,13 @@ fun AudioPlayerScreen(
                     IconButton(onClick = { audiobookPlayerViewModel.skipForward(15) }) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
-                                PhosphorIcons.Regular.ArrowClockwise,
-                                contentDescription = "+15s",
+                                imageVector = PhosphorIcons.Regular.ArrowClockwise,
+                                contentDescription = stringResource(R.string.audio_control_skip_forward),
                                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                                 modifier = Modifier.size(28.dp)
                             )
                             Text(
-                                "+15s",
+                                text = stringResource(R.string.audio_label_skip_forward_short),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
@@ -534,7 +546,7 @@ fun AudioPlayerScreen(
                             .padding(horizontal = 10.dp, vertical = 6.dp)
                     ) {
                         Text(
-                            "${playbackSpeed}x",
+                            text = stringResource(R.string.audio_label_speed, playbackSpeed),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -551,13 +563,13 @@ fun AudioPlayerScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
-                            PhosphorIcons.Regular.List,
-                            null,
-                            Modifier.size(18.dp),
-                            MaterialTheme.colorScheme.onSurface
+                            imageVector = PhosphorIcons.Regular.List,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            "Chapters",
+                            text = stringResource(R.string.audio_label_chapters),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurface
@@ -568,7 +580,7 @@ fun AudioPlayerScreen(
                         Box {
                             Icon(
                                 PhosphorIcons.Regular.Clock,
-                                contentDescription = "Sleep Timer",
+                                contentDescription = stringResource(R.string.audio_sleep_timer),
                                 tint = if (sleepTimerRemainingMs != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(24.dp)
                             )
@@ -606,9 +618,9 @@ fun AudioPlayerScreen(
             LiberModalBottomSheet(
                 onDismissRequest = { activeSheet = null },
                 title = when (sheet) {
-                    AudioPlayerSheet.SPEED -> "Playback Speed"
-                    AudioPlayerSheet.CHAPTERS -> "Chapters"
-                    AudioPlayerSheet.SLEEP -> "Sleep Timer"
+                    AudioPlayerSheet.SPEED -> UiText.StringResource(R.string.audio_playback_speed)
+                    AudioPlayerSheet.CHAPTERS -> UiText.StringResource(R.string.audio_chapters)
+                    AudioPlayerSheet.SLEEP -> UiText.StringResource(R.string.audio_sleep_timer)
                 }
             ) {
                 AnimatedContent(
@@ -685,7 +697,7 @@ fun SpeedSheet(currentSpeed: Float, onSpeedSelected: (Float) -> Unit) {
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        "${speed}x",
+                        text = stringResource(R.string.audio_label_speed, speed),
                         color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
@@ -715,7 +727,7 @@ fun ChaptersSheet(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                "${tracks.size} chapters",
+                text = stringResource(R.string.audio_chapters_count, tracks.size),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -780,10 +792,10 @@ fun SleepTimerSheet(
             .padding(top = 8.dp)
     ) {
         val options = listOf(
-            "Off" to null,
-            "15 Minutos" to 15,
-            "30 Minutos" to 30,
-            "45 Minutos" to 45
+            stringResource(R.string.audio_sleep_timer_off) to null,
+            stringResource(R.string.audio_sleep_timer_minutes, 15) to 15,
+            stringResource(R.string.audio_sleep_timer_minutes, 30) to 30,
+            stringResource(R.string.audio_sleep_timer_minutes, 45) to 45
         )
 
         options.forEach { (label, minutes) ->
@@ -801,19 +813,9 @@ fun SleepTimerSheet(
         }
 
         SleepTimerOption(
-            label = "Fim do Capítulo",
+            label = stringResource(R.string.audio_sleep_timer_end_of_chapter),
             isSelected = remainingMs == -1L,
             onClick = onEndOfChapterSelected
-        )
-
-        Text(
-            "A reprodução será pausada automaticamente.",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 24.dp),
-            textAlign = TextAlign.Center
         )
     }
 }
@@ -844,17 +846,5 @@ fun SleepTimerOption(label: String, isSelected: Boolean, onClick: () -> Unit) {
                 tint = MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
-    }
-}
-
-private fun formatTime(ms: Long): String {
-    val totalSeconds = ms / 1000
-    val hours = totalSeconds / 3600
-    val minutes = (totalSeconds % 3600) / 60
-    val seconds = totalSeconds % 60
-    return if (hours > 0) {
-        "%d:%02d:%02d".format(hours, minutes, seconds)
-    } else {
-        "%d:%02d".format(minutes, seconds)
     }
 }

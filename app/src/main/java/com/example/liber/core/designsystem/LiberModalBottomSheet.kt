@@ -22,12 +22,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.liber.core.util.UiText
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LiberModalBottomSheet(
     onDismissRequest: () -> Unit,
-    title: String,
+    title: UiText,
     modifier: Modifier = Modifier,
     skipPartiallyExpanded: Boolean = true,
     content: @Composable ColumnScope.() -> Unit
@@ -47,9 +48,9 @@ fun LiberModalBottomSheet(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = title,
+                text = title.asString(),
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Medium, // titleLarge generally uses Medium by default, this sets it explicitly just in case
+                fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Box(

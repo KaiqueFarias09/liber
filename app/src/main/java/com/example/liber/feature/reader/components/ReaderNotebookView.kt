@@ -31,6 +31,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -42,6 +43,7 @@ import com.adamglin.phosphoricons.regular.Trash
 import com.example.liber.R
 import com.example.liber.core.designsystem.EmptyState
 import com.example.liber.core.designsystem.LiberTabBar
+import com.example.liber.core.util.UiText
 import com.example.liber.data.model.AnnotationEntity
 import com.example.liber.data.model.BookmarkEntity
 import kotlinx.coroutines.launch
@@ -59,7 +61,11 @@ fun NotebookView(
     onDeleteNote: (AnnotationEntity) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val tabs = listOf("Bookmarks", "Highlights", "Notes")
+    val tabs = listOf(
+        UiText.StringResource(R.string.reader_notebook_tab_bookmarks),
+        UiText.StringResource(R.string.reader_notebook_tab_highlights),
+        UiText.StringResource(R.string.reader_notebook_tab_notes)
+    )
     val pagerState = rememberPagerState { tabs.size }
     val scope = rememberCoroutineScope()
 
@@ -87,7 +93,7 @@ fun NotebookView(
                         remember(annotations) { annotations.filter { it.type == "highlight" } }
                     AnnotationList(
                         annotations = highlights,
-                        emptyMessage = "No highlights yet.",
+                        emptyMessage = UiText.StringResource(R.string.reader_notebook_empty_highlights),
                         onNoteClick = onNoteClick,
                         onDeleteNote = onDeleteNote,
                         emptyImage = R.drawable.highlights_empty,
@@ -98,7 +104,7 @@ fun NotebookView(
                     val notes = remember(annotations) { annotations.filter { it.type == "note" } }
                     AnnotationList(
                         annotations = notes,
-                        emptyMessage = "No notes yet.",
+                        emptyMessage = UiText.StringResource(R.string.reader_notebook_empty_notes),
                         onNoteClick = onNoteClick,
                         onDeleteNote = onDeleteNote,
                         emptyImage = R.drawable.notes_empty,
@@ -118,7 +124,7 @@ fun BookmarksView(
 ) {
     if (bookmarks.isEmpty()) {
         EmptyState(
-            title = "No bookmarks.",
+            title = UiText.StringResource(R.string.reader_notebook_empty_bookmarks),
             image = R.drawable.bookmarks_empty,
             showBackground = false,
             modifier = modifier.padding(horizontal = 20.dp),
@@ -142,7 +148,8 @@ fun BookmarksView(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = bm.chapter ?: "Unknown chapter",
+                            text = bm.chapter
+                                ?: stringResource(R.string.reader_notebook_unknown_chapter),
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface,
@@ -164,7 +171,7 @@ fun BookmarksView(
                         ) {
                             Icon(
                                 PhosphorIcons.Regular.Trash,
-                                contentDescription = "Delete bookmark",
+                                contentDescription = stringResource(R.string.reader_notebook_delete_bookmark),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(18.dp)
                             )
@@ -186,7 +193,7 @@ fun BookmarksView(
 @Composable
 fun AnnotationList(
     annotations: List<AnnotationEntity>,
-    emptyMessage: String,
+    emptyMessage: UiText,
     onNoteClick: (AnnotationEntity) -> Unit,
     onDeleteNote: (AnnotationEntity) -> Unit,
     modifier: Modifier = Modifier,
@@ -238,13 +245,14 @@ fun DarkAnnotationItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Chapter • $dateStr",
+                text = stringResource(R.string.reader_notebook_chapter_date, dateStr),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             )
             IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
                 Icon(
-                    PhosphorIcons.Regular.Trash, contentDescription = "Delete",
+                    PhosphorIcons.Regular.Trash,
+                    contentDescription = stringResource(R.string.action_delete),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     modifier = Modifier.size(14.dp)
                 )
