@@ -80,6 +80,9 @@ fun LiberApp(
     val liberAppViewModel: LiberAppViewModel = hiltViewModel()
     val settingsViewModel: SettingsViewModel = hiltViewModel()
     val audiobookPlayerViewModel: AudiobookPlayerViewModel = hiltViewModel()
+    val userPreferencesRepository = remember {
+        com.example.liber.data.repository.UserPreferencesRepository(context.applicationContext)
+    }
 
     // ── Navigation ───────────────────────────────────────────────────────────
     val navController = rememberNavController()
@@ -263,6 +266,7 @@ fun LiberApp(
                 ReaderScreen(
                     publication = publication,
                     bookId = book.id,
+                    userPreferencesRepository = userPreferencesRepository,
                     initialLocatorJson = book.lastLocator,
                     annotations = annotations,
                     bookmarks = bookmarks,

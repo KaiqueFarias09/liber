@@ -84,6 +84,7 @@ import com.adamglin.phosphoricons.regular.TextAa
 import com.example.liber.R
 import com.example.liber.data.model.AnnotationEntity
 import com.example.liber.data.model.BookmarkEntity
+import com.example.liber.data.repository.UserPreferencesRepository
 import com.example.liber.feature.reader.components.AnnotationActionsSheet
 import com.example.liber.feature.reader.components.CreateAnnotationSheet
 import com.example.liber.feature.reader.components.HighlightColorPicker
@@ -182,6 +183,7 @@ private fun formatShareText(text: String, publication: Publication): String {
 fun ReaderScreen(
     publication: Publication,
     bookId: String,
+    userPreferencesRepository: UserPreferencesRepository,
     initialLocatorJson: String?,
     annotations: List<AnnotationEntity>,
     bookmarks: List<BookmarkEntity>,
@@ -197,7 +199,7 @@ fun ReaderScreen(
 ) {
     val application = LocalContext.current.applicationContext as Application
     val viewModel: ReaderViewModel = viewModel(
-        factory = ReaderViewModel.Factory(application, publication)
+        factory = ReaderViewModel.Factory(application, publication, userPreferencesRepository)
     )
 
     val fragmentActivity = LocalActivity.current as FragmentActivity

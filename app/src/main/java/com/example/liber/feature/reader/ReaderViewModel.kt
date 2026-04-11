@@ -1,13 +1,13 @@
 package com.example.liber.feature.reader
 
 import android.app.Application
-import android.content.Context
-import androidx.core.content.edit
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.liber.data.repository.UserPreferencesRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.shared.publication.Locator
@@ -19,18 +19,6 @@ import org.readium.r2.shared.publication.services.search.search
 // Default annotation color — yellow at 50 % opacity (visible on both light and dark themes)
 private val DEFAULT_ANNOTATION_COLOR = 0x80FFD60A.toInt()
 
-private const val PREFS_NAME = "reader_prefs"
-private const val KEY_THEME = "theme_id"
-private const val KEY_FONT = "font_size"
-private const val KEY_SCROLL = "page_scroll"
-private const val KEY_CUSTOMIZE = "customize_layout"
-private const val KEY_LINE_SPACING = "line_spacing"
-private const val KEY_CHAR_SPACING = "char_spacing"
-private const val KEY_WORD_SPACING = "word_spacing"
-private const val KEY_MARGINS = "margins"
-private const val KEY_COLUMNS = "column_count"
-private const val KEY_JUSTIFY = "justify_text"
-
 private const val DEFAULT_LINE_SPACING = 1.4f
 private const val DEFAULT_CHAR_SPACING = 0.0f
 private const val DEFAULT_WORD_SPACING = 0.0f
@@ -40,9 +28,8 @@ private const val DEFAULT_MARGINS = 0.0f
 class ReaderViewModel(
     application: Application,
     val publication: Publication,
+    private val userPreferencesRepository: UserPreferencesRepository
 ) : AndroidViewModel(application) {
-
-    private val prefs = application.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     // ── Reader UI state ──────────────────────────────────────────────────────
 
@@ -55,113 +42,107 @@ class ReaderViewModel(
 
     // ── Theme & font size (persisted) ────────────────────────────────────────
 
-    private val _themeId = MutableStateFlow(prefs.getString(KEY_THEME, "original") ?: "original")
+    private val _themeId = MutableStateFlow("original")
     val themeId: StateFlow<String> = _themeId
 
-    private val _fontSize = MutableStateFlow(prefs.getFloat(KEY_FONT, 1.0f).toDouble())
+    private val _fontSize = MutableStateFlow(1.0)
     val fontSize: StateFlow<Double> = _fontSize
 
     fun setTheme(id: String) {
-        _themeId.value = id
-        prefs.edit { putString(KEY_THEME, id) }
+        viewModelScope.launch {
+            userPreferencesRepository.setReaderTheme(id)
+        }
     }
 
     fun adjustFontSize(delta: Double) {
-        val next = (_fontSize.value + delta).coerceIn(0.5, 2.0)
-        _fontSize.value = next
-        prefs.edit { putFloat(KEY_FONT, next.toFloat()) }
+        viewModelScope.launch {
+            val next = (_fontSize.value + delta).coerceIn(0.5, 2.0)
+            userPreferencesRepository.setFontSize(next.toFloat())
+        }
     }
 
     // ── Page flipping (scroll mode) ──────────────────────────────────────────
 
-    private val _pageScroll = MutableStateFlow(prefs.getBoolean(KEY_SCROLL, false))
+    private val _pageScroll = MutableStateFlow(false)
     val pageScroll: StateFlow<Boolean> = _pageScroll
 
     fun setPageScroll(scrollMode: Boolean) {
-        _pageScroll.value = scrollMode
-        prefs.edit { putBoolean(KEY_SCROLL, scrollMode) }
+        viewModelScope.launch {
+            userPreferencesRepository.setPageScroll(scrollMode)
+        }
     }
 
     // ── Layout customization (persisted) ─────────────────────────────────────
 
-    private val _customizeLayout = MutableStateFlow(prefs.getBoolean(KEY_CUSTOMIZE, false))
+    private val _customizeLayout = MutableStateFlow(false)
     val customizeLayout: StateFlow<Boolean> = _customizeLayout
 
     fun setCustomizeLayout(enabled: Boolean) {
-        _customizeLayout.value = enabled
-        prefs.edit { putBoolean(KEY_CUSTOMIZE, enabled) }
+        viewModelScope.launch {
+            userPreferencesRepository.setCustomizeLayout(enabled)
+        }
     }
 
-    private val _lineSpacing =
-        MutableStateFlow(prefs.getFloat(KEY_LINE_SPACING, DEFAULT_LINE_SPACING).toDouble())
+    private val _lineSpacing = MutableStateFlow(DEFAULT_LINE_SPACING.toDouble())
     val lineSpacing: StateFlow<Double> = _lineSpacing
 
     fun setLineSpacing(value: Double) {
-        _lineSpacing.value = value.coerceIn(0.8, 2.5)
-        prefs.edit { putFloat(KEY_LINE_SPACING, _lineSpacing.value.toFloat()) }
+        viewModelScope.launch {
+            userPreferencesRepository.setLineSpacing(value.toFloat())
+        }
     }
 
-    private val _characterSpacing =
-        MutableStateFlow(prefs.getFloat(KEY_CHAR_SPACING, DEFAULT_CHAR_SPACING).toDouble())
+    private val _characterSpacing = MutableStateFlow(DEFAULT_CHAR_SPACING.toDouble())
     val characterSpacing: StateFlow<Double> = _characterSpacing
 
     fun setCharacterSpacing(value: Double) {
-        _characterSpacing.value = value.coerceIn(-10.0, 10.0)
-        prefs.edit { putFloat(KEY_CHAR_SPACING, _characterSpacing.value.toFloat()) }
+        viewModelScope.launch {
+            userPreferencesRepository.setCharSpacing(value.toFloat())
+        }
     }
 
-    private val _wordSpacing =
-        MutableStateFlow(prefs.getFloat(KEY_WORD_SPACING, DEFAULT_WORD_SPACING).toDouble())
+    private val _wordSpacing = MutableStateFlow(DEFAULT_WORD_SPACING.toDouble())
     val wordSpacing: StateFlow<Double> = _wordSpacing
 
     fun setWordSpacing(value: Double) {
-        _wordSpacing.value = value.coerceIn(-20.0, 20.0)
-        prefs.edit { putFloat(KEY_WORD_SPACING, _wordSpacing.value.toFloat()) }
+        viewModelScope.launch {
+            userPreferencesRepository.setWordSpacing(value.toFloat())
+        }
     }
 
-    private val _margins =
-        MutableStateFlow(prefs.getFloat(KEY_MARGINS, DEFAULT_MARGINS).toDouble())
+    private val _margins = MutableStateFlow(DEFAULT_MARGINS.toDouble())
     val margins: StateFlow<Double> = _margins
 
     fun setMargins(value: Double) {
-        _margins.value = value.coerceIn(-10.0, 10.0)
-        prefs.edit { putFloat(KEY_MARGINS, _margins.value.toFloat()) }
+        viewModelScope.launch {
+            userPreferencesRepository.setMargins(value.toFloat())
+        }
     }
 
     // "auto" | "one" | "two"
-    private val _columnCount =
-        MutableStateFlow(prefs.getString(KEY_COLUMNS, "auto") ?: "auto")
+    private val _columnCount = MutableStateFlow("auto")
     val columnCount: StateFlow<String> = _columnCount
 
     fun setColumnCount(value: String) {
-        _columnCount.value = value
-        prefs.edit { putString(KEY_COLUMNS, value) }
+        viewModelScope.launch {
+            userPreferencesRepository.setColumnCount(value)
+        }
     }
 
-    private val _justifyText = MutableStateFlow(prefs.getBoolean(KEY_JUSTIFY, false))
+    private val _justifyText = MutableStateFlow(false)
     val justifyText: StateFlow<Boolean> = _justifyText
 
     fun setJustifyText(value: Boolean) {
-        _justifyText.value = value
-        prefs.edit { putBoolean(KEY_JUSTIFY, value) }
+        viewModelScope.launch {
+            userPreferencesRepository.setJustifyText(value)
+        }
     }
 
     /** Resets all layout / typography settings to their defaults. */
     fun resetLayoutSettings() {
-        setPageScroll(false)
-        setCustomizeLayout(false)
-        _lineSpacing.value = DEFAULT_LINE_SPACING.toDouble()
-        _characterSpacing.value = DEFAULT_CHAR_SPACING.toDouble()
-        _wordSpacing.value = DEFAULT_WORD_SPACING.toDouble()
-        _margins.value = DEFAULT_MARGINS.toDouble()
-        prefs.edit {
-            putFloat(KEY_LINE_SPACING, DEFAULT_LINE_SPACING)
-            putFloat(KEY_CHAR_SPACING, DEFAULT_CHAR_SPACING)
-            putFloat(KEY_WORD_SPACING, DEFAULT_WORD_SPACING)
-            putFloat(KEY_MARGINS, DEFAULT_MARGINS)
+        viewModelScope.launch {
+            userPreferencesRepository.resetReaderSettings()
         }
-        setColumnCount("auto")
-        setJustifyText(false)
     }
 
     // ── Search ───────────────────────────────────────────────────────────────
@@ -180,6 +161,48 @@ class ReaderViewModel(
     init {
         viewModelScope.launch {
             _positions.value = publication.positions()
+        }
+
+        // Load preferences asynchronously from DataStore
+        viewModelScope.launch {
+            launch {
+                userPreferencesRepository.readerTheme.collectLatest { _themeId.value = it }
+            }
+            launch {
+                userPreferencesRepository.fontSize.collectLatest { _fontSize.value = it.toDouble() }
+            }
+            launch {
+                userPreferencesRepository.pageScroll.collectLatest { _pageScroll.value = it }
+            }
+            launch {
+                userPreferencesRepository.customizeLayout.collectLatest {
+                    _customizeLayout.value = it
+                }
+            }
+            launch {
+                userPreferencesRepository.lineSpacing.collectLatest {
+                    _lineSpacing.value = it.toDouble()
+                }
+            }
+            launch {
+                userPreferencesRepository.charSpacing.collectLatest {
+                    _characterSpacing.value = it.toDouble()
+                }
+            }
+            launch {
+                userPreferencesRepository.wordSpacing.collectLatest {
+                    _wordSpacing.value = it.toDouble()
+                }
+            }
+            launch {
+                userPreferencesRepository.margins.collectLatest { _margins.value = it.toDouble() }
+            }
+            launch {
+                userPreferencesRepository.columnCount.collectLatest { _columnCount.value = it }
+            }
+            launch {
+                userPreferencesRepository.justifyText.collectLatest { _justifyText.value = it }
+            }
         }
     }
 
@@ -335,11 +358,12 @@ class ReaderViewModel(
     class Factory(
         private val application: Application,
         private val publication: Publication,
+        private val userPreferencesRepository: UserPreferencesRepository
     ) : ViewModelProvider.Factory {
         override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(ReaderViewModel::class.java)) {
                 @Suppress("UNCHECKED_CAST")
-                return ReaderViewModel(application, publication) as T
+                return ReaderViewModel(application, publication, userPreferencesRepository) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class")
         }
