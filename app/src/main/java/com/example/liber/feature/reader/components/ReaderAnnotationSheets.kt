@@ -42,6 +42,7 @@ import com.adamglin.phosphoricons.regular.Export
 import com.adamglin.phosphoricons.regular.NotePencil
 import com.adamglin.phosphoricons.regular.Trash
 import com.example.liber.core.designsystem.LiberTextField
+import com.example.liber.core.util.InputValidator
 import com.example.liber.data.model.AnnotationEntity
 
 /** Semi-transparent highlight color options. */
@@ -299,7 +300,7 @@ fun CreateAnnotationSheet(
 
         LiberTextField(
             value = noteText,
-            onValueChange = onNoteTextChange,
+            onValueChange = { onNoteTextChange(InputValidator.validatedAnnotation(it)) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(120.dp),

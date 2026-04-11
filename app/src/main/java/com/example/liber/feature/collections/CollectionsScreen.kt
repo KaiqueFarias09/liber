@@ -63,6 +63,7 @@ import com.example.liber.core.designsystem.LiberDialog
 import com.example.liber.core.designsystem.LiberDropdownMenu
 import com.example.liber.core.designsystem.LiberFAB
 import com.example.liber.core.designsystem.LiberTextField
+import com.example.liber.core.util.InputValidator
 import com.example.liber.data.model.Book
 import com.example.liber.feature.library.LibrarySortOption
 import com.example.liber.feature.library.LibraryViewMode
@@ -466,7 +467,7 @@ private fun CollectionNameDialog(
     ) {
         LiberTextField(
             value = name,
-            onValueChange = { name = it },
+            onValueChange = { name = InputValidator.validatedCollectionName(it) },
             label = "Name",
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
