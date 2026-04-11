@@ -52,7 +52,8 @@
   display/headline/titleLarge; Switzer for body/labels).
 - Use semantic `MaterialTheme.colorScheme.*`; for badges/chips use `MaterialTheme.extendedColors.*`
   from `ui/theme/ExtendedColorScheme.kt`.
-- Dependency wiring is manual (no DI framework); ViewModels/repositories are instantiated directly.
+- Dependency wiring uses **Hilt**; see `MainActivity.kt`, `LiberApp.kt`, and `@HiltViewModel`
+  annotations. (Note: older docs mentioning manual DI are outdated).
 
 ## Build/test commands used in this project
 
