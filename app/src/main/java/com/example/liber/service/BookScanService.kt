@@ -194,7 +194,7 @@ class BookScanService : Service() {
         val indeterminate = total <= 0
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.mipmap.ic_launcher_foreground)
             .setContentTitle("Scanning $folder")
             .setContentText(text)
             .setProgress(total.coerceAtLeast(1), progress, indeterminate)
