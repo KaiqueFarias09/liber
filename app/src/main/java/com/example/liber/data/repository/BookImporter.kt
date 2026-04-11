@@ -3,17 +3,8 @@ package com.example.liber.data.repository
 import android.app.Application
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.Typeface
 import android.media.MediaMetadataRetriever
 import android.net.Uri
-import android.text.Layout
-import android.text.StaticLayout
-import android.text.TextPaint
-import androidx.core.graphics.createBitmap
-import androidx.core.graphics.withTranslation
 import androidx.documentfile.provider.DocumentFile
 import com.example.liber.data.model.AudioFormats
 import com.example.liber.data.model.Book
@@ -78,9 +69,9 @@ class BookImporter(private val application: Application) {
                 return@withContext createAudiobookPublication(file)
             }
 
-            val tempFile = copyToTempFile(uri)
+            val epubFile = getCachedOrCopy(uri)
             val asset =
-                assetRetriever.retrieve(tempFile.toUrl()).getOrNull() ?: return@withContext null
+                assetRetriever.retrieve(epubFile.toUrl()).getOrNull() ?: return@withContext null
             publicationOpener.open(asset, allowUserInteraction = false).getOrNull()
         } catch (e: Exception) {
             e.printStackTrace()
@@ -157,7 +148,7 @@ class BookImporter(private val application: Application) {
 
         // Fallback 3: generated cover
         if (coverUri == null) {
-            coverUri = saveBitmapToCache(generateFallbackCover(title, author), dir.name ?: "audio")
+            coverUri = null
         }
 
         book.copy(
@@ -167,25 +158,14 @@ class BookImporter(private val application: Application) {
         )
     }
 
-    /** Extracts ALBUM and ARTIST text tags from an audio file via a small temp-file copy. */
+    /** Extracts ALBUM and ARTIST text tags from an audio file. */
     private suspend fun extractTextMetadata(file: DocumentFile): Pair<String?, String?> =
         withContext(Dispatchers.IO) {
-            val tempFile = File(application.cacheDir, "meta_txt_${System.currentTimeMillis()}")
             val retriever = MediaMetadataRetriever()
             try {
-                application.contentResolver.openInputStream(file.uri)?.use { input ->
-                    FileOutputStream(tempFile).use { out ->
-                        val buf = ByteArray(65_536)
-                        var remaining = 64 * 1024 // 64 KB is enough for all text tags
-                        while (remaining > 0) {
-                            val n = input.read(buf, 0, minOf(buf.size, remaining))
-                            if (n < 0) break
-                            out.write(buf, 0, n)
-                            remaining -= n
-                        }
-                    }
+                application.contentResolver.openFileDescriptor(file.uri, "r")?.use { pfd ->
+                    retriever.setDataSource(pfd.fileDescriptor)
                 }
-                retriever.setDataSource(tempFile.absolutePath)
                 val album = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)
                 val artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
                 Pair(album, artist)
@@ -194,7 +174,6 @@ class BookImporter(private val application: Application) {
                 Pair(null, null)
             } finally {
                 retriever.release()
-                tempFile.delete()
             }
         }
 
@@ -264,7 +243,6 @@ class BookImporter(private val application: Application) {
     ): Uri? {
         return findCoverImageInFolder(dir)
             ?: firstAudio?.let { extractEmbeddedCover(it, title) }
-            ?: saveBitmapToCache(generateFallbackCover(title, author), dir.name ?: "audio")
     }
 
     private fun findCoverImageInFolder(dir: DocumentFile): Uri? {
@@ -288,28 +266,12 @@ class BookImporter(private val application: Application) {
 
     suspend fun extractEmbeddedCover(file: DocumentFile, cacheName: String): Uri? =
         withContext(Dispatchers.IO) {
-            // Copy the first 5 MB of the audio file to a temp path so MediaMetadataRetriever
-            // can use setDataSource(absolutePath) — the most reliable variant across Android versions.
-            // 5 MB is more than enough to contain any ID3v2 tag with album art.
-            val tempFile = File(application.cacheDir, "meta_tmp_${System.currentTimeMillis()}")
             val retriever = MediaMetadataRetriever()
             try {
-                val written = application.contentResolver.openInputStream(file.uri)?.use { input ->
-                    FileOutputStream(tempFile).use { out ->
-                        val buf = ByteArray(65_536)
-                        var remaining = 5 * 1024 * 1024
-                        while (remaining > 0) {
-                            val n = input.read(buf, 0, minOf(buf.size, remaining))
-                            if (n < 0) break
-                            out.write(buf, 0, n)
-                            remaining -= n
-                        }
-                    }
-                    true
-                } ?: false
-                if (!written) return@withContext null
+                application.contentResolver.openFileDescriptor(file.uri, "r")?.use { pfd ->
+                    retriever.setDataSource(pfd.fileDescriptor)
+                }
 
-                retriever.setDataSource(tempFile.absolutePath)
                 val art = retriever.embeddedPicture ?: return@withContext null
                 val bitmap =
                     BitmapFactory.decodeByteArray(art, 0, art.size) ?: return@withContext null
@@ -319,7 +281,6 @@ class BookImporter(private val application: Application) {
                 null
             } finally {
                 retriever.release()
-                tempFile.delete()
             }
         }
 
@@ -369,7 +330,6 @@ class BookImporter(private val application: Application) {
         val title = file.name?.substringBeforeLast('.') ?: "Unknown Audio"
         val author = "Audiobook"
         val coverUri = extractEmbeddedCover(file, title)
-            ?: saveBitmapToCache(generateFallbackCover(title, author), file.name ?: "audio")
         val contentId = computeFileHash(file.uri) ?: file.uri.toString()
 
         return Book(
@@ -384,8 +344,8 @@ class BookImporter(private val application: Application) {
     }
 
     private suspend fun parseEpub(file: DocumentFile): Book? = try {
-        val tempFile = copyToTempFile(file.uri)
-        val asset = assetRetriever.retrieve(tempFile.toUrl()).getOrNull() ?: return null
+        val epubFile = getCachedOrCopy(file.uri)
+        val asset = assetRetriever.retrieve(epubFile.toUrl()).getOrNull() ?: return null
         val publication = publicationOpener.open(asset, allowUserInteraction = false).getOrNull()
             ?: return null
         val title = publication.metadata.title ?: "Unknown Title"
@@ -422,71 +382,8 @@ class BookImporter(private val application: Application) {
         title: String,
         author: String?
     ): Uri? = withContext(Dispatchers.IO) {
-        val bitmap = publication.cover() ?: generateFallbackCover(title, author)
+        val bitmap = publication.cover() ?: return@withContext null
         saveBitmapToCache(bitmap, fileName)
-    }
-
-    private fun generateFallbackCover(title: String, author: String?): Bitmap {
-        val width = 600
-        val height = 900
-        val bitmap = createBitmap(width, height)
-        val canvas = Canvas(bitmap)
-
-        // Background color based on title hash
-        val colors = listOf(
-            0xFF5C6BC0.toInt(), // Indigo 400
-            0xFF26A69A.toInt(), // Teal 400
-            0xFF7E57C2.toInt(), // Deep Purple 400
-            0xFF42A5F5.toInt(), // Blue 400
-            0xFF9CCC65.toInt(), // Light Green 400
-            0xFF8D6E63.toInt(), // Brown 400
-            0xFF78909C.toInt(), // Blue Grey 400
-            0xFFEC407A.toInt(), // Pink 400
-            0xFFFF7043.toInt(), // Deep Orange 400
-            0xFF26C6DA.toInt()  // Cyan 400
-        )
-        val bgColor = colors[Math.abs(title.hashCode()) % colors.size]
-        canvas.drawColor(bgColor)
-
-        val textPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.WHITE
-        }
-
-        val padding = 60
-        val maxWidth = width - (padding * 2)
-
-        // Draw Title
-        textPaint.textSize = 64f
-        textPaint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-
-        val titleLayout = StaticLayout.Builder.obtain(title, 0, title.length, textPaint, maxWidth)
-            .setAlignment(Layout.Alignment.ALIGN_CENTER)
-            .build()
-
-        // Draw Author
-        val authorLayout = author?.let {
-            textPaint.textSize = 40f
-            textPaint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
-            StaticLayout.Builder.obtain(it, 0, it.length, textPaint, maxWidth)
-                .setAlignment(Layout.Alignment.ALIGN_CENTER)
-                .build()
-        }
-
-        val contentHeight =
-            titleLayout.height + (if (authorLayout != null) authorLayout.height + 40 else 0)
-        val startY = (height - contentHeight) / 2f
-
-        canvas.withTranslation(padding.toFloat(), startY) {
-            titleLayout.draw(this)
-        }
-
-        if (authorLayout != null) {
-            canvas.withTranslation(padding.toFloat(), startY + titleLayout.height + 40) {
-                authorLayout.draw(this)
-            }
-        }
-
-        return bitmap
     }
 
     private fun saveBitmapToCache(bitmap: Bitmap, fileName: String): Uri? {
@@ -503,14 +400,22 @@ class BookImporter(private val application: Application) {
         }
     }
 
-    private fun copyToTempFile(uri: Uri): File {
+    private fun getCachedOrCopy(uri: Uri): File {
         val documentFile = DocumentFile.fromSingleUri(application, uri)
         val name = documentFile?.name ?: "file"
         val extension = name.substringAfterLast('.', "epub")
-        val tempFile = File(application.cacheDir, "temp_${System.currentTimeMillis()}.$extension")
-        application.contentResolver.openInputStream(uri)?.use { input ->
-            FileOutputStream(tempFile).use { input.copyTo(it) }
+
+        // Use URI hash to avoid duplicate copies of the same file
+        val hash = uri.toString().hashCode().toUInt().toString(16)
+        val cacheFile = File(application.cacheDir, "book_$hash.$extension")
+
+        if (cacheFile.exists()) {
+            return cacheFile
         }
-        return tempFile
+
+        application.contentResolver.openInputStream(uri)?.use { input ->
+            FileOutputStream(cacheFile).use { input.copyTo(it) }
+        }
+        return cacheFile
     }
 }
