@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
+import com.example.liber.core.util.FileSecurityUtils
 import com.example.liber.data.model.AudioFormats
 import com.example.liber.data.model.Book
 import kotlinx.coroutines.Dispatchers
@@ -69,7 +70,8 @@ class BookImporter(private val application: Application) {
                 return@withContext createAudiobookPublication(file)
             }
 
-            val epubFile = getCachedOrCopy(uri)
+            val epubFile =
+                FileSecurityUtils.copyToTempFileSafe(application, uri) ?: return@withContext null
             val asset =
                 assetRetriever.retrieve(epubFile.toUrl()).getOrNull() ?: return@withContext null
             publicationOpener.open(asset, allowUserInteraction = false).getOrNull()
@@ -235,35 +237,6 @@ class BookImporter(private val application: Application) {
         return Publication(manifest = manifest, container = container)
     }
 
-    private suspend fun getBestAudiobookCover(
-        dir: DocumentFile,
-        firstAudio: DocumentFile?,
-        title: String,
-        author: String?
-    ): Uri? {
-        return findCoverImageInFolder(dir)
-            ?: firstAudio?.let { extractEmbeddedCover(it, title) }
-    }
-
-    private fun findCoverImageInFolder(dir: DocumentFile): Uri? {
-        val imageExtensions = setOf("jpg", "jpeg", "png", "webp")
-        val preferredNames = setOf("cover", "folder", "front", "album", "artwork", "art")
-        val files = dir.listFiles()
-
-        // Preferred: canonical cover name
-        files.find { file ->
-            val name = file.name?.substringBeforeLast('.')?.lowercase() ?: ""
-            val ext = file.name?.substringAfterLast('.', "")?.lowercase() ?: ""
-            file.isFile && name in preferredNames && ext in imageExtensions
-        }?.uri?.let { return it }
-
-        // Fallback: any image file in the folder
-        return files.find { file ->
-            val ext = file.name?.substringAfterLast('.', "")?.lowercase() ?: ""
-            file.isFile && ext in imageExtensions
-        }?.uri
-    }
-
     suspend fun extractEmbeddedCover(file: DocumentFile, cacheName: String): Uri? =
         withContext(Dispatchers.IO) {
             val retriever = MediaMetadataRetriever()
@@ -344,13 +317,13 @@ class BookImporter(private val application: Application) {
     }
 
     private suspend fun parseEpub(file: DocumentFile): Book? = try {
-        val epubFile = getCachedOrCopy(file.uri)
+        val epubFile = FileSecurityUtils.copyToTempFileSafe(application, file.uri) ?: return null
         val asset = assetRetriever.retrieve(epubFile.toUrl()).getOrNull() ?: return null
         val publication = publicationOpener.open(asset, allowUserInteraction = false).getOrNull()
             ?: return null
         val title = publication.metadata.title ?: "Unknown Title"
         val author = publication.metadata.authors.firstOrNull()?.name
-        val coverUri = extractCover(publication, file.name ?: "cover", title, author)
+        val coverUri = extractCover(publication, file.name ?: "cover")
         Book(
             id = UUID.randomUUID().toString(),
             title = title,
@@ -378,18 +351,17 @@ class BookImporter(private val application: Application) {
 
     private suspend fun extractCover(
         publication: Publication,
-        fileName: String,
-        title: String,
-        author: String?
+        fileName: String
     ): Uri? = withContext(Dispatchers.IO) {
         val bitmap = publication.cover() ?: return@withContext null
         saveBitmapToCache(bitmap, fileName)
     }
 
     private fun saveBitmapToCache(bitmap: Bitmap, fileName: String): Uri? {
+        val safeFileName = FileSecurityUtils.sanitizeFileName(fileName)
         val coverFile = File(
             application.cacheDir,
-            "cover_${fileName}_${System.currentTimeMillis()}.png"
+            "cover_${safeFileName}_${System.currentTimeMillis()}.png"
         )
         return try {
             FileOutputStream(coverFile).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
@@ -400,22 +372,4 @@ class BookImporter(private val application: Application) {
         }
     }
 
-    private fun getCachedOrCopy(uri: Uri): File {
-        val documentFile = DocumentFile.fromSingleUri(application, uri)
-        val name = documentFile?.name ?: "file"
-        val extension = name.substringAfterLast('.', "epub")
-
-        // Use URI hash to avoid duplicate copies of the same file
-        val hash = uri.toString().hashCode().toUInt().toString(16)
-        val cacheFile = File(application.cacheDir, "book_$hash.$extension")
-
-        if (cacheFile.exists()) {
-            return cacheFile
-        }
-
-        application.contentResolver.openInputStream(uri)?.use { input ->
-            FileOutputStream(cacheFile).use { input.copyTo(it) }
-        }
-        return cacheFile
-    }
 }
