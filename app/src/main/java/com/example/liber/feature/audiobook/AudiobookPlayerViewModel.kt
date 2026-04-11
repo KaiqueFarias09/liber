@@ -36,7 +36,7 @@ class AudiobookPlayerViewModel @Inject constructor(
     private val bookRepository: BookRepository,
 ) : AndroidViewModel(application) {
 
-    data class TrackInfo(val name: String, val uri: Uri)
+    data class TrackInfo(val name: String, val uri: Uri, val mimeType: String? = null)
 
     private fun List<TrackInfo>.toJson(): String {
         val array = JSONArray()
@@ -44,6 +44,7 @@ class AudiobookPlayerViewModel @Inject constructor(
             array.put(JSONObject().apply {
                 put("name", track.name)
                 put("uri", track.uri.toString())
+                track.mimeType?.let { put("mimeType", it) }
             })
         }
         return array.toString()
@@ -55,7 +56,13 @@ class AudiobookPlayerViewModel @Inject constructor(
             val array = JSONArray(this)
             for (i in 0 until array.length()) {
                 val obj = array.getJSONObject(i)
-                list.add(TrackInfo(obj.getString("name"), obj.getString("uri").toUri()))
+                list.add(
+                    TrackInfo(
+                        obj.getString("name"),
+                        obj.getString("uri").toUri(),
+                        if (obj.has("mimeType")) obj.getString("mimeType") else null
+                    )
+                )
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -199,17 +206,30 @@ class AudiobookPlayerViewModel @Inject constructor(
             val trackList = if (uri.toString().contains("tree")) {
                 val folder = DocumentFile.fromTreeUri(getApplication(), uri) ?: return@launch
                 folder.listFiles()
-                    .filter { it.isFile && isAudioFile(it.name) }
+                    .filter {
+                        it.isFile && com.example.liber.data.model.AudioFormats.isSupportedFile(
+                            it.name
+                        )
+                    }
                     .sortedBy { it.name }
                     .map {
                         TrackInfo(
                             it.name?.substringBeforeLast('.') ?: it.name ?: "Track",
-                            it.uri
+                            it.uri,
+                            it.type
+                                ?: com.example.liber.data.model.AudioFormats.getMimeType(it.name)
                         )
                     }
             } else {
                 val file = DocumentFile.fromSingleUri(getApplication(), uri) ?: return@launch
-                listOf(TrackInfo(file.name?.substringBeforeLast('.') ?: "Track", file.uri))
+                listOf(
+                    TrackInfo(
+                        file.name?.substringBeforeLast('.') ?: "Track",
+                        file.uri,
+                        file.type
+                            ?: com.example.liber.data.model.AudioFormats.getMimeType(file.name)
+                    )
+                )
             }
 
             _tracks.value = trackList
@@ -229,6 +249,7 @@ class AudiobookPlayerViewModel @Inject constructor(
             MediaItem.Builder()
                 .setMediaId(track.uri.toString())
                 .setUri(track.uri)
+                .setMimeType(track.mimeType)
                 .setMediaMetadata(
                     MediaMetadata.Builder()
                         .setTitle(track.name)
@@ -415,10 +436,5 @@ class AudiobookPlayerViewModel @Inject constructor(
         positionUpdateJob?.cancel()
         controllerFuture?.let { MediaController.releaseFuture(it) }
         super.onCleared()
-    }
-
-    private fun isAudioFile(name: String?): Boolean {
-        val ext = name?.substringAfterLast('.', "")?.lowercase() ?: return false
-        return ext in setOf("mp3", "m4a", "m4b", "aac", "wav")
     }
 }

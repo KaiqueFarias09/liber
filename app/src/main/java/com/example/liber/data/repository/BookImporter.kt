@@ -218,7 +218,7 @@ class BookImporter(private val application: Application) {
                 Url.fromDecodedPath("/$name")?.let { url ->
                     Link(
                         href = Href(url),
-                        mediaType = MediaType("audio/mpeg")
+                        mediaType = MediaType(AudioFormats.getMimeType(name))
                     )
                 }
             }
@@ -379,7 +379,7 @@ class BookImporter(private val application: Application) {
             coverUri = coverUri,
             fileUri = file.uri,
             contentId = contentId,
-            mediaType = "audio/mpeg",
+            mediaType = AudioFormats.getMimeType(file.name),
         )
     }
 
