@@ -14,7 +14,9 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -261,8 +263,10 @@ fun LiberApp(
 
     // ── Root layout ──────────────────────────────────────────────────────────
     Box(modifier = Modifier.fillMaxSize()) {
-        if (isReaderOpen && book != null) {
-            if (publication != null && book.mediaType != "audio/mpeg" && book.mediaType != "audiobook") {
+        val showEpubReader = isReaderOpen && book != null && !book.isAudiobook
+
+        if (showEpubReader) {
+            if (publication != null) {
                 ReaderScreen(
                     publication = publication,
                     bookId = book.id,
@@ -292,15 +296,38 @@ fun LiberApp(
                 )
             }
         } else {
+            val isAudiobook = book != null && (book.isAudiobook)
             Scaffold(
                 containerColor = MaterialTheme.colorScheme.background,
                 contentColor = MaterialTheme.colorScheme.onBackground,
                 bottomBar = {
-                    if (!showNavRail) {
-                        LiberBottomNav(
-                            activeTab = activeTab,
-                            onTabChange = onTabChange,
-                        )
+                    Column {
+                        if (isAudiobook) {
+                            AnimatedVisibility(
+                                visible = !isReaderOpen,
+                                enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+                                exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
+                            ) {
+                                NowPlayingBar(
+                                    book = book!!,
+                                    isPlaying = playWhenReadyGlobal,
+                                    progress = playerProgress,
+                                    onTogglePlay = { audiobookPlayerViewModel.togglePlayPause() },
+                                    onRewind = { audiobookPlayerViewModel.skipBackward(15) },
+                                    onForward = { audiobookPlayerViewModel.skipForward(15) },
+                                    onClick = { liberAppViewModel.openReader() },
+                                    modifier = Modifier.padding(bottom = if (showNavRail) 16.dp else 4.dp)
+                                )
+                            }
+                        }
+                        if (!showNavRail) {
+                            LiberBottomNav(
+                                activeTab = activeTab,
+                                onTabChange = onTabChange,
+                            )
+                        } else {
+                            Spacer(Modifier.navigationBarsPadding())
+                        }
                     }
                 },
             ) { innerPadding ->
@@ -366,10 +393,8 @@ fun LiberApp(
         }
 
         // ── Audiobook overlays ───────────────────────────────────────────────
-        val isAudiobook =
-            book != null && (book.mediaType == "audio/mpeg" || book.mediaType == "audiobook")
-
-        if (isAudiobook) {
+        val isAudiobookOverlay = book != null && (book.isAudiobook)
+        if (isAudiobookOverlay && book != null) {
             AnimatedVisibility(
                 visible = isReaderOpen,
                 enter = slideInVertically(
@@ -387,26 +412,6 @@ fun LiberApp(
                     homeViewModel = homeViewModel,
                     audiobookPlayerViewModel = audiobookPlayerViewModel,
                     onBack = { liberAppViewModel.closeReader() }
-                )
-            }
-
-            AnimatedVisibility(
-                visible = !isReaderOpen,
-                enter = fadeIn(),
-                exit = fadeOut(),
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = if (showNavRail) 16.dp else 80.dp)
-                    .navigationBarsPadding()
-            ) {
-                NowPlayingBar(
-                    book = book!!,
-                    isPlaying = playWhenReadyGlobal,
-                    progress = playerProgress,
-                    onTogglePlay = { audiobookPlayerViewModel.togglePlayPause() },
-                    onRewind = { audiobookPlayerViewModel.skipBackward(15) },
-                    onForward = { audiobookPlayerViewModel.skipForward(15) },
-                    onClick = { liberAppViewModel.openReader() },
                 )
             }
         }
