@@ -39,18 +39,18 @@ import com.adamglin.phosphoricons.regular.Trash
 import com.example.liber.R
 import com.example.liber.core.designsystem.LiberScreen
 import com.example.liber.core.util.UiText
-import com.example.liber.data.model.ScanSourceEntity
+import com.example.liber.data.model.ScanSource
 import com.example.liber.data.repository.ThemeMode
 
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
     modifier: Modifier = Modifier,
-    scanSources: List<ScanSourceEntity> = emptyList(),
+    scanSources: List<ScanSource> = emptyList(),
     onAddBooks: () -> Unit = {},
     onAddScanFolder: () -> Unit = {},
-    onRescanFolder: (ScanSourceEntity) -> Unit = {},
-    onRemoveFolder: (ScanSourceEntity) -> Unit = {},
+    onRescanFolder: (ScanSource) -> Unit = {},
+    onRemoveFolder: (ScanSource) -> Unit = {},
 ) {
     val themeMode by viewModel.themeMode.collectAsState()
 
@@ -107,11 +107,11 @@ private fun SettingsSection(
 
 @Composable
 private fun LibrarySection(
-    scanSources: List<ScanSourceEntity>,
+    scanSources: List<ScanSource>,
     onAddBooks: () -> Unit,
     onAddScanFolder: () -> Unit,
-    onRescanFolder: (ScanSourceEntity) -> Unit,
-    onRemoveFolder: (ScanSourceEntity) -> Unit,
+    onRescanFolder: (ScanSource) -> Unit,
+    onRemoveFolder: (ScanSource) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
@@ -187,7 +187,7 @@ private fun SettingsActionRow(
 
 @Composable
 private fun ScanSourceRow(
-    source: ScanSourceEntity,
+    source: ScanSource,
     onRescan: () -> Unit,
     onRemove: () -> Unit,
 ) {

@@ -45,7 +45,7 @@ import com.example.liber.R
 import com.example.liber.core.designsystem.LiberTextField
 import com.example.liber.core.util.InputValidator
 import com.example.liber.core.util.UiText
-import com.example.liber.data.model.AnnotationEntity
+import com.example.liber.data.model.Annotation
 
 /** Semi-transparent highlight color options. */
 val AnnotationColorOptions = listOf(
@@ -58,7 +58,7 @@ val AnnotationColorOptions = listOf(
 
 @Composable
 fun AnnotationActionsSheet(
-    annotation: AnnotationEntity,
+    annotation: Annotation,
     onEditNote: () -> Unit,
     onShare: () -> Unit,
     onDelete: () -> Unit,
@@ -245,7 +245,7 @@ fun CreateAnnotationSheet(
     onSave: () -> Unit,
     onCancel: () -> Unit,
 ) {
-    val isHighlight = annotationType == "highlight"
+    val isHighlight = annotationType.lowercase() == "highlight"
     val saveLabel = if (isHighlight) {
         stringResource(R.string.reader_annotation_save_highlight)
     } else {

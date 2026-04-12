@@ -84,8 +84,9 @@ import com.adamglin.phosphoricons.regular.NotePencil
 import com.adamglin.phosphoricons.regular.TextAa
 import com.example.liber.R
 import com.example.liber.core.util.UiText
-import com.example.liber.data.model.AnnotationEntity
-import com.example.liber.data.model.BookmarkEntity
+import com.example.liber.data.model.Annotation
+import com.example.liber.data.model.AnnotationType
+import com.example.liber.data.model.Bookmark
 import com.example.liber.data.repository.UserPreferencesRepository
 import com.example.liber.feature.reader.components.AnnotationActionsSheet
 import com.example.liber.feature.reader.components.CreateAnnotationSheet
@@ -192,14 +193,14 @@ fun ReaderScreen(
     bookId: String,
     userPreferencesRepository: UserPreferencesRepository,
     initialLocatorJson: String?,
-    annotations: List<AnnotationEntity>,
-    bookmarks: List<BookmarkEntity>,
+    annotations: List<Annotation>,
+    bookmarks: List<Bookmark>,
     pendingAnnotationRequest: AnnotationRequest?,
     onRequestAnnotation: (AnnotationRequest) -> Unit,
     onSaveLocator: (json: String, progress: Int) -> Unit,
-    onSaveAnnotation: (AnnotationEntity) -> Unit,
+    onSaveAnnotation: (Annotation) -> Unit,
     onDeleteAnnotation: (Long) -> Unit,
-    onSaveBookmark: (BookmarkEntity) -> Unit,
+    onSaveBookmark: (Bookmark) -> Unit,
     onDeleteBookmark: (Long) -> Unit,
     onClearPendingAnnotation: () -> Unit,
     onBack: () -> Unit,
@@ -833,7 +834,7 @@ fun ReaderScreen(
                                             ?: loc.href.toString()
                                                 .substringAfterLast('/').substringBefore('.')
                                         onSaveBookmark(
-                                            BookmarkEntity(
+                                            Bookmark(
                                                 bookId = bookId,
                                                 locator = loc.toJSON().toString(),
                                                 chapter = chapter,
@@ -884,9 +885,9 @@ fun ReaderScreen(
                             ?: locator.text.highlight
 
                         onSaveAnnotation(
-                            AnnotationEntity(
+                            Annotation(
                                 bookId = bookId,
-                                type = "highlight",
+                                type = AnnotationType.HIGHLIGHT,
                                 color = colorArgb,
                                 locator = locator.toJSON().toString(),
                                 text = textToSave,
@@ -1168,7 +1169,7 @@ fun ReaderScreen(
                                 val updatedNote = noteText.ifBlank { null }
                                 onSaveAnnotation(
                                     existing.copy(
-                                        type = if (updatedNote != null) "note" else "highlight",
+                                        type = if (updatedNote != null) AnnotationType.NOTE else AnnotationType.HIGHLIGHT,
                                         note = updatedNote,
                                         color = selectedColor,
                                     )
@@ -1187,9 +1188,9 @@ fun ReaderScreen(
                                 ?: locator.text.highlight
 
                             onSaveAnnotation(
-                                AnnotationEntity(
+                                Annotation(
                                     bookId = bookId,
-                                    type = annotationType,
+                                    type = if (annotationType.lowercase() == "note") AnnotationType.NOTE else AnnotationType.HIGHLIGHT,
                                     color = selectedColor,
                                     locator = locator.toJSON().toString(),
                                     text = textToSave,
@@ -1209,7 +1210,7 @@ fun ReaderScreen(
     // ── Annotation Action Sheet (tap on existing highlight) ───────────────────
     LocalContext.current
     if (tappedAnnotation != null) {
-        val sheetTitle = if (tappedAnnotation.type == "highlight") {
+        val sheetTitle = if (tappedAnnotation.type == AnnotationType.HIGHLIGHT) {
             UiText.StringResource(R.string.reader_annotation_highlight)
         } else {
             UiText.StringResource(R.string.reader_annotation_note)

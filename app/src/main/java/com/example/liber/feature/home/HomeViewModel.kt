@@ -7,12 +7,11 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.liber.core.util.UiState
 import com.example.liber.data.local.ScanStateHolder
-import com.example.liber.data.model.AnnotationEntity
+import com.example.liber.data.model.Annotation
 import com.example.liber.data.model.Book
-import com.example.liber.data.model.BookmarkEntity
-import com.example.liber.data.model.ScanSourceEntity
+import com.example.liber.data.model.Bookmark
+import com.example.liber.data.model.ScanSource
 import com.example.liber.data.model.ScanState
-import com.example.liber.data.model.toEntity
 import com.example.liber.data.repository.BookImporter
 import com.example.liber.data.repository.BookRepository
 import com.example.liber.data.repository.ScanSourceRepository
@@ -73,7 +72,7 @@ class HomeViewModel @Inject constructor(
     val scanState: StateFlow<ScanState> = ScanStateHolder.state
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ScanState.Idle)
 
-    val scanSources: StateFlow<List<ScanSourceEntity>> = scanSourceRepository.getAllSources()
+    val scanSources: StateFlow<List<ScanSource>> = scanSourceRepository.getAllSources()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _booksViewMode = MutableStateFlow(LibraryViewMode.GRID)
@@ -185,10 +184,10 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun getAnnotationsForBook(bookId: String): Flow<List<AnnotationEntity>> =
+    fun getAnnotationsForBook(bookId: String): Flow<List<Annotation>> =
         bookRepository.getAnnotationsForBook(bookId)
 
-    fun saveAnnotation(annotation: AnnotationEntity) {
+    fun saveAnnotation(annotation: Annotation) {
         viewModelScope.launch(Dispatchers.IO) { bookRepository.insertAnnotation(annotation) }
     }
 
@@ -196,10 +195,10 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) { bookRepository.deleteAnnotation(annotationId) }
     }
 
-    fun getBookmarksForBook(bookId: String): Flow<List<BookmarkEntity>> =
+    fun getBookmarksForBook(bookId: String): Flow<List<Bookmark>> =
         bookRepository.getBookmarksForBook(bookId)
 
-    fun saveBookmark(bookmark: BookmarkEntity) {
+    fun saveBookmark(bookmark: Bookmark) {
         viewModelScope.launch(Dispatchers.IO) { bookRepository.insertBookmark(bookmark) }
     }
 
@@ -245,7 +244,7 @@ class HomeViewModel @Inject constructor(
             ?: bookRepository.getBookByFileUri(uri.toString())
 
         if (existingBook == null) {
-            bookRepository.insertBook(book.toEntity())
+            bookRepository.insertBook(book)
         }
         return book
     }
@@ -253,7 +252,7 @@ class HomeViewModel @Inject constructor(
     fun addScanSource(treeUri: Uri, folderName: String) {
         viewModelScope.launch(Dispatchers.IO) {
             scanSourceRepository.upsert(
-                ScanSourceEntity(
+                ScanSource(
                     treeUri = treeUri.toString(),
                     displayName = folderName,
                 )

@@ -44,8 +44,9 @@ import com.example.liber.R
 import com.example.liber.core.designsystem.EmptyState
 import com.example.liber.core.designsystem.LiberTabBar
 import com.example.liber.core.util.UiText
-import com.example.liber.data.model.AnnotationEntity
-import com.example.liber.data.model.BookmarkEntity
+import com.example.liber.data.model.Annotation
+import com.example.liber.data.model.AnnotationType
+import com.example.liber.data.model.Bookmark
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -53,12 +54,12 @@ import java.util.Locale
 
 @Composable
 fun NotebookView(
-    bookmarks: List<BookmarkEntity>,
-    annotations: List<AnnotationEntity>,
-    onBookmarkClick: (BookmarkEntity) -> Unit,
-    onDeleteBookmark: (BookmarkEntity) -> Unit,
-    onNoteClick: (AnnotationEntity) -> Unit,
-    onDeleteNote: (AnnotationEntity) -> Unit,
+    bookmarks: List<Bookmark>,
+    annotations: List<Annotation>,
+    onBookmarkClick: (Bookmark) -> Unit,
+    onDeleteBookmark: (Bookmark) -> Unit,
+    onNoteClick: (Annotation) -> Unit,
+    onDeleteNote: (Annotation) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val tabs = listOf(
@@ -90,7 +91,7 @@ fun NotebookView(
 
                 1 -> {
                     val highlights =
-                        remember(annotations) { annotations.filter { it.type == "highlight" } }
+                        remember(annotations) { annotations.filter { it.type == AnnotationType.HIGHLIGHT } }
                     AnnotationList(
                         annotations = highlights,
                         emptyMessage = UiText.StringResource(R.string.reader_notebook_empty_highlights),
@@ -101,7 +102,8 @@ fun NotebookView(
                 }
 
                 2 -> {
-                    val notes = remember(annotations) { annotations.filter { it.type == "note" } }
+                    val notes =
+                        remember(annotations) { annotations.filter { it.type == AnnotationType.NOTE } }
                     AnnotationList(
                         annotations = notes,
                         emptyMessage = UiText.StringResource(R.string.reader_notebook_empty_notes),
@@ -117,9 +119,9 @@ fun NotebookView(
 
 @Composable
 fun BookmarksView(
-    bookmarks: List<BookmarkEntity>,
-    onBookmarkClick: (BookmarkEntity) -> Unit,
-    onDeleteBookmark: (BookmarkEntity) -> Unit,
+    bookmarks: List<Bookmark>,
+    onBookmarkClick: (Bookmark) -> Unit,
+    onDeleteBookmark: (Bookmark) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (bookmarks.isEmpty()) {
@@ -192,10 +194,10 @@ fun BookmarksView(
 
 @Composable
 fun AnnotationList(
-    annotations: List<AnnotationEntity>,
+    annotations: List<Annotation>,
     emptyMessage: UiText,
-    onNoteClick: (AnnotationEntity) -> Unit,
-    onDeleteNote: (AnnotationEntity) -> Unit,
+    onNoteClick: (Annotation) -> Unit,
+    onDeleteNote: (Annotation) -> Unit,
     modifier: Modifier = Modifier,
     @androidx.annotation.DrawableRes emptyImage: Int? = null,
 ) {
@@ -225,7 +227,7 @@ fun AnnotationList(
 
 @Composable
 fun DarkAnnotationItem(
-    annotation: AnnotationEntity,
+    annotation: Annotation,
     onClick: () -> Unit,
     onDelete: () -> Unit,
 ) {

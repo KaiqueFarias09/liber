@@ -338,10 +338,10 @@ class ReaderViewModel(
     private val _editingAnnotationId = MutableStateFlow<Long?>(null)
     val editingAnnotationId: StateFlow<Long?> = _editingAnnotationId
 
-    fun startAnnotationEdit(annotation: com.example.liber.data.model.AnnotationEntity) {
+    fun startAnnotationEdit(annotation: com.example.liber.data.model.Annotation) {
         _tappedAnnotationId.value = null           // close the action menu
         _editingAnnotationId.value = annotation.id
-        _pendingAnnotationType.value = annotation.type
+        _pendingAnnotationType.value = annotation.type.name.lowercase()
         _pendingSelectedText.value = annotation.text
         _annotationNoteText.value = annotation.note ?: ""
         _annotationColorArgb.value = annotation.color

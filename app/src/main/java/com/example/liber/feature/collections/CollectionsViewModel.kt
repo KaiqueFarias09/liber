@@ -6,9 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.liber.core.util.UiState
 import com.example.liber.data.local.CollectionWithBooksRelation
 import com.example.liber.data.model.Book
-import com.example.liber.data.model.BookCollectionEntity
-import com.example.liber.data.model.CollectionEntity
-import com.example.liber.data.model.toBook
+import com.example.liber.data.model.BookCollection
+import com.example.liber.data.model.Collection
 import com.example.liber.data.repository.CollectionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -46,7 +45,7 @@ class CollectionsViewModel @Inject constructor(
 
     fun createCollection(name: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            collectionRepository.insertCollection(CollectionEntity(name = name.trim()))
+            collectionRepository.insertCollection(Collection(name = name.trim()))
         }
     }
 
@@ -64,7 +63,7 @@ class CollectionsViewModel @Inject constructor(
 
     fun addBookToCollection(collectionId: Long, bookId: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            collectionRepository.addBookToCollection(BookCollectionEntity(collectionId, bookId))
+            collectionRepository.addBookToCollection(BookCollection(collectionId, bookId))
         }
     }
 
@@ -77,7 +76,7 @@ class CollectionsViewModel @Inject constructor(
     private fun CollectionWithBooksRelation.toUiState() = CollectionUiState(
         id = collection.id,
         name = collection.name,
-        books = books.map { it.toBook() },
+        books = books,
     )
 }
 
