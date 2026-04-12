@@ -4,27 +4,29 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.example.liber.data.model.AnnotationEntity
-import com.example.liber.data.model.BookCollectionEntity
-import com.example.liber.data.model.BookEntity
-import com.example.liber.data.model.BookmarkEntity
-import com.example.liber.data.model.CollectionEntity
-import com.example.liber.data.model.ScanSourceEntity
+import com.example.liber.data.model.Annotation
+import com.example.liber.data.model.Book
+import com.example.liber.data.model.BookCollection
+import com.example.liber.data.model.Bookmark
+import com.example.liber.data.model.Collection
+import com.example.liber.data.model.ScanSource
 
 @Database(
     entities = [
-        BookEntity::class,
-        AnnotationEntity::class,
-        BookmarkEntity::class,
-        CollectionEntity::class,
-        BookCollectionEntity::class,
-        ScanSourceEntity::class,
+        Book::class,
+        Annotation::class,
+        Bookmark::class,
+        Collection::class,
+        BookCollection::class,
+        ScanSource::class,
     ],
     version = 11,
     exportSchema = false,
 )
+@TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun bookDao(): BookDao
     abstract fun collectionDao(): CollectionDao

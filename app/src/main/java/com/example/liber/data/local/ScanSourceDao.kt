@@ -4,16 +4,16 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import com.example.liber.data.model.ScanSourceEntity
+import com.example.liber.data.model.ScanSource
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ScanSourceDao {
     @Query("SELECT * FROM scan_sources ORDER BY addedAt DESC")
-    fun getAllSources(): Flow<List<ScanSourceEntity>>
+    fun getAllSources(): Flow<List<ScanSource>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsert(source: ScanSourceEntity)
+    suspend fun upsert(source: ScanSource)
 
     @Query("UPDATE scan_sources SET lastScannedAt = :ts, bookCount = :count WHERE treeUri = :uri")
     suspend fun updateScanResult(uri: String, ts: Long, count: Int)

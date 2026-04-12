@@ -1,42 +1,44 @@
 package com.example.liber.data.repository
 
 import com.example.liber.data.local.BookDao
-import com.example.liber.data.model.AnnotationEntity
+import com.example.liber.data.model.Annotation
 import com.example.liber.data.model.Book
-import com.example.liber.data.model.BookEntity
-import com.example.liber.data.model.BookmarkEntity
-import com.example.liber.data.model.toBook
+import com.example.liber.data.model.Bookmark
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 
 class BookRepository(private val bookDao: BookDao) {
 
-    fun getAllBooks(): Flow<List<Book>> =
-        bookDao.getAllBooks().map { it.map(BookEntity::toBook) }
+    fun getAllBooks(): Flow<List<Book>> {
+        return bookDao.getAllBooks()
+    }
 
-    suspend fun getAllBooksList(): List<Book> =
-        bookDao.getAllBooksList().map(BookEntity::toBook)
+    fun getContinueReadingBooks(threshold: Long): Flow<List<Book>> {
+        return bookDao.getContinueReadingBooks(threshold)
+    }
 
-    fun getContinueReadingBooks(threshold: Long): Flow<List<Book>> =
-        bookDao.getContinueReadingBooks(threshold).map { it.map(BookEntity::toBook) }
+    fun getPreviousBooks(threshold: Long): Flow<List<Book>> {
+        return bookDao.getPreviousBooks(threshold)
+    }
 
-    fun getPreviousBooks(threshold: Long): Flow<List<Book>> =
-        bookDao.getPreviousBooks(threshold).map { it.map(BookEntity::toBook) }
+    fun getWantToReadBooks(): Flow<List<Book>> {
+        return bookDao.getWantToReadBooks()
+    }
 
-    fun getWantToReadBooks(): Flow<List<Book>> =
-        bookDao.getWantToReadBooks().map { it.map(BookEntity::toBook) }
+    suspend fun getBookByFileUri(fileUri: String): Book? {
+        return bookDao.getBookByFileUri(fileUri)
+    }
 
-    suspend fun getBookByFileUri(fileUri: String): BookEntity? =
-        bookDao.getBookByFileUri(fileUri)
+    suspend fun getBookByContentId(contentId: String): Book? {
+        return bookDao.getBookByContentId(contentId)
+    }
 
-    suspend fun getBookByContentId(contentId: String): BookEntity? =
-        bookDao.getBookByContentId(contentId)
-
-    suspend fun insertBook(book: BookEntity) =
+    suspend fun insertBook(book: Book) {
         bookDao.insertBook(book)
+    }
 
-    suspend fun updateMetadata(id: String, title: String, author: String?, narrator: String?) =
+    suspend fun updateMetadata(id: String, title: String, author: String?, narrator: String?) {
         bookDao.updateMetadata(id, title, author, narrator)
+    }
 
     suspend fun updateFullMetadata(
         id: String,
@@ -44,24 +46,29 @@ class BookRepository(private val bookDao: BookDao) {
         author: String?,
         coverPath: String?,
         narrator: String?
-    ) =
+    ) {
         bookDao.updateFullMetadata(id, title, author, coverPath, narrator)
+    }
 
-    suspend fun deleteBook(bookId: String) =
+    suspend fun deleteBook(bookId: String) {
         bookDao.deleteBook(bookId)
+    }
 
-    suspend fun updateLastOpenedAt(id: String, timestamp: Long) =
+    suspend fun updateLastOpenedAt(id: String, timestamp: Long) {
         bookDao.updateLastOpenedAt(id, timestamp)
+    }
 
     suspend fun updateLastOpenedAtQuietly(id: String, timestamp: Long) {
         bookDao.updateLastOpenedAt(id, timestamp)
     }
 
-    suspend fun updateWantToRead(id: String, wantToRead: Boolean) =
+    suspend fun updateWantToRead(id: String, wantToRead: Boolean) {
         bookDao.updateWantToRead(id, wantToRead)
+    }
 
-    suspend fun updateLastLocator(id: String, locator: String?, progress: Int) =
+    suspend fun updateLastLocator(id: String, locator: String?, progress: Int) {
         bookDao.updateLastLocator(id, locator, progress)
+    }
 
     suspend fun updateLastLocatorQuietly(id: String, locator: String?, progress: Int) {
         bookDao.updateLastLocator(id, locator, progress)
@@ -71,27 +78,35 @@ class BookRepository(private val bookDao: BookDao) {
         bookDao.updateDuration(id, duration)
     }
 
-    suspend fun updateCoverPath(id: String, coverPath: String?) =
+    suspend fun updateCoverPath(id: String, coverPath: String?) {
         bookDao.updateCoverPath(id, coverPath)
+    }
 
-    suspend fun updateTracks(id: String, tracksJson: String?) =
+    suspend fun updateTracks(id: String, tracksJson: String?) {
         bookDao.updateTracks(id, tracksJson)
+    }
 
-    suspend fun insertAnnotation(annotation: AnnotationEntity) =
+    suspend fun insertAnnotation(annotation: Annotation) {
         bookDao.insertAnnotation(annotation)
+    }
 
-    fun getAnnotationsForBook(bookId: String): Flow<List<AnnotationEntity>> =
-        bookDao.getAnnotationsForBook(bookId)
+    fun getAnnotationsForBook(bookId: String): Flow<List<Annotation>> {
+        return bookDao.getAnnotationsForBook(bookId)
+    }
 
-    suspend fun deleteAnnotation(annotationId: Long) =
+    suspend fun deleteAnnotation(annotationId: Long) {
         bookDao.deleteAnnotation(annotationId)
+    }
 
-    suspend fun insertBookmark(bookmark: BookmarkEntity) =
+    suspend fun insertBookmark(bookmark: Bookmark) {
         bookDao.insertBookmark(bookmark)
+    }
 
-    fun getBookmarksForBook(bookId: String): Flow<List<BookmarkEntity>> =
-        bookDao.getBookmarksForBook(bookId)
+    fun getBookmarksForBook(bookId: String): Flow<List<Bookmark>> {
+        return bookDao.getBookmarksForBook(bookId)
+    }
 
-    suspend fun deleteBookmark(bookmarkId: Long) =
+    suspend fun deleteBookmark(bookmarkId: Long) {
         bookDao.deleteBookmark(bookmarkId)
+    }
 }
