@@ -9,13 +9,13 @@ import androidx.room.Index
     primaryKeys = ["collectionId", "bookId"],
     foreignKeys = [
         ForeignKey(
-            entity = CollectionEntity::class,
+            entity = Collection::class,
             parentColumns = ["id"],
             childColumns = ["collectionId"],
             onDelete = ForeignKey.CASCADE,
         ),
         ForeignKey(
-            entity = BookEntity::class,
+            entity = Book::class,
             parentColumns = ["id"],
             childColumns = ["bookId"],
             onDelete = ForeignKey.CASCADE,

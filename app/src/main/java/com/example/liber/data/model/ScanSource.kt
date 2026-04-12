@@ -4,7 +4,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "scan_sources")
-data class ScanSourceEntity(
+data class ScanSource(
     @PrimaryKey val treeUri: String,
     val displayName: String,
     val lastScannedAt: Long? = null,

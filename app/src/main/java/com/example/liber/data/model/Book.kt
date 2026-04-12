@@ -1,9 +1,12 @@
 package com.example.liber.data.model
 
 import android.net.Uri
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 
+@Entity(tableName = "books")
 data class Book(
-    val id: String,
+    @PrimaryKey val id: String,
     val title: String,
     val author: String?,
     val coverUri: Uri?,

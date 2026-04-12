@@ -9,7 +9,7 @@ import androidx.room.PrimaryKey
     tableName = "bookmarks",
     foreignKeys = [
         ForeignKey(
-            entity = BookEntity::class,
+            entity = Book::class,
             parentColumns = ["id"],
             childColumns = ["bookId"],
             onDelete = ForeignKey.CASCADE
@@ -17,7 +17,7 @@ import androidx.room.PrimaryKey
     ],
     indices = [Index("bookId")]
 )
-data class BookmarkEntity(
+data class Bookmark(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val bookId: String,
     val locator: String,
