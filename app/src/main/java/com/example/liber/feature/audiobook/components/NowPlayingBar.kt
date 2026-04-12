@@ -24,7 +24,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -55,7 +54,6 @@ fun NowPlayingBar(
 ) {
     Surface(
         modifier = modifier
-            .padding(horizontal = 8.dp)
             .fillMaxWidth()
             .height(64.dp)
             .shadow(
@@ -63,9 +61,8 @@ fun NowPlayingBar(
                 shape = RoundedCornerShape(12.dp),
                 spotColor = Color.Black.copy(alpha = 0.2f)
             )
-            .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.98f),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
         tonalElevation = 4.dp
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -79,12 +76,9 @@ fun NowPlayingBar(
                     book = book,
                     modifier = Modifier.size(44.dp),
                     style = CoverStyle.SMALL,
-                    isActive = true,
                     isPlaying = isPlaying
                 )
-
                 Spacer(modifier = Modifier.width(12.dp))
-
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = book.title,
