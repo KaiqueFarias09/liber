@@ -48,9 +48,8 @@ import com.example.liber.core.designsystem.LiberNavRail
 import com.example.liber.core.navigation.AppNavHost
 import com.example.liber.core.navigation.AppRoute
 import com.example.liber.core.navigation.AppTab
-import com.example.liber.data.model.AnnotationEntity
 import com.example.liber.data.model.Book
-import com.example.liber.data.model.BookmarkEntity
+import com.example.liber.data.model.ScanSource
 import com.example.liber.feature.audiobook.AudioPlayerScreen
 import com.example.liber.feature.audiobook.AudiobookPlayerViewModel
 import com.example.liber.feature.audiobook.components.NowPlayingBar
@@ -216,7 +215,7 @@ fun LiberApp(
         folderLauncher.launch(null)
     }
 
-    val onRescanFolder: (com.example.liber.data.model.ScanSourceEntity) -> Unit = { source ->
+    val onRescanFolder: (ScanSource) -> Unit = { source ->
         if (Build.VERSION.SDK_INT >= 33 &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
             != PackageManager.PERMISSION_GRANTED
@@ -250,12 +249,12 @@ fun LiberApp(
     val annotationsFlow = remember(activeBook?.id) {
         activeBook?.id?.let { homeViewModel.getAnnotationsForBook(it) } ?: emptyFlow()
     }
-    val annotations by annotationsFlow.collectAsState(initial = emptyList<AnnotationEntity>())
+    val annotations by annotationsFlow.collectAsState(initial = emptyList())
 
     val bookmarksFlow = remember(activeBook?.id) {
         activeBook?.id?.let { homeViewModel.getBookmarksForBook(it) } ?: emptyFlow()
     }
-    val bookmarks by bookmarksFlow.collectAsState(initial = emptyList<BookmarkEntity>())
+    val bookmarks by bookmarksFlow.collectAsState(initial = emptyList())
 
     val pendingAnnotationRequest by homeViewModel.pendingAnnotationRequest.collectAsState()
     val publication = activePublication
@@ -309,7 +308,7 @@ fun LiberApp(
                                 exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
                             ) {
                                 NowPlayingBar(
-                                    book = book!!,
+                                    book = book,
                                     isPlaying = playWhenReadyGlobal,
                                     progress = playerProgress,
                                     onTogglePlay = { audiobookPlayerViewModel.togglePlayPause() },

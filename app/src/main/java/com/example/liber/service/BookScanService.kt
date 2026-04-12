@@ -16,7 +16,6 @@ import com.example.liber.data.local.AppDatabase
 import com.example.liber.data.local.ScanStateHolder
 import com.example.liber.data.model.AudioFormats
 import com.example.liber.data.model.ScanState
-import com.example.liber.data.model.toEntity
 import com.example.liber.data.repository.BookImporter
 import com.example.liber.data.repository.BookRepository
 import com.example.liber.data.repository.ScanSourceRepository
@@ -104,7 +103,7 @@ class BookScanService : Service() {
                     val existsByContentId = book.contentId
                         ?.let { bookRepo.getBookByContentId(it) } != null
                     if (!existsByContentId) {
-                        bookRepo.insertBook(book.toEntity())
+                        bookRepo.insertBook(book)
                         newlyAdded++
                     } else {
                         skipped++
@@ -113,9 +112,9 @@ class BookScanService : Service() {
                     skipped++
                 }
             } else {
-                val coverPath = existingBook.coverPath
-                val coverMissing = coverPath == null || run {
-                    val uri = coverPath.toUri()
+                val coverUri = existingBook.coverUri
+                val coverMissing = coverUri == null || run {
+                    val uri = coverUri
                     if (uri.scheme == "file") {
                         !java.io.File(uri.path ?: "").exists()
                     } else false

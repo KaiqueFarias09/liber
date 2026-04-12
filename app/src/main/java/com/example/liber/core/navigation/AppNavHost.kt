@@ -8,7 +8,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.liber.data.model.Book
-import com.example.liber.data.model.ScanSourceEntity
+import com.example.liber.data.model.ScanSource
 import com.example.liber.feature.collections.CollectionsViewModel
 import com.example.liber.feature.home.HomeScreen
 import com.example.liber.feature.home.HomeViewModel
@@ -39,8 +39,8 @@ fun AppNavHost(
     onAddBooks: () -> Unit,
     onShareBook: (Book) -> Unit,
     onScanFolder: () -> Unit,
-    onRescanFolder: (ScanSourceEntity) -> Unit,
-    onRemoveScanFolder: (ScanSourceEntity) -> Unit,
+    onRescanFolder: (ScanSource) -> Unit,
+    onRemoveScanFolder: (ScanSource) -> Unit,
     selectedCollectionId: Long?,
     modifier: Modifier = Modifier,
 ) {
