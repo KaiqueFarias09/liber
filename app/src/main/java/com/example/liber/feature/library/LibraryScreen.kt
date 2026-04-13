@@ -229,7 +229,7 @@ fun LibraryScreen(
                 }
         ) {
             LiberHeader(
-                title = UiText.DynamicString("Library")
+                title = UiText.StringResource(R.string.tab_library)
             )
         }
 

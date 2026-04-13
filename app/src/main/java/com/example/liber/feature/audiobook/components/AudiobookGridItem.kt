@@ -23,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -30,6 +31,7 @@ import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.DotsThree
 import com.adamglin.phosphoricons.regular.PlayCircle
+import com.example.liber.R
 import com.example.liber.core.designsystem.BookActionMenu
 import com.example.liber.core.designsystem.BookCover
 import com.example.liber.core.designsystem.CoverStyle
@@ -99,24 +101,25 @@ fun AudiobookGridItem(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
 
-                    val remainingText = remember(book.durationMillis, book.readingProgress) {
-                        val duration = book.durationMillis ?: 0L
-                        if (duration <= 0L) {
-                            when {
-                                book.readingProgress == 100 -> "Finished"
-                                book.readingProgress > 0 -> "${book.readingProgress}%"
-                                else -> "Not started"
-                            }
-                        } else {
-                            val remainingMillis = duration * (100 - book.readingProgress) / 100
-                            if (remainingMillis <= 0) {
-                                "Finished"
-                            } else {
-                                val hours = remainingMillis / 3600000
-                                val minutes = (remainingMillis % 3600000) / 60000
-                                if (hours > 0) "${hours}h ${minutes}m left" else "${minutes}m left"
-                            }
-                        }
+                    val duration = book.durationMillis ?: 0L
+                    val remainingMillis =
+                        if (duration > 0L) duration * (100 - book.readingProgress) / 100 else -1L
+                    val isFinished =
+                        book.readingProgress == 100 || (duration > 0L && remainingMillis <= 0)
+                    val isNotStarted = !isFinished && book.readingProgress == 0 && duration <= 0L
+                    val hoursLeft = if (remainingMillis > 0) remainingMillis / 3600000 else 0L
+                    val minutesLeft =
+                        if (remainingMillis > 0) (remainingMillis % 3600000) / 60000 else 0L
+
+                    val remainingText = when {
+                        isFinished -> stringResource(R.string.home_label_finished)
+                        isNotStarted -> stringResource(R.string.label_not_started)
+                        remainingMillis > 0 -> if (hoursLeft > 0)
+                            stringResource(R.string.label_time_left_hours, hoursLeft, minutesLeft)
+                        else
+                            stringResource(R.string.label_time_left_minutes, minutesLeft)
+
+                        else -> "${book.readingProgress}%"
                     }
 
                     Text(
@@ -148,7 +151,7 @@ fun AudiobookGridItem(
                     onToggleFinished = onToggleFinished,
                     onShowDetails = onShowDetails,
                     onDelete = { showMenu = false; showDeleteDialog = true },
-                    deleteLabel = UiText.DynamicString("Delete"),
+                    deleteLabel = UiText.StringResource(R.string.action_delete),
                 )
             }
         }
@@ -157,7 +160,7 @@ fun AudiobookGridItem(
     if (showDeleteDialog) {
         DeleteBookConfirmationDialog(
             bookTitle = book.title,
-            action = UiText.DynamicString("Delete"),
+            action = UiText.StringResource(R.string.action_delete),
             onConfirm = {
                 showDeleteDialog = false
                 onDeleteBook()

@@ -186,7 +186,11 @@ private fun CollectionShelfRow(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = "${collection.books.size} ${if (collection.books.size == 1) "book" else "books"}",
+                        text = if (collection.books.size == 1) stringResource(
+                            R.string.label_singular_book,
+                            collection.books.size
+                        )
+                        else stringResource(R.string.label_plural_books, collection.books.size),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -358,18 +362,18 @@ fun CollectionDetailScreen(
                     onDismissRequest = { showMenu = false },
                 ) {
                     LiberContextMenuItem(
-                        label = UiText.DynamicString("Add books"),
+                        label = UiText.StringResource(R.string.action_add_books),
                         icon = PhosphorIcons.Regular.Plus,
                         onClick = { showMenu = false; showAddBooksSheet = true },
                     )
                     LiberContextMenuItem(
-                        label = UiText.DynamicString("Rename"),
+                        label = UiText.StringResource(R.string.action_rename),
                         icon = PhosphorIcons.Regular.PencilSimple,
                         onClick = { showMenu = false; showRenameDialog = true },
                     )
                     LiberContextMenuDivider()
                     LiberContextMenuItem(
-                        label = UiText.DynamicString("Delete collection"),
+                        label = UiText.StringResource(R.string.action_delete_collection),
                         icon = PhosphorIcons.Regular.Trash,
                         destructive = true,
                         onClick = { showMenu = false; showDeleteDialog = true },
@@ -406,7 +410,7 @@ fun CollectionDetailScreen(
                 onShareBook = onShareBook,
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
-                deleteLabel = UiText.DynamicString("Remove from collection"),
+                deleteLabel = UiText.StringResource(R.string.action_remove_from_collection),
                 confirmDelete = false,
                 showAddToCollection = false,
                 viewMode = viewMode,

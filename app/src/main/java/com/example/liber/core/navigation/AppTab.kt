@@ -1,5 +1,6 @@
 package com.example.liber.core.navigation
 
+import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Fill
@@ -10,24 +11,25 @@ import com.adamglin.phosphoricons.fill.House
 import com.adamglin.phosphoricons.regular.Books
 import com.adamglin.phosphoricons.regular.Gear
 import com.adamglin.phosphoricons.regular.House
+import com.example.liber.R
 
 enum class AppTab(
-    val label: String,
+    @get:StringRes val labelRes: Int,
     val activeIcon: ImageVector,
     val inactiveIcon: ImageVector,
 ) {
     HOME(
-        label = "Home",
+        labelRes = R.string.tab_home,
         activeIcon = PhosphorIcons.Fill.House,
         inactiveIcon = PhosphorIcons.Regular.House,
     ),
     LIBRARY(
-        label = "Library",
+        labelRes = R.string.tab_library,
         activeIcon = PhosphorIcons.Fill.Books,
         inactiveIcon = PhosphorIcons.Regular.Books,
     ),
     SETTINGS(
-        label = "Settings",
+        labelRes = R.string.tab_settings,
         activeIcon = PhosphorIcons.Fill.Gear,
         inactiveIcon = PhosphorIcons.Regular.Gear,
     ),

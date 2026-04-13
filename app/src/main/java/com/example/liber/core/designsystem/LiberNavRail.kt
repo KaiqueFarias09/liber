@@ -12,6 +12,7 @@ import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.liber.core.navigation.AppTab
@@ -43,10 +44,15 @@ fun LiberNavRail(
                 icon = {
                     Icon(
                         imageVector = if (selected) tab.activeIcon else tab.inactiveIcon,
-                        contentDescription = tab.label,
+                        contentDescription = stringResource(tab.labelRes),
                     )
                 },
-                label = { Text(tab.label, style = MaterialTheme.typography.labelSmall) },
+                label = {
+                    Text(
+                        stringResource(tab.labelRes),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                },
                 colors = itemColors,
                 modifier = Modifier.padding(vertical = 4.dp)
             )

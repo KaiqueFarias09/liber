@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
@@ -46,6 +47,7 @@ import com.adamglin.phosphoricons.regular.CaretDown
 import com.adamglin.phosphoricons.regular.Check
 import com.adamglin.phosphoricons.regular.Rows
 import com.adamglin.phosphoricons.regular.SquaresFour
+import com.example.liber.R
 import com.example.liber.core.designsystem.LiberContextMenuItem
 import com.example.liber.core.designsystem.LiberDropdownMenu
 import com.example.liber.data.model.Book
@@ -177,7 +179,11 @@ private fun AudiobooksToolbar(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = "$audiobookCount ${if (audiobookCount == 1) "audiobook" else "audiobooks"}",
+            text = if (audiobookCount == 1) stringResource(
+                R.string.label_singular_audiobook,
+                audiobookCount
+            )
+            else stringResource(R.string.label_plural_audiobooks, audiobookCount),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -197,7 +203,7 @@ private fun AudiobooksToolbar(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Text(
-                        text = "Sort: ",
+                        text = stringResource(R.string.sort_label) + " ",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

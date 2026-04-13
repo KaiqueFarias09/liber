@@ -41,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.adamglin.PhosphorIcons
@@ -50,6 +51,7 @@ import com.adamglin.phosphoricons.regular.Check
 import com.adamglin.phosphoricons.regular.DotsThree
 import com.adamglin.phosphoricons.regular.Rows
 import com.adamglin.phosphoricons.regular.SquaresFour
+import com.example.liber.R
 import com.example.liber.core.util.UiText
 import com.example.liber.data.model.Book
 import com.example.liber.feature.collections.CollectionUiState
@@ -68,7 +70,7 @@ fun BookGrid(
     onShareBook: (Book) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
-    deleteLabel: UiText = UiText.DynamicString("Delete…"),
+    deleteLabel: UiText = UiText.StringResource(R.string.action_delete_ellipsis),
     confirmDelete: Boolean = true,
     showAddToCollection: Boolean = false,
     onAddToCollection: (Book, Long) -> Unit = { _, _ -> },
@@ -224,7 +226,8 @@ private fun BooksToolbar(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = "$bookCount ${if (bookCount == 1) "book" else "books"}",
+            text = if (bookCount == 1) stringResource(R.string.label_singular_book, bookCount)
+            else stringResource(R.string.label_plural_books, bookCount),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -244,7 +247,7 @@ private fun BooksToolbar(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Text(
-                        text = "Sort: ",
+                        text = stringResource(R.string.sort_label) + " ",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -363,7 +366,7 @@ private fun BookListItem(
     onShowDetails: () -> Unit,
     onDeleteBook: () -> Unit,
     onShareBook: () -> Unit,
-    deleteLabel: UiText = UiText.DynamicString("Delete…"),
+    deleteLabel: UiText = UiText.StringResource(R.string.action_delete_ellipsis),
     confirmDelete: Boolean = true,
     showAddToCollection: Boolean = false,
     onAddToCollection: (Long) -> Unit = {},
@@ -425,8 +428,8 @@ private fun BookListItem(
 
         // Progress
         val progressText = when {
-            book.readingProgress == 100 -> "FINISHED"
-            book.lastOpenedAt == null && book.readingProgress == 0 -> "NEW"
+            book.readingProgress == 100 -> stringResource(R.string.label_status_finished)
+            book.lastOpenedAt == null && book.readingProgress == 0 -> stringResource(R.string.label_status_new)
             else -> "${book.readingProgress}%"
         }
         Text(
@@ -505,7 +508,7 @@ fun BookGridItem(
     onShowDetails: () -> Unit,
     onDeleteBook: () -> Unit,
     onShareBook: () -> Unit,
-    deleteLabel: UiText = UiText.DynamicString("Delete…"),
+    deleteLabel: UiText = UiText.StringResource(R.string.action_delete_ellipsis),
     confirmDelete: Boolean = true,
     showAddToCollection: Boolean = false,
     onAddToCollection: (Long) -> Unit = {},
@@ -537,13 +540,14 @@ fun BookGridItem(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            val isNew = book.lastOpenedAt == null && book.readingProgress == 0
             val progressText = when {
-                book.readingProgress == 100 -> "FINISHED"
-                book.lastOpenedAt == null && book.readingProgress == 0 -> "NEW"
+                book.readingProgress == 100 -> stringResource(R.string.label_status_finished)
+                isNew -> stringResource(R.string.label_status_new)
                 else -> "${book.readingProgress}%"
             }
 
-            if (progressText == "NEW") {
+            if (isNew) {
                 Surface(
                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                     shape = RoundedCornerShape(4.dp),
