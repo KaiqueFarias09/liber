@@ -22,6 +22,10 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    androidResources {
+        localeFilters += listOf("en", "pt-BR", "es-419")
+    }
+
     buildTypes {
         debug {
             isDebuggable = true
