@@ -38,7 +38,7 @@ interface BookDao {
     @Query("UPDATE books SET title = :title, author = :author, narrator = :narrator WHERE id = :id")
     suspend fun updateMetadata(id: String, title: String, author: String?, narrator: String?)
 
-    @Query("UPDATE books SET title = :title, author = :author, coverPath = :coverPath, narrator = :narrator WHERE id = :id")
+    @Query("UPDATE books SET title = :title, author = :author, coverUri = :coverPath, narrator = :narrator WHERE id = :id")
     suspend fun updateFullMetadata(
         id: String,
         title: String,
@@ -62,7 +62,7 @@ interface BookDao {
     @Query("UPDATE books SET durationMillis = :duration WHERE id = :id")
     suspend fun updateDuration(id: String, duration: Long)
 
-    @Query("UPDATE books SET coverPath = :coverPath WHERE id = :id")
+    @Query("UPDATE books SET coverUri = :coverPath WHERE id = :id")
     suspend fun updateCoverPath(id: String, coverPath: String?)
 
     @Query("UPDATE books SET tracksJson = :tracksJson WHERE id = :id")

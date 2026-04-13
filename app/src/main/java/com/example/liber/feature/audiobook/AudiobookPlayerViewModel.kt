@@ -2,6 +2,7 @@ package com.example.liber.feature.audiobook
 
 import android.app.Application
 import android.content.ComponentName
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
@@ -38,7 +39,12 @@ class AudiobookPlayerViewModel @Inject constructor(
     private val bookRepository: BookRepository,
 ) : AndroidViewModel(application) {
 
-    data class TrackInfo(val name: String, val uri: Uri, val mimeType: String? = null)
+    data class TrackInfo(
+        val name: String,
+        val uri: Uri,
+        val mimeType: String? = null,
+        val durationMs: Long = 0L
+    )
 
     private fun List<TrackInfo>.toJson(): String {
         val array = JSONArray()
@@ -46,6 +52,7 @@ class AudiobookPlayerViewModel @Inject constructor(
             array.put(JSONObject().apply {
                 put("name", track.name)
                 put("uri", track.uri.toString())
+                put("durationMs", track.durationMs)
                 track.mimeType?.let { put("mimeType", it) }
             })
         }
@@ -62,7 +69,8 @@ class AudiobookPlayerViewModel @Inject constructor(
                     TrackInfo(
                         obj.getString("name"),
                         obj.getString("uri").toUri(),
-                        if (obj.has("mimeType")) obj.getString("mimeType") else null
+                        if (obj.has("mimeType")) obj.getString("mimeType") else null,
+                        if (obj.has("durationMs")) obj.optLong("durationMs", 0L) else 0L
                     )
                 )
             }
@@ -138,9 +146,6 @@ class AudiobookPlayerViewModel @Inject constructor(
                         playbackState != Player.STATE_IDLE && playbackState != Player.STATE_BUFFERING
                     val duration = controller.duration.coerceAtLeast(0L)
                     _durationMs.value = duration
-                    if (duration > 0) {
-                        saveDuration(duration)
-                    }
                 }
             })
             // Sync initial state
@@ -149,9 +154,6 @@ class AudiobookPlayerViewModel @Inject constructor(
             _currentTrackIndex.value = controller.currentMediaItemIndex
             val duration = controller.duration.coerceAtLeast(0L)
             _durationMs.value = duration
-            if (duration > 0) {
-                saveDuration(duration)
-            }
             _positionMs.value = controller.currentPosition
             _playbackSpeed.value = controller.playbackParameters.speed
             if (controller.isPlaying) startPositionUpdates()
@@ -197,6 +199,23 @@ class AudiobookPlayerViewModel @Inject constructor(
         }
     }
 
+    private fun getTrackDuration(uri: Uri): Long {
+        val retriever = MediaMetadataRetriever()
+        return try {
+            getApplication<Application>().contentResolver.openFileDescriptor(uri, "r")?.use { pfd ->
+                retriever.setDataSource(pfd.fileDescriptor)
+            }
+            retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLong() ?: 0L
+        } catch (e: Exception) {
+            0L
+        } finally {
+            try {
+                retriever.release()
+            } catch (e: Exception) {
+            }
+        }
+    }
+
     private fun loadTracks(book: Book) {
         viewModelScope.launch(Dispatchers.IO) {
             val cachedTracks = book.tracksJson?.toTrackInfoList()
@@ -219,28 +238,36 @@ class AudiobookPlayerViewModel @Inject constructor(
                     }
                     .sortedBy { it.name }
                     .map {
+                        val duration = getTrackDuration(it.uri)
                         TrackInfo(
                             it.name?.substringBeforeLast('.') ?: it.name ?: "Track",
                             it.uri,
                             it.type
-                                ?: com.example.liber.data.model.AudioFormats.getMimeType(it.name)
+                                ?: com.example.liber.data.model.AudioFormats.getMimeType(it.name),
+                            durationMs = duration
                         )
                     }
             } else {
                 val file = DocumentFile.fromSingleUri(getApplication(), uri) ?: return@launch
+                val duration = getTrackDuration(file.uri)
                 listOf(
                     TrackInfo(
                         file.name?.substringBeforeLast('.') ?: "Track",
                         file.uri,
                         file.type
-                            ?: com.example.liber.data.model.AudioFormats.getMimeType(file.name)
+                            ?: com.example.liber.data.model.AudioFormats.getMimeType(file.name),
+                        durationMs = duration
                     )
                 )
             }
 
             _tracks.value = trackList
             if (trackList.isNotEmpty()) {
+                val totalDuration = trackList.sumOf { it.durationMs }
                 bookRepository.updateTracks(book.id, trackList.toJson())
+                if (totalDuration > 0) {
+                    bookRepository.updateDuration(book.id, totalDuration)
+                }
                 withContext(Dispatchers.Main) {
                     prepareTracks(trackList, book)
                     _uiState.value = UiState.Success(Unit)
@@ -425,13 +452,24 @@ class AudiobookPlayerViewModel @Inject constructor(
     private fun saveProgress() {
         val bookId = currentBookId ?: return
         val pos = _positionMs.value
-        val dur = _durationMs.value
         val trackIdx = _currentTrackIndex.value
+        val tracks = _tracks.value
 
-        if (dur <= 0) return
+        if (tracks.isEmpty()) return
 
         viewModelScope.launch(Dispatchers.IO) {
-            val progress = ((pos.toDouble() / dur.toDouble()) * 100).toInt().coerceIn(0, 100)
+            val totalDuration = tracks.sumOf { it.durationMs }
+            val currentPos = tracks.take(trackIdx).sumOf { it.durationMs } + pos
+
+            val progress = if (totalDuration > 0) {
+                ((currentPos.toDouble() / totalDuration.toDouble()) * 100).toInt().coerceIn(0, 100)
+            } else {
+                val currentTrackDur = tracks.getOrNull(trackIdx)?.durationMs ?: 0L
+                if (currentTrackDur > 0) {
+                    ((pos.toDouble() / currentTrackDur.toDouble()) * 100).toInt().coerceIn(0, 100)
+                } else 0
+            }
+
             val locator = JSONObject().apply {
                 put("trackIndex", trackIdx)
                 put("positionMs", pos)
