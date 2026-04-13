@@ -25,7 +25,7 @@
         android:theme="@style/Theme.Liber">
         <activity
             android:name=".MainActivity"
-            android:configChanges="uiMode|orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
+            android:configChanges="uiMode|orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout|locale|layoutDirection"
             android:exported="true"
             android:theme="@style/Theme.Liber">
             <intent-filter>

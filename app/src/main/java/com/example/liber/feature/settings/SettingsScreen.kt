@@ -22,13 +22,19 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.ArrowClockwise
+import com.adamglin.phosphoricons.regular.CaretDown
+import com.adamglin.phosphoricons.regular.Check
 import com.adamglin.phosphoricons.regular.FilePlus
 import com.adamglin.phosphoricons.regular.FolderOpen
 import com.adamglin.phosphoricons.regular.Moon
@@ -38,6 +44,7 @@ import com.adamglin.phosphoricons.regular.SunHorizon
 import com.adamglin.phosphoricons.regular.Translate
 import com.adamglin.phosphoricons.regular.Trash
 import com.example.liber.R
+import com.example.liber.core.designsystem.LiberModalBottomSheet
 import com.example.liber.core.designsystem.LiberScreen
 import com.example.liber.core.util.UiText
 import com.example.liber.data.model.ScanSource
@@ -265,52 +272,135 @@ private fun ScanSourceRow(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LanguageSetting(
     currentLanguageTag: String,
     supportedLanguages: List<LanguageOptions>,
     onLanguageSelected: (String) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Icon(
-                imageVector = PhosphorIcons.Regular.Translate,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = stringResource(R.string.settings_language),
-                style = MaterialTheme.typography.titleMedium,
-            )
-        }
+    var showSheet by remember { mutableStateOf(false) }
+    val currentLanguage = supportedLanguages.find { it.tag == currentLanguageTag }
 
-        SingleChoiceSegmentedButtonRow(
-            modifier = Modifier.fillMaxWidth(),
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            text = stringResource(R.string.settings_language),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        Surface(
+            onClick = { showSheet = true },
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+            shape = MaterialTheme.shapes.small,
         ) {
-            supportedLanguages.forEachIndexed { index, language ->
-                SegmentedButton(
-                    shape = SegmentedButtonDefaults.itemShape(
-                        index = index,
-                        count = supportedLanguages.size
-                    ),
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = PhosphorIcons.Regular.Translate,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_language),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = currentLanguage?.displayName ?: "",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Icon(
+                        imageVector = PhosphorIcons.Regular.CaretDown,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+
+    if (showSheet) {
+        LanguageBottomSheet(
+            currentLanguageTag = currentLanguageTag,
+            supportedLanguages = supportedLanguages,
+            onLanguageSelected = {
+                onLanguageSelected(it)
+                showSheet = false
+            },
+            onDismiss = { showSheet = false }
+        )
+    }
+}
+
+@Composable
+private fun LanguageBottomSheet(
+    currentLanguageTag: String,
+    supportedLanguages: List<LanguageOptions>,
+    onLanguageSelected: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    LiberModalBottomSheet(
+        onDismissRequest = onDismiss,
+        title = UiText.StringResource(R.string.settings_language)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 40.dp)
+                .padding(top = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            supportedLanguages.forEach { language ->
+                val isSelected = language.tag == currentLanguageTag
+                Surface(
                     onClick = { onLanguageSelected(language.tag) },
-                    selected = currentLanguageTag == language.tag,
-                    label = {
+                    color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+                    shape = MaterialTheme.shapes.medium,
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(
-                            text = when (language.tag) {
-                                "pt-BR" -> "PT"
-                                "es-419" -> "ES"
-                                else -> "EN"
-                            },
-                            style = MaterialTheme.typography.labelMedium
+                            text = language.displayName,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (isSelected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurface,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                         )
+                        if (isSelected) {
+                            Icon(
+                                imageVector = PhosphorIcons.Regular.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
-                )
+                }
             }
         }
     }

@@ -15,7 +15,7 @@
         <item name="colorOnSecondaryContainer">@android:color/white</item>
 
         <!-- Surface Colors -->
-        <item name="android:windowBackground">@color/neutral_50</item>
+        <item name="android:windowBackground">@color/neutral_900</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
 
         <!-- Material Components (M2) Compatibility -->

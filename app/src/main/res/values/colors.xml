@@ -4,4 +4,6 @@
     <color name="rose_600">#D15D67</color>
     <color name="mauve_500">#8D6D74</color>
     <color name="mauve_600">#74585E</color>
+    <color name="neutral_50">#F8F5F5</color>
+    <color name="neutral_900">#130F10</color>
 </resources>
