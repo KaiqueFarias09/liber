@@ -32,6 +32,10 @@ class BookRepository(private val bookDao: BookDao) {
         return bookDao.getBookByContentId(contentId)
     }
 
+    suspend fun getAllBooksList(): List<Book> {
+        return bookDao.getAllBooksList()
+    }
+
     suspend fun insertBook(book: Book) {
         bookDao.insertBook(book)
     }

@@ -112,11 +112,12 @@ fun LiberApp(
     // ── App state ────────────────────────────────────────────────────────────
     val activeBook by liberAppViewModel.activeBook.collectAsState()
     val allBooks by homeViewModel.books.collectAsState()
-    val book = remember(activeBook?.id, allBooks) {
+
+    val isReaderOpen by liberAppViewModel.isReaderOpen.collectAsState()
+    val book = remember(activeBook?.id, allBooks, isReaderOpen) {
         allBooks.find { it.id == activeBook?.id } ?: activeBook
     }
     val activePublication by liberAppViewModel.activePublication.collectAsState()
-    val isReaderOpen by liberAppViewModel.isReaderOpen.collectAsState()
     val isPlayingGlobal by liberAppViewModel.isPlaying.collectAsState()
     val playWhenReadyGlobal by liberAppViewModel.playWhenReady.collectAsState()
     val selectedCollectionId by liberAppViewModel.selectedCollectionId.collectAsState()
@@ -260,10 +261,12 @@ fun LiberApp(
     val publication = activePublication
     val playerProgress by liberAppViewModel.playerProgress.collectAsState()
 
+    val isAudiobook = book != null && book.isAudiobook
+    val isEpub = book != null && !book.isAudiobook
+    val showEpubReader = isReaderOpen && isEpub
+
     // ── Root layout ──────────────────────────────────────────────────────────
     Box(modifier = Modifier.fillMaxSize()) {
-        val showEpubReader = isReaderOpen && book != null && !book.isAudiobook
-
         if (showEpubReader) {
             if (publication != null) {
                 ReaderScreen(
@@ -295,7 +298,6 @@ fun LiberApp(
                 )
             }
         } else {
-            val isAudiobook = book != null && (book.isAudiobook)
             Scaffold(
                 containerColor = MaterialTheme.colorScheme.background,
                 contentColor = MaterialTheme.colorScheme.onBackground,
@@ -391,9 +393,8 @@ fun LiberApp(
             }
         }
 
-        // ── Audiobook overlays ───────────────────────────────────────────────
         val isAudiobookOverlay = book != null && (book.isAudiobook)
-        if (isAudiobookOverlay && book != null) {
+        if (isAudiobookOverlay) {
             AnimatedVisibility(
                 visible = isReaderOpen,
                 enter = slideInVertically(
@@ -406,7 +407,7 @@ fun LiberApp(
                 ) + fadeOut(),
             ) {
                 AudioPlayerScreen(
-                    book = book!!,
+                    book = book,
                     liberAppViewModel = liberAppViewModel,
                     homeViewModel = homeViewModel,
                     audiobookPlayerViewModel = audiobookPlayerViewModel,

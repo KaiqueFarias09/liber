@@ -160,13 +160,6 @@ class AudiobookPlayerViewModel @Inject constructor(
         }, MoreExecutors.directExecutor())
     }
 
-    private fun saveDuration(duration: Long) {
-        val bookId = currentBookId ?: return
-        viewModelScope.launch(Dispatchers.IO) {
-            bookRepository.updateDuration(bookId, duration)
-        }
-    }
-
     fun loadBook(book: Book) {
         if (currentBookId == book.id) {
             return
@@ -284,7 +277,7 @@ class AudiobookPlayerViewModel @Inject constructor(
 
         val mediaItems = trackList.map { track ->
             MediaItem.Builder()
-                .setMediaId(track.uri.toString())
+                .setMediaId("${book.id}|${track.uri}")
                 .setUri(track.uri)
                 .setMimeType(track.mimeType)
                 .setMediaMetadata(
@@ -412,14 +405,6 @@ class AudiobookPlayerViewModel @Inject constructor(
     fun skipBackward(seconds: Int = 30) {
         val controller = controller ?: return
         seekTo((controller.currentPosition - seconds * 1000L).coerceAtLeast(0))
-    }
-
-    fun playNextTrack() {
-        controller?.seekToNextMediaItem()
-    }
-
-    fun playPrevTrack() {
-        if (_positionMs.value > 5000L) seekTo(0) else controller?.seekToPreviousMediaItem()
     }
 
     private fun startPositionUpdates() {

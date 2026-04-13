@@ -1,7 +1,6 @@
 package com.example.liber
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
@@ -12,15 +11,23 @@ import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSiz
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.lifecycleScope
 import com.example.liber.core.designsystem.LiberTheme
+import com.example.liber.core.intent.AppIntentHandler
+import com.example.liber.core.intent.IncomingIntentAction
 import com.example.liber.feature.home.HomeViewModel
 import com.example.liber.feature.settings.SettingsViewModel
 import com.example.liber.ui.LiberApp
 import com.example.liber.ui.LiberAppViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
+
+    @Inject
+    lateinit var appIntentHandler: AppIntentHandler
 
     private val homeViewModel: HomeViewModel by viewModels()
     private val liberAppViewModel: LiberAppViewModel by viewModels()
@@ -62,26 +69,22 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleIntent(intent: Intent?) {
-        runCatching {
-            val action = intent?.action
-            val type = intent?.type
+        intent ?: return
+        lifecycleScope.launch {
+            runCatching {
+                when (val result = appIntentHandler.resolveIncomingIntent(intent)) {
+                    is IncomingIntentAction.OpenAudiobook ->
+                        liberAppViewModel.openAudiobook(result.book)
 
-            if (Intent.ACTION_VIEW == action) {
-                intent.data?.let { uri ->
-                    homeViewModel.importAndOpenBook(uri, liberAppViewModel)
+                    is IncomingIntentAction.ImportAndOpen ->
+                        homeViewModel.importAndOpenBook(result.uri, liberAppViewModel)
+
+                    is IncomingIntentAction.Unhandled -> Unit
                 }
-            } else if (Intent.ACTION_SEND == action && type != null) {
-                val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
-                } else {
-                    @Suppress("DEPRECATION")
-                    intent.getParcelableExtra(Intent.EXTRA_STREAM)
-                }
-                uri?.let { homeViewModel.importAndOpenBook(it, liberAppViewModel) }
+            }.onFailure { exception ->
+                // Catch SecurityException or IllegalArgumentException from malicious/bad intents
+                exception.printStackTrace()
             }
-        }.onFailure { exception ->
-            // Catch SecurityException or IllegalArgumentException from malicious/bad intents
-            exception.printStackTrace()
         }
     }
 }
