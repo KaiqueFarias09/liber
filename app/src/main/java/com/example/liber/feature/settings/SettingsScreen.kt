@@ -35,6 +35,7 @@ import com.adamglin.phosphoricons.regular.Moon
 import com.adamglin.phosphoricons.regular.Palette
 import com.adamglin.phosphoricons.regular.Sun
 import com.adamglin.phosphoricons.regular.SunHorizon
+import com.adamglin.phosphoricons.regular.Translate
 import com.adamglin.phosphoricons.regular.Trash
 import com.example.liber.R
 import com.example.liber.core.designsystem.LiberScreen
@@ -53,6 +54,7 @@ fun SettingsScreen(
     onRemoveFolder: (ScanSource) -> Unit = {},
 ) {
     val themeMode by viewModel.themeMode.collectAsState()
+    val currentLanguage by viewModel.currentLanguage.collectAsState()
 
     LiberScreen(
         title = UiText.StringResource(R.string.tab_settings),
@@ -76,10 +78,18 @@ fun SettingsScreen(
             }
 
             SettingsSection(title = UiText.StringResource(R.string.settings_section_appearance)) {
-                ThemeSetting(
-                    currentMode = themeMode,
-                    onModeSelected = { viewModel.setThemeMode(it) }
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                    ThemeSetting(
+                        currentMode = themeMode,
+                        onModeSelected = { viewModel.setThemeMode(it) }
+                    )
+
+                    LanguageSetting(
+                        currentLanguageTag = currentLanguage,
+                        supportedLanguages = viewModel.supportedLanguages,
+                        onLanguageSelected = { viewModel.setLanguage(it) }
+                    )
+                }
             }
         }
     }
@@ -249,6 +259,57 @@ private fun ScanSourceRow(
                     contentDescription = stringResource(R.string.settings_action_remove_folder),
                     modifier = Modifier.size(18.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LanguageSetting(
+    currentLanguageTag: String,
+    supportedLanguages: List<LanguageOptions>,
+    onLanguageSelected: (String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Icon(
+                imageVector = PhosphorIcons.Regular.Translate,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = stringResource(R.string.settings_language),
+                style = MaterialTheme.typography.titleMedium,
+            )
+        }
+
+        SingleChoiceSegmentedButtonRow(
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            supportedLanguages.forEachIndexed { index, language ->
+                SegmentedButton(
+                    shape = SegmentedButtonDefaults.itemShape(
+                        index = index,
+                        count = supportedLanguages.size
+                    ),
+                    onClick = { onLanguageSelected(language.tag) },
+                    selected = currentLanguageTag == language.tag,
+                    label = {
+                        Text(
+                            text = when (language.tag) {
+                                "pt-BR" -> "PT"
+                                "es-419" -> "ES"
+                                else -> "EN"
+                            },
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
                 )
             }
         }

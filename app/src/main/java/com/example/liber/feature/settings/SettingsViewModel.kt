@@ -1,13 +1,17 @@
 package com.example.liber.feature.settings
 
 import android.app.Application
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.liber.data.repository.ThemeMode
 import com.example.liber.data.repository.UserPreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -17,6 +21,27 @@ class SettingsViewModel @Inject constructor(
     application: Application,
     private val repository: UserPreferencesRepository,
 ) : AndroidViewModel(application) {
+
+    val supportedLanguages = listOf(
+        LanguageOptions("en", "English"),
+        LanguageOptions("pt-BR", "Português (Brasil)"),
+        LanguageOptions("es-419", "Español (Latinoamérica)")
+    )
+
+    private val _currentLanguage = MutableStateFlow(getCurrentLanguageCode())
+    val currentLanguage: StateFlow<String> = _currentLanguage.asStateFlow()
+
+    private fun getCurrentLanguageCode(): String {
+        val locales = AppCompatDelegate.getApplicationLocales()
+        return if (!locales.isEmpty) locales.get(0)?.toLanguageTag() ?: "en" else "en"
+    }
+
+    fun setLanguage(languageTag: String) {
+        _currentLanguage.value = languageTag
+
+        val localeList = LocaleListCompat.forLanguageTags(languageTag)
+        AppCompatDelegate.setApplicationLocales(localeList)
+    }
 
     val themeMode: StateFlow<ThemeMode> = repository.themeMode
         .stateIn(
@@ -31,3 +56,5 @@ class SettingsViewModel @Inject constructor(
         }
     }
 }
+
+data class LanguageOptions(val tag: String, val displayName: String)
