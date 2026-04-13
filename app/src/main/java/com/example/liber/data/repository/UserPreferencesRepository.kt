@@ -8,6 +8,8 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.example.liber.feature.library.LibrarySortOption
+import com.example.liber.feature.library.LibraryViewMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -31,6 +33,10 @@ class UserPreferencesRepository(private val context: Context) {
         val MARGINS = floatPreferencesKey("margins")
         val COLUMN_COUNT = stringPreferencesKey("column_count")
         val JUSTIFY_TEXT = booleanPreferencesKey("justify_text")
+        val BOOKS_VIEW_MODE = stringPreferencesKey("books_view_mode")
+        val BOOKS_SORT_OPTION = stringPreferencesKey("books_sort_option")
+        val AUDIOBOOKS_VIEW_MODE = stringPreferencesKey("audiobooks_view_mode")
+        val AUDIOBOOKS_SORT_OPTION = stringPreferencesKey("audiobooks_sort_option")
     }
 
     val themeMode: Flow<ThemeMode> = context.dataStore.data
@@ -113,6 +119,49 @@ class UserPreferencesRepository(private val context: Context) {
 
     suspend fun setJustifyText(value: Boolean) {
         context.dataStore.edit { it[PreferencesKeys.JUSTIFY_TEXT] = value }
+    }
+
+    val booksViewMode: Flow<LibraryViewMode> = context.dataStore.data
+        .map { preferences ->
+            val name = preferences[PreferencesKeys.BOOKS_VIEW_MODE] ?: LibraryViewMode.GRID.name
+            LibraryViewMode.valueOf(name)
+        }
+
+    suspend fun setBooksViewMode(mode: LibraryViewMode) {
+        context.dataStore.edit { it[PreferencesKeys.BOOKS_VIEW_MODE] = mode.name }
+    }
+
+    val booksSortOption: Flow<LibrarySortOption> = context.dataStore.data
+        .map { preferences ->
+            val name =
+                preferences[PreferencesKeys.BOOKS_SORT_OPTION] ?: LibrarySortOption.RECENT.name
+            LibrarySortOption.valueOf(name)
+        }
+
+    suspend fun setBooksSortOption(option: LibrarySortOption) {
+        context.dataStore.edit { it[PreferencesKeys.BOOKS_SORT_OPTION] = option.name }
+    }
+
+    val audiobooksViewMode: Flow<LibraryViewMode> = context.dataStore.data
+        .map { preferences ->
+            val name =
+                preferences[PreferencesKeys.AUDIOBOOKS_VIEW_MODE] ?: LibraryViewMode.GRID.name
+            LibraryViewMode.valueOf(name)
+        }
+
+    suspend fun setAudiobooksViewMode(mode: LibraryViewMode) {
+        context.dataStore.edit { it[PreferencesKeys.AUDIOBOOKS_VIEW_MODE] = mode.name }
+    }
+
+    val audiobooksSortOption: Flow<LibrarySortOption> = context.dataStore.data
+        .map { preferences ->
+            val name =
+                preferences[PreferencesKeys.AUDIOBOOKS_SORT_OPTION] ?: LibrarySortOption.RECENT.name
+            LibrarySortOption.valueOf(name)
+        }
+
+    suspend fun setAudiobooksSortOption(option: LibrarySortOption) {
+        context.dataStore.edit { it[PreferencesKeys.AUDIOBOOKS_SORT_OPTION] = option.name }
     }
 
     suspend fun resetReaderSettings() {

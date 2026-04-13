@@ -15,6 +15,7 @@ import com.example.liber.data.model.ScanState
 import com.example.liber.data.repository.BookImporter
 import com.example.liber.data.repository.BookRepository
 import com.example.liber.data.repository.ScanSourceRepository
+import com.example.liber.data.repository.UserPreferencesRepository
 import com.example.liber.feature.library.LibrarySortOption
 import com.example.liber.feature.library.LibraryViewMode
 import com.example.liber.feature.reader.AnnotationRequest
@@ -39,6 +40,7 @@ class HomeViewModel @Inject constructor(
     application: Application,
     internal val bookRepository: BookRepository,
     private val scanSourceRepository: ScanSourceRepository,
+    private val userPreferencesRepository: UserPreferencesRepository,
     val bookImporter: BookImporter,
 ) : AndroidViewModel(application) {
 
@@ -75,32 +77,42 @@ class HomeViewModel @Inject constructor(
     val scanSources: StateFlow<List<ScanSource>> = scanSourceRepository.getAllSources()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val _booksViewMode = MutableStateFlow(LibraryViewMode.GRID)
-    val booksViewMode: StateFlow<LibraryViewMode> = _booksViewMode
+    val booksViewMode: StateFlow<LibraryViewMode> = userPreferencesRepository.booksViewMode
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LibraryViewMode.GRID)
 
-    private val _booksSortOption = MutableStateFlow(LibrarySortOption.RECENT)
-    val booksSortOption: StateFlow<LibrarySortOption> = _booksSortOption
+    val booksSortOption: StateFlow<LibrarySortOption> = userPreferencesRepository.booksSortOption
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LibrarySortOption.RECENT)
 
-    private val _audiobooksViewMode = MutableStateFlow(LibraryViewMode.GRID)
-    val audiobooksViewMode: StateFlow<LibraryViewMode> = _audiobooksViewMode
+    val audiobooksViewMode: StateFlow<LibraryViewMode> =
+        userPreferencesRepository.audiobooksViewMode
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LibraryViewMode.GRID)
 
-    private val _audiobooksSortOption = MutableStateFlow(LibrarySortOption.RECENT)
-    val audiobooksSortOption: StateFlow<LibrarySortOption> = _audiobooksSortOption
+    val audiobooksSortOption: StateFlow<LibrarySortOption> =
+        userPreferencesRepository.audiobooksSortOption
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LibrarySortOption.RECENT)
 
     fun setBooksViewMode(mode: LibraryViewMode) {
-        _booksViewMode.value = mode
+        viewModelScope.launch {
+            userPreferencesRepository.setBooksViewMode(mode)
+        }
     }
 
     fun setBooksSortOption(option: LibrarySortOption) {
-        _booksSortOption.value = option
+        viewModelScope.launch {
+            userPreferencesRepository.setBooksSortOption(option)
+        }
     }
 
     fun setAudiobooksViewMode(mode: LibraryViewMode) {
-        _audiobooksViewMode.value = mode
+        viewModelScope.launch {
+            userPreferencesRepository.setAudiobooksViewMode(mode)
+        }
     }
 
     fun setAudiobooksSortOption(option: LibrarySortOption) {
-        _audiobooksSortOption.value = option
+        viewModelScope.launch {
+            userPreferencesRepository.setAudiobooksSortOption(option)
+        }
     }
 
     private val _pendingAnnotationRequest = MutableStateFlow<AnnotationRequest?>(null)
