@@ -26,7 +26,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.HorizontalDivider
@@ -44,7 +43,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -58,9 +56,7 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.viewModelScope
 import coil.compose.AsyncImage
 import com.adamglin.PhosphorIcons
-import com.adamglin.phosphoricons.Fill
 import com.adamglin.phosphoricons.Regular
-import com.adamglin.phosphoricons.fill.MagnifyingGlass
 import com.adamglin.phosphoricons.regular.Camera
 import com.adamglin.phosphoricons.regular.Globe
 import com.adamglin.phosphoricons.regular.Image
@@ -71,7 +67,10 @@ import com.adamglin.phosphoricons.regular.Trash
 import com.example.liber.R
 import com.example.liber.api.ITunesSearchApi
 import com.example.liber.api.ITunesSearchResult
+import com.example.liber.core.designsystem.LiberButton
 import com.example.liber.core.designsystem.LiberModalBottomSheet
+import com.example.liber.core.designsystem.LiberSearchField
+import com.example.liber.core.designsystem.LiberTextField
 import com.example.liber.core.util.UiText
 import com.example.liber.data.model.Book
 import com.example.liber.feature.home.HomeViewModel
@@ -343,31 +342,22 @@ fun EditMetadataSheet(
             placeholder = UiText.StringResource(R.string.placeholder_author_name)
         )
 
-        MetadataInputField(
-            label = UiText.StringResource(R.string.field_label_narrator),
-            value = narrator,
-            onValueChange = { narrator = it },
-            placeholder = UiText.StringResource(R.string.placeholder_narrated_by)
-        )
+        if (book.isAudiobook) {
+            MetadataInputField(
+                label = UiText.StringResource(R.string.field_label_narrator),
+                value = narrator,
+                onValueChange = { narrator = it },
+                placeholder = UiText.StringResource(R.string.placeholder_narrated_by)
+            )
+        }
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(MaterialTheme.colorScheme.onSurface)
-                .clickable { onSave(title, author.ifBlank { null }, narrator.ifBlank { null }) }
-                .padding(vertical = 16.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = stringResource(R.string.action_save_changes),
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.surface
-            )
-        }
+        LiberButton(
+            text = UiText.StringResource(R.string.action_save_changes),
+            onClick = { onSave(title, author.ifBlank { null }, narrator.ifBlank { null }) },
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 
@@ -380,42 +370,15 @@ fun MetadataInputField(
 ) {
     val focusManager = LocalFocusManager.current
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = label.asString(),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 1.sp
-        )
-        BasicTextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    MaterialTheme.colorScheme.surfaceContainerLow,
-                    RoundedCornerShape(12.dp)
-                )
-                .padding(16.dp),
-            textStyle = MaterialTheme.typography.bodyMedium.copy(
-                color = MaterialTheme.colorScheme.onSurface
-            ),
-            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-            decorationBox = { innerTextField ->
-                if (value.isEmpty()) {
-                    Text(
-                        text = placeholder.asString(),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                    )
-                }
-                innerTextField()
-            }
-        )
-    }
+    LiberTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = label,
+        placeholder = placeholder,
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+        keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
+    )
 }
 
 @Composable
@@ -506,47 +469,15 @@ fun SearchWebSheet(
             .fillMaxHeight(0.8f)
             .padding(horizontal = 20.dp)
     ) {
-        // Search Bar
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 16.dp)
-                .background(
-                    MaterialTheme.colorScheme.surfaceContainerLow,
-                    RoundedCornerShape(12.dp)
-                )
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Icon(
-                PhosphorIcons.Fill.MagnifyingGlass,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            BasicTextField(
-                value = query,
-                onValueChange = { query = it },
-                modifier = Modifier.weight(1f),
-                textStyle = MaterialTheme.typography.bodyMedium.copy(
-                    color = MaterialTheme.colorScheme.onSurface
-                ),
-                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { performSearch() }),
-                decorationBox = { innerTextField ->
-                    if (query.isEmpty()) {
-                        Text(
-                            text = stringResource(R.string.placeholder_search_book),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                        )
-                    }
-                    innerTextField()
-                }
-            )
-        }
+        LiberSearchField(
+            value = query,
+            onValueChange = { query = it },
+            placeholder = UiText.StringResource(R.string.placeholder_search_book),
+            modifier = Modifier.padding(vertical = 16.dp),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = { performSearch() }),
+            onClear = { query = "" }
+        )
 
         if (isSearching) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
