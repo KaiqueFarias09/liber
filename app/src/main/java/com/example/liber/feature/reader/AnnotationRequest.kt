@@ -1,16 +1,20 @@
 package com.example.liber.feature.reader
 
-import org.readium.r2.shared.publication.Locator
-
-/** Posted by [MainActivity] when the user taps "Add Note" or "Highlight" from the text-selection menu. */
-sealed class AnnotationRequest(open val selectedText: String?, open val locator: Locator? = null) {
+/**
+ * Fired when the user taps "Highlight" or "Add Note" from the text-selection
+ * menu inside the reader. Uses CREngine xpointer strings as position markers.
+ */
+sealed class AnnotationRequest(
+    open val selectedText: String?,
+    open val xpointer: String? = null
+) {
     data class Note(
         override val selectedText: String?,
-        override val locator: Locator? = null
-    ) : AnnotationRequest(selectedText, locator)
+        override val xpointer: String? = null
+    ) : AnnotationRequest(selectedText, xpointer)
 
     data class Highlight(
         override val selectedText: String?,
-        override val locator: Locator? = null
-    ) : AnnotationRequest(selectedText, locator)
+        override val xpointer: String? = null
+    ) : AnnotationRequest(selectedText, xpointer)
 }

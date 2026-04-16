@@ -30,11 +30,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.readium.r2.shared.ExperimentalReadiumApi
-import org.readium.r2.shared.publication.Publication
 import javax.inject.Inject
 
-@OptIn(ExperimentalReadiumApi::class)
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     application: Application,
@@ -128,8 +125,8 @@ class HomeViewModel @Inject constructor(
 
     // ── Actions ──────────────────────────────────────────────────────────────
 
-    /** Opens a book in the reader and records it as last opened. Returns null on failure. */
-    suspend fun openBook(book: Book): Publication? = withContext(Dispatchers.IO) {
+    /** Records a book as last opened and ensures URI permission is held. */
+    suspend fun openBook(book: Book) = withContext(Dispatchers.IO) {
         bookRepository.updateLastOpenedAt(book.id, System.currentTimeMillis())
         try {
             getApplication<Application>().contentResolver.takePersistableUriPermission(
@@ -138,7 +135,6 @@ class HomeViewModel @Inject constructor(
             )
         } catch (_: Exception) { /* permission already held or not applicable */
         }
-        bookImporter.openPublication(book.fileUri)
     }
 
     fun saveLocator(bookId: String, locatorJson: String, progress: Int) {
@@ -233,15 +229,10 @@ class HomeViewModel @Inject constructor(
     fun importAndOpenBook(uri: Uri, liberAppViewModel: LiberAppViewModel) {
         viewModelScope.launch {
             _isLoading.value = true
-            val book = withContext(Dispatchers.IO) {
-                importBook(uri)
-            }
-
+            val book = withContext(Dispatchers.IO) { importBook(uri) }
             if (book != null) {
-                val publication = openBook(book)
-                if (publication != null) {
-                    liberAppViewModel.openEpub(book, publication)
-                }
+                openBook(book)
+                liberAppViewModel.openEpub(book)
             }
             _isLoading.value = false
         }

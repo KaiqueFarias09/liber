@@ -60,13 +60,12 @@ import com.example.liber.feature.settings.SettingsViewModel
 import com.example.liber.service.BookScanService
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
-import org.readium.r2.shared.ExperimentalReadiumApi
 
 /**
  * Root composable for app-level navigation.
  * ViewModels are obtained via Hilt — no manual passing from MainActivity.
  */
-@OptIn(ExperimentalReadiumApi::class, ExperimentalMaterial3WindowSizeClassApi::class)
+@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 fun LiberApp(
     windowSizeClass: WindowSizeClass,
@@ -117,7 +116,6 @@ fun LiberApp(
     val book = remember(activeBook?.id, allBooks, isReaderOpen) {
         allBooks.find { it.id == activeBook?.id } ?: activeBook
     }
-    val activePublication by liberAppViewModel.activePublication.collectAsState()
     val isPlayingGlobal by liberAppViewModel.isPlaying.collectAsState()
     val playWhenReadyGlobal by liberAppViewModel.playWhenReady.collectAsState()
     val selectedCollectionId by liberAppViewModel.selectedCollectionId.collectAsState()
@@ -238,10 +236,8 @@ fun LiberApp(
             scope.launch { homeViewModel.openBook(bookToOpen) }
         } else {
             scope.launch {
-                val publication = homeViewModel.openBook(bookToOpen)
-                if (publication != null) {
-                    liberAppViewModel.openEpub(bookToOpen, publication)
-                }
+                homeViewModel.openBook(bookToOpen)
+                liberAppViewModel.openEpub(bookToOpen)
             }
         }
     }
@@ -258,7 +254,6 @@ fun LiberApp(
     val bookmarks by bookmarksFlow.collectAsState(initial = emptyList())
 
     val pendingAnnotationRequest by homeViewModel.pendingAnnotationRequest.collectAsState()
-    val publication = activePublication
     val playerProgress by liberAppViewModel.playerProgress.collectAsState()
 
     val isAudiobook = book != null && book.isAudiobook
@@ -268,35 +263,26 @@ fun LiberApp(
     // ── Root layout ──────────────────────────────────────────────────────────
     Box(modifier = Modifier.fillMaxSize()) {
         if (showEpubReader) {
-            if (publication != null) {
-                ReaderScreen(
-                    publication = publication,
-                    bookId = book.id,
-                    userPreferencesRepository = userPreferencesRepository,
-                    initialLocatorJson = book.lastLocator,
-                    annotations = annotations,
-                    bookmarks = bookmarks,
-                    pendingAnnotationRequest = pendingAnnotationRequest,
-                    onRequestAnnotation = { request -> homeViewModel.requestAnnotation(request) },
-                    onSaveLocator = { json, progress ->
-                        homeViewModel.saveLocator(
-                            book.id,
-                            json,
-                            progress
-                        )
-                    },
-                    onSaveAnnotation = { annotation -> homeViewModel.saveAnnotation(annotation) },
-                    onDeleteAnnotation = { annotationId ->
-                        homeViewModel.deleteAnnotation(
-                            annotationId
-                        )
-                    },
-                    onSaveBookmark = { bookmark -> homeViewModel.saveBookmark(bookmark) },
-                    onDeleteBookmark = { bookmarkId -> homeViewModel.deleteBookmark(bookmarkId) },
-                    onClearPendingAnnotation = { homeViewModel.clearPendingAnnotation() },
-                    onBack = { liberAppViewModel.closeReader() },
-                )
-            }
+            ReaderScreen(
+                bookUri = book.fileUri,
+                bookTitle = book.title,
+                bookId = book.id,
+                userPreferencesRepository = userPreferencesRepository,
+                initialXPointer = book.lastLocator,
+                annotations = annotations,
+                bookmarks = bookmarks,
+                pendingAnnotationRequest = pendingAnnotationRequest,
+                onRequestAnnotation = { request -> homeViewModel.requestAnnotation(request) },
+                onSaveLocator = { xpointer, progress ->
+                    homeViewModel.saveLocator(book.id, xpointer, progress)
+                },
+                onSaveAnnotation = { annotation -> homeViewModel.saveAnnotation(annotation) },
+                onDeleteAnnotation = { annotationId -> homeViewModel.deleteAnnotation(annotationId) },
+                onSaveBookmark = { bookmark -> homeViewModel.saveBookmark(bookmark) },
+                onDeleteBookmark = { bookmarkId -> homeViewModel.deleteBookmark(bookmarkId) },
+                onClearPendingAnnotation = { homeViewModel.clearPendingAnnotation() },
+                onBack = { liberAppViewModel.closeReader() },
+            )
         } else {
             Scaffold(
                 containerColor = MaterialTheme.colorScheme.background,
