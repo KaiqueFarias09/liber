@@ -50,6 +50,7 @@ import com.example.liber.feature.reader.ReaderThemes
 fun ThemesSheet(
     currentThemeId: String,
     onThemeChange: (String) -> Unit,
+    fontSize: Double,
     onDecreaseFontSize: () -> Unit,
     onIncreaseFontSize: () -> Unit,
     pageScroll: Boolean,
@@ -100,6 +101,25 @@ fun ThemesSheet(
                     PhosphorIcons.Regular.Minus,
                     contentDescription = stringResource(R.string.reader_themes_decrease_font),
                     tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp)
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .width(0.5.dp)
+                    .height(48.dp)
+                    .background(MaterialTheme.colorScheme.outlineVariant)
+                    .align(Alignment.CenterVertically)
+            )
+            Box(
+                modifier = Modifier
+                    .weight(2f)
+                    .padding(vertical = 14.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "${(16.0 * fontSize).toInt()} sp",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
             Box(

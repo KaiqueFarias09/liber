@@ -13,10 +13,13 @@ import com.example.liber.data.model.AnnotationType
 import com.example.liber.data.repository.UserPreferencesRepository
 import com.example.liber.feature.reader.engine.ReaderCommand
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.coolreader.crengine.Bookmark
@@ -32,7 +35,7 @@ private val DEFAULT_ANNOTATION_COLOR = 0x80FFD60A.toInt()
 private const val DEFAULT_LINE_SPACING = 1.4f
 private const val DEFAULT_CHAR_SPACING = 0.0f
 private const val DEFAULT_WORD_SPACING = 0.0f
-private const val DEFAULT_MARGINS = 16.0f
+private const val DEFAULT_MARGINS = 24.0f
 
 class ReaderViewModel(
     application: Application,
@@ -75,6 +78,16 @@ class ReaderViewModel(
     private var viewWidth = 0
     private var viewHeight = 0
     private var currentBitmap: Bitmap? = null
+    private var documentLoaded = false
+
+    // Debounced settings pipe: rapid changes (sliders, toggles) coalesce into one engine call.
+    private val _settingsTrigger = MutableSharedFlow<Unit>(
+        extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+
+    private fun scheduleApply() {
+        _settingsTrigger.tryEmit(Unit)
+    }
 
     // ── Theme & font size ────────────────────────────────────────────────────
 
@@ -295,49 +308,67 @@ class ReaderViewModel(
 
     init {
         viewModelScope.launch {
-            launch { userPreferencesRepository.readerTheme.collectLatest { _themeId.value = it } }
             launch {
-                userPreferencesRepository.fontSize.collectLatest {
-                    _fontSize.value = it.toDouble()
+                userPreferencesRepository.readerTheme.collectLatest {
+                    _themeId.value = it; scheduleApply()
                 }
             }
-            launch { userPreferencesRepository.pageScroll.collectLatest { _pageScroll.value = it } }
+            launch {
+                userPreferencesRepository.fontSize.collectLatest {
+                    _fontSize.value = it.toDouble(); scheduleApply()
+                }
+            }
+            launch {
+                userPreferencesRepository.pageScroll.collectLatest {
+                    _pageScroll.value = it; scheduleApply()
+                }
+            }
             launch {
                 userPreferencesRepository.customizeLayout.collectLatest {
-                    _customizeLayout.value = it
+                    _customizeLayout.value = it; scheduleApply()
                 }
             }
             launch {
                 userPreferencesRepository.lineSpacing.collectLatest {
-                    _lineSpacing.value = it.toDouble()
+                    _lineSpacing.value = it.toDouble(); scheduleApply()
                 }
             }
             launch {
                 userPreferencesRepository.charSpacing.collectLatest {
-                    _characterSpacing.value = it.toDouble()
+                    _characterSpacing.value = it.toDouble(); scheduleApply()
                 }
             }
             launch {
                 userPreferencesRepository.wordSpacing.collectLatest {
-                    _wordSpacing.value = it.toDouble()
+                    _wordSpacing.value = it.toDouble(); scheduleApply()
                 }
             }
             launch {
                 userPreferencesRepository.margins.collectLatest {
-                    _margins.value = it.toDouble()
+                    _margins.value = it.toDouble(); scheduleApply()
                 }
             }
             launch {
                 userPreferencesRepository.columnCount.collectLatest {
-                    _columnCount.value = it
+                    _columnCount.value = it; scheduleApply()
                 }
             }
             launch {
                 userPreferencesRepository.justifyText.collectLatest {
-                    _justifyText.value = it
+                    _justifyText.value = it; scheduleApply()
                 }
             }
         }
+        // Debounced settings apply: waits 300ms after last change before hitting the engine.
+        viewModelScope.launch(Dispatchers.IO) {
+            _settingsTrigger.debounce(300L).collect {
+                if (documentLoaded) {
+                    applyCurrentSettings()
+                    renderPage()
+                }
+            }
+        }
+
         docView.create()
 
         // Drain scroll channel: coalesce pending deltas into one engine call + render.
@@ -364,6 +395,7 @@ class ReaderViewModel(
             if (!ok) return@launch
 
             applyCurrentSettings()
+            documentLoaded = true
 
             if (!initialXPointer.isNullOrBlank()) {
                 docView.goToPosition(initialXPointer, precise = false)
@@ -430,16 +462,14 @@ class ReaderViewModel(
 
     fun applyCurrentSettings() {
         val dm = getApplication<Application>().resources.displayMetrics
-        // lvrend.cpp uses 96 as its base DPI, not 160. Scale accordingly.
-        val renderDpi = (96 * dm.density).toInt()
-        // crengine.font.size is in physical pixels — renderDpi does NOT scale it.
-        // Convert: px = pt × densityDpi / 72  (12pt baseline, same as reference CoolReader)
-        val fontSizePx = (12.0 * _fontSize.value * dm.densityDpi / 72.0).toInt().coerceIn(16, 256)
+        // crengine.font.size takes screen pixels. Scale like Android sp → px:
+        // 16sp base at scale 1.0 gives 48px at xxhdpi (density=3).
+        val fontSizePx = (16.0 * dm.density * _fontSize.value).toInt().coerceIn(10, 120)
 
         val theme = findReaderTheme(_themeId.value)
         val customize = _customizeLayout.value
         val props = Properties().apply {
-            setProperty("crengine.render.dpi", renderDpi.toString())
+            setProperty("crengine.render.dpi", dm.densityDpi.toString())
             setProperty(
                 "crengine.background.color",
                 String.format("%06X", theme.background.value.toInt() and 0xFFFFFF)
@@ -479,7 +509,7 @@ class ReaderViewModel(
                 if (_justifyText.value) "text-align: justify" else "text-align: left"
             )
 
-            // Page margins: slider value is in dp, convert to screen pixels for the engine
+            // Page margins: slider value is in dp, converted to screen pixels for the engine.
             val marginPx = (_margins.value * dm.density).toInt()
             setProperty("crengine.page.margin.left", marginPx.toString())
             setProperty("crengine.page.margin.right", marginPx.toString())

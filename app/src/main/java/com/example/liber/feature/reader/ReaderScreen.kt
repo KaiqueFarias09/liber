@@ -672,6 +672,7 @@ fun ReaderScreen(
             ThemesSheet(
                 currentThemeId = themeId,
                 onThemeChange = { id -> viewModel.setTheme(id) },
+                fontSize = fontSize,
                 onDecreaseFontSize = { viewModel.adjustFontSize(-0.1) },
                 onIncreaseFontSize = { viewModel.adjustFontSize(+0.1) },
                 pageScroll = pageScroll,
