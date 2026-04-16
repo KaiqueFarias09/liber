@@ -101,7 +101,7 @@ class UserPreferencesRepository(private val context: Context) {
     }
 
     val margins: Flow<Float> = context.dataStore.data
-        .map { it[PreferencesKeys.MARGINS] ?: 0.0f }
+        .map { it[PreferencesKeys.MARGINS] ?: 16.0f }
 
     suspend fun setMargins(value: Float) {
         context.dataStore.edit { it[PreferencesKeys.MARGINS] = value }

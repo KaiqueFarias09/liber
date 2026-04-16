@@ -52,6 +52,8 @@ fun ThemesSheet(
     onThemeChange: (String) -> Unit,
     onDecreaseFontSize: () -> Unit,
     onIncreaseFontSize: () -> Unit,
+    pageScroll: Boolean,
+    onPageScrollChange: (Boolean) -> Unit,
     customizeLayout: Boolean,
     onCustomizeLayoutChange: (Boolean) -> Unit,
     lineSpacing: Double,
@@ -157,7 +159,7 @@ fun ThemesSheet(
         )
         Spacer(Modifier.height(12.dp))
 
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
@@ -168,17 +170,42 @@ fun ThemesSheet(
                     0.5.dp,
                     MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                     RoundedCornerShape(12.dp)
-                )
-                .padding(horizontal = 16.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+                ),
         ) {
-            Text(
-                stringResource(R.string.reader_themes_customize),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    stringResource(R.string.reader_themes_scroll_mode),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Switch(checked = pageScroll, onCheckedChange = onPageScrollChange)
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(0.5.dp)
+                    .background(MaterialTheme.colorScheme.outlineVariant)
             )
-            Switch(checked = customizeLayout, onCheckedChange = onCustomizeLayoutChange)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    stringResource(R.string.reader_themes_customize),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Switch(checked = customizeLayout, onCheckedChange = onCustomizeLayoutChange)
+            }
         }
 
         AnimatedVisibility(
@@ -224,9 +251,9 @@ fun ThemesSheet(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     },
-                    value = characterSpacing.toFloat(),
-                    valueText = if (characterSpacing == 0.0) "0%" else "${characterSpacing.toInt()}%",
-                    valueRange = -10f..10f,
+                    value = characterSpacing.toFloat().coerceIn(0f, 20f),
+                    valueText = "${characterSpacing.toInt().coerceIn(0, 20)}",
+                    valueRange = 0f..20f,
                     onValueChange = { onCharacterSpacingChange(it.toDouble()) })
                 Divider()
                 LayoutSliderRow(
@@ -240,7 +267,7 @@ fun ThemesSheet(
                         )
                     },
                     value = wordSpacing.toFloat(),
-                    valueText = if (wordSpacing == 0.0) "0%" else "${wordSpacing.toInt()}%",
+                    valueText = "${100 + wordSpacing.toInt()}%",
                     valueRange = -20f..20f, onValueChange = { onWordSpacingChange(it.toDouble()) })
                 Divider()
                 LayoutSliderRow(
@@ -254,8 +281,8 @@ fun ThemesSheet(
                         )
                     },
                     value = margins.toFloat(),
-                    valueText = if (margins == 0.0) "0%" else "${margins.toInt()}%",
-                    valueRange = -10f..10f, onValueChange = { onMarginsChange(it.toDouble()) })
+                    valueText = "${margins.toInt()} dp",
+                    valueRange = 0f..60f, onValueChange = { onMarginsChange(it.toDouble()) })
             }
         }
 

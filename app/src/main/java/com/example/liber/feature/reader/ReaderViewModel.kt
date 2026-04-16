@@ -13,6 +13,7 @@ import com.example.liber.data.model.AnnotationType
 import com.example.liber.data.repository.UserPreferencesRepository
 import com.example.liber.feature.reader.engine.ReaderCommand
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -21,6 +22,7 @@ import kotlinx.coroutines.withContext
 import org.coolreader.crengine.Bookmark
 import org.coolreader.crengine.DocView
 import org.coolreader.crengine.PositionProperties
+import org.coolreader.crengine.Selection
 import org.coolreader.crengine.TOCItem
 import java.util.Properties
 
@@ -30,7 +32,7 @@ private val DEFAULT_ANNOTATION_COLOR = 0x80FFD60A.toInt()
 private const val DEFAULT_LINE_SPACING = 1.4f
 private const val DEFAULT_CHAR_SPACING = 0.0f
 private const val DEFAULT_WORD_SPACING = 0.0f
-private const val DEFAULT_MARGINS = 0.0f
+private const val DEFAULT_MARGINS = 16.0f
 
 class ReaderViewModel(
     application: Application,
@@ -222,6 +224,73 @@ class ReaderViewModel(
     private val _tappedAnnotationId = MutableStateFlow<Long?>(null)
     val tappedAnnotationId: StateFlow<Long?> = _tappedAnnotationId
 
+    // ── Text selection ───────────────────────────────────────────────────────
+
+    private val _selectionActive = MutableStateFlow(false)
+    val selectionActive: StateFlow<Boolean> = _selectionActive
+
+    // Screen-pixel anchor of the current selection gesture (set on long-press).
+    private var selectionStartX = 0
+    private var selectionStartY = 0
+
+    /** Called on long-press; anchors the selection at the pressed coordinates. */
+    fun startTextSelection(x: Int, y: Int) {
+        selectionStartX = x
+        selectionStartY = y
+        _selectionActive.value = true
+        viewModelScope.launch(Dispatchers.IO) {
+            val sel = Selection().apply {
+                startX = x; startY = y; endX = x; endY = y
+            }
+            docView.updateSelection(sel)
+            renderPage()
+        }
+    }
+
+    /** Called while the finger drags after a long-press to extend the selection. */
+    fun updateTextSelectionDrag(endX: Int, endY: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val sel = Selection().apply {
+                startX = selectionStartX; startY = selectionStartY
+                this.endX = endX; this.endY = endY
+            }
+            docView.updateSelection(sel)
+            renderPage()
+        }
+    }
+
+    /**
+     * Called when the finger lifts after a selection drag. If the engine found
+     * text, opens the highlight-colour picker; otherwise clears the selection.
+     */
+    fun finalizeTextSelection(endX: Int, endY: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val sel = Selection().apply {
+                startX = selectionStartX; startY = selectionStartY
+                this.endX = endX; this.endY = endY
+            }
+            docView.updateSelection(sel)
+            val text = sel.text
+            val xpointer = sel.startPos
+            _selectionActive.value = false
+            if (!text.isNullOrBlank()) {
+                startHighlightColorPicker(text, xpointer.takeIf { it.isNotBlank() })
+            } else {
+                docView.clearSelection()
+                renderPage()
+            }
+        }
+    }
+
+    /** Cancels any in-progress text selection. */
+    fun cancelTextSelection() {
+        _selectionActive.value = false
+        viewModelScope.launch(Dispatchers.IO) {
+            docView.clearSelection()
+            renderPage()
+        }
+    }
+
     // ── Initialization ───────────────────────────────────────────────────────
 
     init {
@@ -270,6 +339,16 @@ class ReaderViewModel(
             }
         }
         docView.create()
+
+        // Drain scroll channel: coalesce pending deltas into one engine call + render.
+        viewModelScope.launch(Dispatchers.IO) {
+            for (delta in scrollChannel) {
+                var total = delta
+                while (true) total += scrollChannel.tryReceive().getOrNull() ?: break
+                docView.doCommand(ReaderCommand.DCMD_SCROLL_BY, total)
+                renderPage()
+            }
+        }
     }
 
     // ── Open document ────────────────────────────────────────────────────────
@@ -314,11 +393,11 @@ class ReaderViewModel(
     fun nextChapter() = navigate(ReaderCommand.DCMD_MOVE_BY_CHAPTER, 1)
     fun prevChapter() = navigate(ReaderCommand.DCMD_MOVE_BY_CHAPTER, -1)
 
+    // Coalesces rapid scroll deltas so only one render fires per batch of touch events.
+    private val scrollChannel = Channel<Int>(Channel.UNLIMITED)
+
     fun scrollBy(pixels: Int) {
-        viewModelScope.launch(Dispatchers.IO) {
-            docView.doCommand(ReaderCommand.DCMD_SCROLL_BY, pixels)
-            renderPage()
-        }
+        scrollChannel.trySend(pixels)
     }
 
     fun goToXPointer(xpointer: String) {
@@ -358,9 +437,9 @@ class ReaderViewModel(
         val fontSizePx = (12.0 * _fontSize.value * dm.densityDpi / 72.0).toInt().coerceIn(16, 256)
 
         val theme = findReaderTheme(_themeId.value)
+        val customize = _customizeLayout.value
         val props = Properties().apply {
             setProperty("crengine.render.dpi", renderDpi.toString())
-            // Background and text colours
             setProperty(
                 "crengine.background.color",
                 String.format("%06X", theme.background.value.toInt() and 0xFFFFFF)
@@ -370,22 +449,42 @@ class ReaderViewModel(
                 String.format("%06X", theme.textColor.value.toInt() and 0xFFFFFF)
             )
             setProperty("crengine.font.size", fontSizePx.toString())
-            // Scroll vs page mode
+
+            // Page/scroll view mode: "crengine.page.view.mode" — 1=pages, 0=scroll
+            setProperty("crengine.page.view.mode", if (_pageScroll.value) "0" else "1")
+
+            // Line spacing (integer percent; always sent so disabling customize resets to 100)
+            val lineSpacePct = if (customize) (_lineSpacing.value * 100).toInt() else 100
+            setProperty("crengine.interline.space", lineSpacePct.toString())
+
+            // Word spacing: scales width of space characters (100 = normal)
+            // slider range is -20..20; engine range 10..500
+            val wordSpacePct = if (customize)
+                (100 + _wordSpacing.value.toInt()).coerceIn(10, 500)
+            else 100
+            setProperty("crengine.style.space.width.scale.percent", wordSpacePct.toString())
+
+            // Letter spacing: max % added between letters during justification (0..20)
+            val letterSpacingPct = if (customize)
+                _characterSpacing.value.toInt().coerceIn(0, 20)
+            else 0
             setProperty(
-                "crengine.render.scroll.mode",
-                if (_pageScroll.value) "1" else "0"
+                "crengine.style.max.added.letter.spacing.percent",
+                letterSpacingPct.toString()
             )
-            // Line spacing (crengine uses percent e.g. 140 = 1.4×)
-            if (_customizeLayout.value) {
-                setProperty(
-                    "crengine.interline.space",
-                    (_lineSpacing.value * 100).toInt().toString()
-                )
-            }
-            // Text alignment
-            if (_justifyText.value) {
-                setProperty("crengine.txt.def.format", "1")
-            }
+
+            // Text justification via document style rule (txt.def.format is TXT-only)
+            setProperty(
+                "styles.def.align",
+                if (_justifyText.value) "text-align: justify" else "text-align: left"
+            )
+
+            // Page margins: slider value is in dp, convert to screen pixels for the engine
+            val marginPx = (_margins.value * dm.density).toInt()
+            setProperty("crengine.page.margin.left", marginPx.toString())
+            setProperty("crengine.page.margin.right", marginPx.toString())
+            setProperty("crengine.page.margin.top", marginPx.toString())
+            setProperty("crengine.page.margin.bottom", marginPx.toString())
         }
         docView.applySettings(props)
     }
@@ -532,6 +631,7 @@ class ReaderViewModel(
 
     override fun onCleared() {
         super.onCleared()
+        scrollChannel.close()
         docView.destroy()
         currentBitmap?.recycle()
         currentBitmap = null

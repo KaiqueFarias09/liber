@@ -12,8 +12,12 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -149,6 +153,7 @@ fun ReaderScreen(
     val margins by viewModel.margins.collectAsState()
     val columnCount by viewModel.columnCount.collectAsState()
     val justifyText by viewModel.justifyText.collectAsState()
+    val selectionActive by viewModel.selectionActive.collectAsState()
 
     val theme = findReaderTheme(themeId)
 
@@ -282,14 +287,87 @@ fun ReaderScreen(
                     contentScale = ContentScale.FillBounds,
                     modifier = Modifier
                         .fillMaxSize()
-                        .pointerInput(isAnyModalOpen) {
-                            if (!isAnyModalOpen) {
-                                detectTapGestures { offset ->
-                                    val w = size.width.toFloat()
-                                    when {
-                                        offset.x < w * 0.3f -> viewModel.prevPage()
-                                        offset.x > w * 0.7f -> viewModel.nextPage()
-                                        else -> viewModel.toggleUI()
+                        .pointerInput(isAnyModalOpen, selectionActive, pageScroll) {
+                            if (isAnyModalOpen) return@pointerInput
+                            val swipeThreshold = 60.dp.toPx()
+
+                            awaitEachGesture {
+                                val down = awaitFirstDown(requireUnconsumed = false)
+                                val startX = down.position.x
+                                val startY = down.position.y
+                                var lastX = startX
+                                var lastY = startY
+                                var navigationDone = false
+
+                                if (pageScroll) {
+                                    // Scroll mode — start tracking drag immediately (no long-press wait)
+                                    var prevY = startY
+                                    drag(down.id) { change ->
+                                        val dy = change.position.y - prevY
+                                        prevY = change.position.y
+                                        lastX = change.position.x
+                                        lastY = change.position.y
+                                        if (dy != 0f) {
+                                            navigationDone = true
+                                            viewModel.scrollBy(-dy.toInt())
+                                        }
+                                        change.consume()
+                                    }
+                                    if (!navigationDone) {
+                                        // No drag detected → treat as tap
+                                        viewModel.toggleUI()
+                                    }
+                                } else {
+                                    val longPress = awaitLongPressOrCancellation(down.id)
+
+                                    if (longPress != null) {
+                                        // Long-press → text selection
+                                        viewModel.startTextSelection(startX.toInt(), startY.toInt())
+                                        drag(longPress.id) { change ->
+                                            lastX = change.position.x
+                                            lastY = change.position.y
+                                            viewModel.updateTextSelectionDrag(
+                                                lastX.toInt(),
+                                                lastY.toInt()
+                                            )
+                                            change.consume()
+                                        }
+                                        viewModel.finalizeTextSelection(
+                                            lastX.toInt(),
+                                            lastY.toInt()
+                                        )
+                                    } else {
+                                        // Page mode — horizontal swipe or tap zones
+                                        drag(down.id) { change ->
+                                            lastX = change.position.x
+                                            lastY = change.position.y
+                                            val dx = lastX - startX
+                                            val dy = lastY - startY
+
+                                            if (!navigationDone &&
+                                                abs(dx) > swipeThreshold &&
+                                                abs(dx) > abs(dy)
+                                            ) {
+                                                navigationDone = true
+                                                if (dx < 0) viewModel.nextPage() else viewModel.prevPage()
+                                            }
+                                            change.consume()
+                                        }
+
+                                        if (!navigationDone) {
+                                            val dx = abs(lastX - startX)
+                                            val dy = abs(lastY - startY)
+                                            if (dx < viewConfiguration.touchSlop &&
+                                                dy < viewConfiguration.touchSlop
+                                            ) {
+                                                val w = size.width.toFloat()
+                                                when {
+                                                    startX < w * 0.3f -> viewModel.prevPage()
+                                                    startX > w * 0.7f -> viewModel.nextPage()
+                                                    else -> viewModel.toggleUI()
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -596,6 +674,8 @@ fun ReaderScreen(
                 onThemeChange = { id -> viewModel.setTheme(id) },
                 onDecreaseFontSize = { viewModel.adjustFontSize(-0.1) },
                 onIncreaseFontSize = { viewModel.adjustFontSize(+0.1) },
+                pageScroll = pageScroll,
+                onPageScrollChange = { viewModel.setPageScroll(it) },
                 customizeLayout = customizeLayout,
                 onCustomizeLayoutChange = { viewModel.setCustomizeLayout(it) },
                 lineSpacing = lineSpacing,

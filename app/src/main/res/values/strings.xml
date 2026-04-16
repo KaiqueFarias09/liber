@@ -160,6 +160,7 @@
     <string name="reader_themes_decrease_font">Decrease font</string>
     <string name="reader_themes_increase_font">Increase font</string>
     <string name="reader_themes_accessibility_layout">Accessibility &amp; Layout Options</string>
+    <string name="reader_themes_scroll_mode">Continuous Scroll</string>
     <string name="reader_themes_customize">Customize</string>
     <string name="reader_themes_line_spacing">LINE SPACING</string>
     <string name="reader_themes_character_spacing">CHARACTER SPACING</string>

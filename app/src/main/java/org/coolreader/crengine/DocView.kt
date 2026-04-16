@@ -86,6 +86,15 @@ class DocView(private val mutex: Any = Any()) {
 
     fun getTOC(): TOCItem = synchronized(mutex) { getTOCInternal() }
 
+    // ── Selection ─────────────────────────────────────────────────────────────
+
+    /**
+     * Asks the engine to compute the text selection spanning from (startX,startY)
+     * to (endX,endY) in screen-pixel coordinates. On return, [sel].text, startPos,
+     * and endPos are populated by the native layer.
+     */
+    fun updateSelection(sel: Selection) = synchronized(mutex) { updateSelectionInternal(sel) }
+
     // ── Highlights & bookmarks ───────────────────────────────────────────────
 
     fun hilightBookmarks(bookmarks: Array<Bookmark>) = synchronized(mutex) {
