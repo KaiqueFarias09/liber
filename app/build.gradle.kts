@@ -20,6 +20,23 @@ android {
         compileSdkExtension = 19
 
         testInstrumentationRunner = "com.example.liber.LiberTestRunner"
+
+        externalNativeBuild {
+            cmake {
+                cppFlags("-std=c++17", "-frtti", "-fexceptions")
+                arguments("-DANDROID_STL=c++_static")
+            }
+        }
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
     }
 
     androidResources {
