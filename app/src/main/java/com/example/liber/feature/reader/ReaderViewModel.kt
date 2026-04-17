@@ -505,12 +505,12 @@ class ReaderViewModel(
         val props = Properties().apply {
             setProperty("crengine.render.dpi", dm.densityDpi.toString())
             setProperty(
-                "crengine.background.color",
-                String.format("%06X", theme.background.toArgb() and 0xFFFFFF)
+                "background.color.default",
+                "#%06X".format(theme.background.toArgb() and 0xFFFFFF)
             )
             setProperty(
-                "crengine.foreground.color",
-                String.format("%06X", theme.textColor.toArgb() and 0xFFFFFF)
+                "font.color.default",
+                "#%06X".format(theme.textColor.toArgb() and 0xFFFFFF)
             )
             setProperty("crengine.font.size", fontSizePx.toString())
 
