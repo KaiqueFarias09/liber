@@ -5,6 +5,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import android.provider.OpenableColumns
+import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -505,11 +506,11 @@ class ReaderViewModel(
             setProperty("crengine.render.dpi", dm.densityDpi.toString())
             setProperty(
                 "crengine.background.color",
-                String.format("%06X", theme.background.value.toInt() and 0xFFFFFF)
+                String.format("%06X", theme.background.toArgb() and 0xFFFFFF)
             )
             setProperty(
                 "crengine.foreground.color",
-                String.format("%06X", theme.textColor.value.toInt() and 0xFFFFFF)
+                String.format("%06X", theme.textColor.toArgb() and 0xFFFFFF)
             )
             setProperty("crengine.font.size", fontSizePx.toString())
 
