@@ -88,6 +88,7 @@ import com.example.liber.feature.reader.components.CreateAnnotationSheet
 import com.example.liber.feature.reader.components.HighlightColorPicker
 import com.example.liber.feature.reader.components.NotebookView
 import com.example.liber.feature.reader.components.SearchView
+import com.example.liber.feature.reader.components.SelectionActionsMenu
 import com.example.liber.feature.reader.components.ThemesSheet
 import org.coolreader.crengine.TOCItem
 import kotlin.math.abs
@@ -154,6 +155,7 @@ fun ReaderScreen(
     val columnCount by viewModel.columnCount.collectAsState()
     val justifyText by viewModel.justifyText.collectAsState()
     val selectionActive by viewModel.selectionActive.collectAsState()
+    val showSelectionMenu by viewModel.showSelectionMenu.collectAsState()
 
     val theme = findReaderTheme(themeId)
 
@@ -224,7 +226,8 @@ fun ReaderScreen(
 
     val isAnyModalOpen =
         showContents || showSearch || showNotebook || showThemes ||
-                showAnnotationCreator || showHighlightColorPicker || (tappedAnnotationId != null)
+                showAnnotationCreator || showHighlightColorPicker || showSelectionMenu ||
+                (tappedAnnotationId != null)
 
     // ── Derived state ────────────────────────────────────────────────────────
 
@@ -485,6 +488,41 @@ fun ReaderScreen(
                     viewModel.dismissHighlightColorPicker()
                 },
                 onDismiss = { viewModel.dismissHighlightColorPicker() },
+            )
+        }
+
+        // ── Selection Actions Menu ────────────────────────────────────────────
+        if (showSelectionMenu) {
+            val pendingText by viewModel.pendingSelectedText.collectAsState()
+            SelectionActionsMenu(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(bottom = 24.dp),
+                onHighlight = { viewModel.onSelectionMenuHighlight() },
+                onNote = { viewModel.onSelectionMenuNote() },
+                onShare = {
+                    val text = pendingText
+                    if (!text.isNullOrBlank()) {
+                        val shareText = buildString {
+                            append("\u201C").append(text).append("\u201D\n\n")
+                            append(context.getString(R.string.reader_share_excerpt_from))
+                            append("\u201C").append(bookTitle).append(".\u201D Liber.\n\n")
+                            append(context.getString(R.string.reader_share_copyright_notice))
+                        }
+                        context.startActivity(
+                            Intent.createChooser(
+                                Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_TEXT, shareText)
+                                },
+                                null,
+                            )
+                        )
+                    }
+                    viewModel.dismissSelectionMenu()
+                },
+                onDismiss = { viewModel.dismissSelectionMenu() },
             )
         }
 

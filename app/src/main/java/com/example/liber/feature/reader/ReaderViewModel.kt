@@ -243,6 +243,9 @@ class ReaderViewModel(
     private val _selectionActive = MutableStateFlow(false)
     val selectionActive: StateFlow<Boolean> = _selectionActive
 
+    private val _showSelectionMenu = MutableStateFlow(false)
+    val showSelectionMenu: StateFlow<Boolean> = _showSelectionMenu
+
     // Screen-pixel anchor of the current selection gesture (set on long-press).
     private var selectionStartX = 0
     private var selectionStartY = 0
@@ -263,14 +266,7 @@ class ReaderViewModel(
 
     /** Called while the finger drags after a long-press to extend the selection. */
     fun updateTextSelectionDrag(endX: Int, endY: Int) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val sel = Selection().apply {
-                startX = selectionStartX; startY = selectionStartY
-                this.endX = endX; this.endY = endY
-            }
-            docView.updateSelection(sel)
-            renderPage()
-        }
+        selectionDragChannel.trySend(Pair(endX, endY))
     }
 
     /**
@@ -288,7 +284,9 @@ class ReaderViewModel(
             val xpointer = sel.startPos
             _selectionActive.value = false
             if (!text.isNullOrBlank()) {
-                startHighlightColorPicker(text, xpointer.takeIf { it.isNotBlank() })
+                _pendingSelectedText.value = text
+                _pendingXPointer.value = xpointer.takeIf { it.isNotBlank() }
+                _showSelectionMenu.value = true
             } else {
                 docView.clearSelection()
                 renderPage()
@@ -303,6 +301,26 @@ class ReaderViewModel(
             docView.clearSelection()
             renderPage()
         }
+    }
+
+    fun dismissSelectionMenu() {
+        _showSelectionMenu.value = false
+        _pendingSelectedText.value = null
+        _pendingXPointer.value = null
+        viewModelScope.launch(Dispatchers.IO) {
+            docView.clearSelection()
+            renderPage()
+        }
+    }
+
+    fun onSelectionMenuHighlight() {
+        _showSelectionMenu.value = false
+        startHighlightColorPicker(_pendingSelectedText.value, _pendingXPointer.value)
+    }
+
+    fun onSelectionMenuNote() {
+        _showSelectionMenu.value = false
+        startAnnotation("note", _pendingSelectedText.value, _pendingXPointer.value)
     }
 
     // ── Initialization ───────────────────────────────────────────────────────
@@ -381,6 +399,18 @@ class ReaderViewModel(
                 renderPage()
             }
         }
+
+        // Drain selection drag channel: only the latest position matters per frame.
+        viewModelScope.launch(Dispatchers.IO) {
+            for ((endX, endY) in selectionDragChannel) {
+                val sel = Selection().apply {
+                    startX = selectionStartX; startY = selectionStartY
+                    this.endX = endX; this.endY = endY
+                }
+                docView.updateSelection(sel)
+                renderPage()
+            }
+        }
     }
 
     // ── Open document ────────────────────────────────────────────────────────
@@ -428,6 +458,9 @@ class ReaderViewModel(
 
     // Coalesces rapid scroll deltas so only one render fires per batch of touch events.
     private val scrollChannel = Channel<Int>(Channel.UNLIMITED)
+
+    // Conflated: only the latest drag position is kept; stale intermediates are dropped.
+    private val selectionDragChannel = Channel<Pair<Int, Int>>(Channel.CONFLATED)
 
     fun scrollBy(pixels: Int) {
         scrollChannel.trySend(pixels)
@@ -696,6 +729,7 @@ class ReaderViewModel(
     override fun onCleared() {
         super.onCleared()
         scrollChannel.close()
+        selectionDragChannel.close()
         docView.destroy()
         currentBitmap?.recycle()
         currentBitmap = null

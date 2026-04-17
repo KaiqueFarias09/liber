@@ -39,6 +39,7 @@ import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.Export
 import com.adamglin.phosphoricons.regular.NotePencil
+import com.adamglin.phosphoricons.regular.PencilSimple
 import com.adamglin.phosphoricons.regular.Trash
 import com.adamglin.phosphoricons.regular.X
 import com.example.liber.R
@@ -350,5 +351,80 @@ fun CreateAnnotationSheet(
         }
 
         Spacer(Modifier.height(16.dp))
+    }
+}
+
+@Composable
+fun SelectionActionsMenu(
+    onHighlight: () -> Unit,
+    onNote: () -> Unit,
+    onShare: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(20.dp),
+        color = Color(0xCC1C1C1E),
+        shadowElevation = 12.dp,
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 4.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(0.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SelectionMenuAction(
+                icon = PhosphorIcons.Regular.PencilSimple,
+                label = stringResource(R.string.reader_annotation_highlight),
+                onClick = onHighlight,
+            )
+            SelectionMenuAction(
+                icon = PhosphorIcons.Regular.NotePencil,
+                label = stringResource(R.string.reader_annotation_note),
+                onClick = onNote,
+            )
+            SelectionMenuAction(
+                icon = PhosphorIcons.Regular.Export,
+                label = stringResource(R.string.action_share),
+                onClick = onShare,
+            )
+            Spacer(Modifier.width(8.dp))
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .background(Color.White.copy(alpha = 0.15f), CircleShape)
+                    .clickable(onClick = onDismiss),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    PhosphorIcons.Regular.X,
+                    contentDescription = stringResource(R.string.action_cancel),
+                    tint = Color.White,
+                    modifier = Modifier.size(12.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SelectionMenuAction(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.White.copy(alpha = 0.85f),
+        )
     }
 }
