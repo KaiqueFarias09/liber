@@ -460,6 +460,39 @@ class ReaderViewModel(
 
     // ── Settings ─────────────────────────────────────────────────────────────
 
+    // Engine only accepts margins from this exact list; any other value resets to the default (8).
+    private val MARGIN_OPTIONS = intArrayOf(
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        20,
+        25,
+        30,
+        40,
+        50,
+        60,
+        80,
+        100,
+        130,
+        150,
+        200,
+        300
+    )
+
+    private fun snapMargin(px: Int) = MARGIN_OPTIONS.minByOrNull { kotlin.math.abs(it - px) } ?: px
+
     fun applyCurrentSettings() {
         val dm = getApplication<Application>().resources.displayMetrics
         // crengine.font.size takes screen pixels. Scale like Android sp → px:
@@ -509,12 +542,12 @@ class ReaderViewModel(
                 if (_justifyText.value) "text-align: justify" else "text-align: left"
             )
 
-            // Page margins: slider value is in dp, converted to screen pixels for the engine.
-            val marginPx = (_margins.value * dm.density).toInt()
-            setProperty("crengine.page.margin.left", marginPx.toString())
-            setProperty("crengine.page.margin.right", marginPx.toString())
-            setProperty("crengine.page.margin.top", marginPx.toString())
-            setProperty("crengine.page.margin.bottom", marginPx.toString())
+            // Margins: slider is dp → convert to px → snap to engine's allowed list.
+            val marginPx = snapMargin((_margins.value * dm.density).toInt()).toString()
+            setProperty("crengine.page.margin.left", marginPx)
+            setProperty("crengine.page.margin.right", marginPx)
+            setProperty("crengine.page.margin.top", marginPx)
+            setProperty("crengine.page.margin.bottom", marginPx)
         }
         docView.applySettings(props)
     }
