@@ -468,6 +468,7 @@ fun ReaderScreen(
         // ── Inline Highlight Color Picker ────────────────────────────────────
         if (showHighlightColorPicker) {
             val pendingXPointer by viewModel.pendingXPointer.collectAsState()
+            val pendingEndXPointer by viewModel.pendingEndXPointer.collectAsState()
             HighlightColorPicker(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -482,6 +483,7 @@ fun ReaderScreen(
                             type = AnnotationType.HIGHLIGHT,
                             color = colorArgb,
                             locator = xptr,
+                            endLocator = pendingEndXPointer ?: "",
                             text = viewModel.pendingSelectedText.value,
                         )
                     )
@@ -776,6 +778,7 @@ fun ReaderScreen(
                                 type = if (annotationType.lowercase() == "note") AnnotationType.NOTE else AnnotationType.HIGHLIGHT,
                                 color = selectedColor,
                                 locator = xptr,
+                                endLocator = viewModel.pendingEndXPointer.value ?: "",
                                 text = selectedText,
                                 note = noteText.ifBlank { null },
                             )

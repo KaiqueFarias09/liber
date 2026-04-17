@@ -23,9 +23,12 @@ class Bookmark {
     @JvmField var id: Long? = null
 
     companion object {
-        // Bookmark types (from CoolReader source)
-        const val TYPE_POSITION = 0
-        const val TYPE_COMMENT = 1
-        const val TYPE_CORRECTION = 2
+        // Must match C++ enum bmk_type in crengine/include/hist.h:
+        //   bmkt_lastpos=0, bmkt_pos=1, bmkt_comment=2, bmkt_correction=3
+        // Only bmkt_comment and bmkt_correction are rendered as visible highlights.
+        const val TYPE_LASTPOS = 0
+        const val TYPE_POSITION = 1
+        const val TYPE_COMMENT = 2
+        const val TYPE_CORRECTION = 3
     }
 }

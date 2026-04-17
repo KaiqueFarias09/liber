@@ -23,6 +23,7 @@ data class Annotation(
     val type: AnnotationType,
     val color: Int,
     val locator: String,
+    val endLocator: String = "",
     val text: String?,
     val note: String? = null,
     val createdAt: Long = System.currentTimeMillis()

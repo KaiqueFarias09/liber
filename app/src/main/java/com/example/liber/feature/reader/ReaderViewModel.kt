@@ -80,6 +80,7 @@ class ReaderViewModel(
     private var viewHeight = 0
     private var currentBitmap: Bitmap? = null
     private var documentLoaded = false
+    private var latestAnnotations: List<Annotation> = emptyList()
 
     // Debounced settings pipe: rapid changes (sliders, toggles) coalesce into one engine call.
     private val _settingsTrigger = MutableSharedFlow<Unit>(
@@ -223,6 +224,9 @@ class ReaderViewModel(
     private val _pendingXPointer = MutableStateFlow<String?>(null)
     val pendingXPointer: StateFlow<String?> = _pendingXPointer
 
+    private val _pendingEndXPointer = MutableStateFlow<String?>(null)
+    val pendingEndXPointer: StateFlow<String?> = _pendingEndXPointer
+
     private val _pendingAnnotationType = MutableStateFlow("note")
     val pendingAnnotationType: StateFlow<String> = _pendingAnnotationType
 
@@ -282,10 +286,12 @@ class ReaderViewModel(
             docView.updateSelection(sel)
             val text = sel.text
             val xpointer = sel.startPos
+            val endXpointer = sel.endPos
             _selectionActive.value = false
             if (!text.isNullOrBlank()) {
                 _pendingSelectedText.value = text
                 _pendingXPointer.value = xpointer.takeIf { it.isNotBlank() }
+                _pendingEndXPointer.value = endXpointer.takeIf { it.isNotBlank() }
                 _showSelectionMenu.value = true
             } else {
                 docView.clearSelection()
@@ -307,6 +313,7 @@ class ReaderViewModel(
         _showSelectionMenu.value = false
         _pendingSelectedText.value = null
         _pendingXPointer.value = null
+        _pendingEndXPointer.value = null
         viewModelScope.launch(Dispatchers.IO) {
             docView.clearSelection()
             renderPage()
@@ -433,7 +440,7 @@ class ReaderViewModel(
             }
 
             loadTOC()
-            renderPage()
+            applyHighlightsInternal(latestAnnotations)
         }
     }
 
@@ -582,6 +589,9 @@ class ReaderViewModel(
             setProperty("crengine.page.margin.right", marginPx)
             setProperty("crengine.page.margin.top", marginPx)
             setProperty("crengine.page.margin.bottom", marginPx)
+
+            // Render bookmarks as solid filled highlights (highlight_mode_solid=1).
+            setProperty("crengine.highlight.bookmarks", "1")
         }
         docView.applySettings(props)
     }
@@ -589,20 +599,24 @@ class ReaderViewModel(
     // ── Highlights ───────────────────────────────────────────────────────────
 
     fun applyHighlights(annotations: List<Annotation>) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val bookmarks = annotations
-                .filter { it.type == AnnotationType.HIGHLIGHT || it.type == AnnotationType.NOTE }
-                .map { ann ->
-                    Bookmark().apply {
-                        startPos = ann.locator
-                        endPos = ann.locator
-                        type = Bookmark.TYPE_COMMENT
-                    }
+        latestAnnotations = annotations
+        if (!documentLoaded) return
+        viewModelScope.launch(Dispatchers.IO) { applyHighlightsInternal(annotations) }
+    }
+
+    private suspend fun applyHighlightsInternal(annotations: List<Annotation>) {
+        val bookmarks = annotations
+            .filter { it.type == AnnotationType.HIGHLIGHT || it.type == AnnotationType.NOTE }
+            .map { ann ->
+                Bookmark().apply {
+                    startPos = ann.locator
+                    endPos = ann.endLocator.ifBlank { ann.locator }
+                    type = Bookmark.TYPE_COMMENT
                 }
-                .toTypedArray()
-            docView.hilightBookmarks(bookmarks)
-            renderPage()
-        }
+            }
+            .toTypedArray()
+        docView.hilightBookmarks(bookmarks)
+        renderPage()
     }
 
     // ── TOC ──────────────────────────────────────────────────────────────────
@@ -624,6 +638,7 @@ class ReaderViewModel(
         _showHighlightColorPicker.value = false
         _pendingSelectedText.value = null
         _pendingXPointer.value = null
+        _pendingEndXPointer.value = null
     }
 
     fun startAnnotation(
@@ -652,6 +667,7 @@ class ReaderViewModel(
         _editingAnnotationId.value = null
         _pendingSelectedText.value = null
         _pendingXPointer.value = null
+        _pendingEndXPointer.value = null
         _pendingAnnotationType.value = "note"
         _annotationNoteText.value = ""
         _annotationColorArgb.value = DEFAULT_ANNOTATION_COLOR
