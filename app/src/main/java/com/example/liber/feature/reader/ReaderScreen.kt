@@ -645,6 +645,22 @@ fun ReaderScreen(
                 }
             }
         }
+
+        // ── Search overlay (floating top bar — keeps reader content visible) ─
+        AnimatedVisibility(
+            visible = showSearch,
+            enter = slideInVertically { -it },
+            exit = slideOutVertically { -it },
+            modifier = Modifier.align(Alignment.TopStart),
+        ) {
+            SearchView(
+                viewModel = viewModel,
+                onDismiss = {
+                    viewModel.clearSearch()
+                    showSearch = false
+                },
+            )
+        }
     } // end root Box
 
     // ── Table of Contents ──────────────────────────────────────────────────────
@@ -671,26 +687,6 @@ fun ReaderScreen(
                 }
                 item { Spacer(Modifier.height(24.dp)) }
             }
-        }
-    }
-
-    // ── Search ────────────────────────────────────────────────────────────────
-    if (showSearch) {
-        com.example.liber.core.designsystem.LiberModalBottomSheet(
-            onDismissRequest = {
-                viewModel.clearSearch()
-                showSearch = false
-            },
-            title = UiText.StringResource(R.string.reader_search_title),
-        ) {
-            SearchView(
-                viewModel = viewModel,
-                modifier = Modifier.weight(1f),
-                onDismiss = {
-                    viewModel.clearSearch()
-                    showSearch = false
-                },
-            )
         }
     }
 
