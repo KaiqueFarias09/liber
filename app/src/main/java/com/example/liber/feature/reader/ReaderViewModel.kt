@@ -23,7 +23,6 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.coolreader.crengine.Bookmark
 import org.coolreader.crengine.DocView
 import org.coolreader.crengine.PositionProperties
 import org.coolreader.crengine.Selection
@@ -32,6 +31,15 @@ import java.util.Properties
 
 // Default annotation colour — yellow at 50 % opacity
 private val DEFAULT_ANNOTATION_COLOR = 0x80FFD60A.toInt()
+
+/** Screen-pixel rectangle for a single highlight line segment, with its ARGB color. */
+data class HighlightRect(
+    val left: Int,
+    val top: Int,
+    val right: Int,
+    val bottom: Int,
+    val color: Int
+)
 
 private const val DEFAULT_LINE_SPACING = 1.4f
 private const val DEFAULT_CHAR_SPACING = 0.0f
@@ -73,6 +81,9 @@ class ReaderViewModel(
 
     private val _progress = MutableStateFlow(0f)
     val progress: StateFlow<Float> = _progress
+
+    private val _highlightRects = MutableStateFlow<List<HighlightRect>>(emptyList())
+    val highlightRects: StateFlow<List<HighlightRect>> = _highlightRects
 
     // ── View dimensions ──────────────────────────────────────────────────────
 
@@ -590,8 +601,8 @@ class ReaderViewModel(
             setProperty("crengine.page.margin.top", marginPx)
             setProperty("crengine.page.margin.bottom", marginPx)
 
-            // Render bookmarks as solid filled highlights (highlight_mode_solid=1).
-            setProperty("crengine.highlight.bookmarks", "1")
+            // Native bookmark highlights disabled; we draw custom-colored overlays in Compose.
+            setProperty("crengine.highlight.bookmarks", "0")
         }
         docView.applySettings(props)
     }
@@ -605,18 +616,26 @@ class ReaderViewModel(
     }
 
     private suspend fun applyHighlightsInternal(annotations: List<Annotation>) {
-        val bookmarks = annotations
-            .filter { it.type == AnnotationType.HIGHLIGHT || it.type == AnnotationType.NOTE }
-            .map { ann ->
-                Bookmark().apply {
-                    startPos = ann.locator
-                    endPos = ann.endLocator.ifBlank { ann.locator }
-                    type = Bookmark.TYPE_COMMENT
-                }
-            }
-            .toTypedArray()
-        docView.hilightBookmarks(bookmarks)
+        // Disable crengine's native 2-color rendering; we draw custom-colored overlays ourselves.
+        docView.hilightBookmarks(emptyArray())
         renderPage()
+        updateHighlightRects(annotations)
+    }
+
+    private fun updateHighlightRects(annotations: List<Annotation> = latestAnnotations) {
+        val rects = mutableListOf<HighlightRect>()
+        for (ann in annotations) {
+            if (ann.type != AnnotationType.HIGHLIGHT && ann.type != AnnotationType.NOTE) continue
+            val start = ann.locator
+            val end = ann.endLocator.ifBlank { ann.locator }
+            val raw = docView.getXPointerRects(start, end) ?: continue
+            var i = 0
+            while (i + 3 < raw.size) {
+                rects.add(HighlightRect(raw[i], raw[i + 1], raw[i + 2], raw[i + 3], ann.color))
+                i += 4
+            }
+        }
+        _highlightRects.value = rects
     }
 
     // ── TOC ──────────────────────────────────────────────────────────────────
@@ -715,6 +734,14 @@ class ReaderViewModel(
         _positionProps.value = props
         _progress.value = props?.progressFraction() ?: 0f
         _pageBitmap.value = bmp.copy(Bitmap.Config.ARGB_8888, false)
+
+        // Recompute overlay rects for the new view position, but skip during
+        // selection drag (renderPage is called per-frame then, so this would thrash).
+        if (latestAnnotations.isNotEmpty() && !_selectionActive.value) {
+            updateHighlightRects()
+        } else if (latestAnnotations.isEmpty()) {
+            _highlightRects.value = emptyList()
+        }
     }
 
     /**

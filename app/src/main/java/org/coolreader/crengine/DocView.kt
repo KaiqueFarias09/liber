@@ -101,6 +101,14 @@ class DocView(private val mutex: Any = Any()) {
         hilightBookmarksInternal(bookmarks)
     }
 
+    /**
+     * Returns screen-pixel rectangles for the text range [startPos, endPos] as a flat
+     * [left, top, right, bottom, ...] int array — one entry per line segment.
+     * Returns null if the range is invalid or not on the current visible page.
+     */
+    fun getXPointerRects(startPos: String, endPos: String): IntArray? =
+        synchronized(mutex) { getXPointerRectsInternal(startPos, endPos) }
+
     fun checkBookmark(x: Int, y: Int, bookmark: Bookmark): Boolean = synchronized(mutex) {
         checkBookmarkInternal(x, y, bookmark)
     }
@@ -151,6 +159,7 @@ class DocView(private val mutex: Any = Any()) {
     private external fun closeImageInternal(): Boolean
     private external fun hilightBookmarksInternal(bookmarks: Array<Bookmark>)
     private external fun checkBookmarkInternal(x: Int, y: Int, bookmark: Bookmark): Boolean
+    private external fun getXPointerRectsInternal(startPos: String, endPos: String): IntArray?
     private external fun isRenderedInternal(): Boolean
     private external fun isTimeChangedInternal(): Boolean
 }

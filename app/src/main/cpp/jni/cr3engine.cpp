@@ -53,6 +53,7 @@
 #include <../../crengine/include/fb2def.h>
 
 #define XS_IMPLEMENT_SCHEME 1
+
 #include <../../crengine/include/fb2def.h>
 
 #include "../../crengine/include/crlocaledata.h"
@@ -63,8 +64,10 @@
 
 
 #if USE_COFFEECATCH == 1
+
 #include "coffeecatch/coffeecatch.h"
 #include "coffeecatch/coffeejni.h"
+
 #else
 #define COFFEE_TRY_JNI(ENV, CODE) CODE;
 #endif
@@ -74,29 +77,30 @@
 int z_verbose=0;
 extern "C" void z_error(char * msg);
 void z_error(char * msg) {
-	fprintf(stderr, "%s\n", msg);
-	exit(1);
+    fprintf(stderr, "%s\n", msg);
+    exit(1);
 }
 #endif
+
 /// returns current time representation string
-static lString32 getDateTimeString( time_t t )
-{
-    tm * bt = localtime(&t);
+static lString32 getDateTimeString(time_t t) {
+    tm *bt = localtime(&t);
     char str[32];
 #ifdef _LINUX
     snprintf(str, 32,
 #else
-    sprintf(str, 
+            sprintf(str,
 #endif
-        "%04d/%02d/%02d %02d:%02d", bt->tm_year+1900, bt->tm_mon+1, bt->tm_mday, bt->tm_hour, bt->tm_min);
+             "%04d/%02d/%02d %02d:%02d", bt->tm_year + 1900, bt->tm_mon + 1, bt->tm_mday,
+             bt->tm_hour, bt->tm_min);
     str[31] = 0;
-    return Utf8ToUnicode( lString8( str ) );
+    return Utf8ToUnicode(lString8(str));
 }
 
 #if 0
 static lString32 extractDocSeriesReverse( ldomDocument * doc, int & seriesNumber )
 {
-	seriesNumber = 0;
+    seriesNumber = 0;
     lString32 res;
     ldomXPointer p = doc->createXPointer(L"/FictionBook/description/title-info/sequence");
     if ( p.isNull() )
@@ -119,8 +123,7 @@ static lString32 extractDocSeriesReverse( ldomDocument * doc, int & seriesNumber
 }
 #endif
 
-class BookProperties
-{
+class BookProperties {
 public:
     lString32 filename;
     lString32 title;
@@ -136,75 +139,76 @@ public:
     doc_format_t format;
 };
 
-static bool GetEPUBBookProperties(const char *name, LVStreamRef stream, BookProperties * pBookProps)
-{
-    LVContainerRef arc = LVOpenArchieve(stream );
-    if ( arc.isNull() )
+static bool
+GetEPUBBookProperties(const char *name, LVStreamRef stream, BookProperties *pBookProps) {
+    LVContainerRef arc = LVOpenArchieve(stream);
+    if (arc.isNull())
         return false; // not a ZIP archive
 
     // check root media type
     lString32 rootfilePath = EpubGetRootFilePath(arc);
-    if ( rootfilePath.empty() )
-    	return false;
+    if (rootfilePath.empty())
+        return false;
 
     lString32 codeBase;
-    codeBase=LVExtractPath(rootfilePath, false);
+    codeBase = LVExtractPath(rootfilePath, false);
 
     LVStreamRef content_stream = arc->OpenStream(rootfilePath.c_str(), LVOM_READ);
-    if ( content_stream.isNull() )
+    if (content_stream.isNull())
         return false;
 
-    ldomDocument * doc = LVParseXMLStream( content_stream );
-    if ( !doc )
+    ldomDocument *doc = LVParseXMLStream(content_stream);
+    if (!doc)
         return false;
 
-    time_t t = (time_t)time(0);
+    time_t t = (time_t) time(0);
     struct stat fs;
-    if ( !stat( name, &fs ) ) {
+    if (!stat(name, &fs)) {
         t = fs.st_mtime;
     }
 
-    lString32 author = doc->textFromXPath( lString32("package/metadata/creator")).trim();
-    lString32 title = doc->textFromXPath( lString32("package/metadata/title")).trim();
-    lString32 language = doc->textFromXPath( lString32("package/metadata/language")).trim();
-	// There may be multiple <dc:subject> tags, which are usually used for keywords, categories
-	bool subjects_set = false;
-	lString32 subjects;
-	for ( size_t i=1; i<=EPUB_META_MAX_ITER; i++ ) {
-		ldomNode * item = doc->nodeFromXPath(lString32("package/metadata/subject[") << fmt::decimal(i) << "]");
-		if (!item)
-			break;
-		lString32 subject = item->getText().trim();
-		if (subjects_set) {
-			subjects << "\n" << subject;
-		}
-		else {
-			subjects << subject;
-			subjects_set = true;
-		}
-	}
-    lString32 description = doc->textFromXPath( cs32("package/metadata/description")).trim();
+    lString32 author = doc->textFromXPath(lString32("package/metadata/creator")).trim();
+    lString32 title = doc->textFromXPath(lString32("package/metadata/title")).trim();
+    lString32 language = doc->textFromXPath(lString32("package/metadata/language")).trim();
+    // There may be multiple <dc:subject> tags, which are usually used for keywords, categories
+    bool subjects_set = false;
+    lString32 subjects;
+    for (size_t i = 1; i <= EPUB_META_MAX_ITER; i++) {
+        ldomNode *item = doc->nodeFromXPath(
+                lString32("package/metadata/subject[") << fmt::decimal(i) << "]");
+        if (!item)
+            break;
+        lString32 subject = item->getText().trim();
+        if (subjects_set) {
+            subjects << "\n" << subject;
+        } else {
+            subjects << subject;
+            subjects_set = true;
+        }
+    }
+    lString32 description = doc->textFromXPath(cs32("package/metadata/description")).trim();
     pBookProps->author = author;
     pBookProps->title = title;
     pBookProps->language = language;
     pBookProps->keywords = subjects;
     pBookProps->description = description;
 
-    for ( int i=1; i<20; i++ ) {
-        ldomNode * item = doc->nodeFromXPath( lString32("package/metadata/meta[") << fmt::decimal(i) << "]" );
-        if ( !item )
+    for (int i = 1; i < 20; i++) {
+        ldomNode *item = doc->nodeFromXPath(
+                lString32("package/metadata/meta[") << fmt::decimal(i) << "]");
+        if (!item)
             break;
         lString32 name = item->getAttributeValue("name");
         lString32 content = item->getAttributeValue("content");
         if (name == "calibre:series")
-        	pBookProps->series = content.trim();
+            pBookProps->series = content.trim();
         else if (name == "calibre:series_index")
-        	pBookProps->seriesNumber = content.trim().atoi();
+            pBookProps->seriesNumber = content.trim().atoi();
     }
 
-    pBookProps->filesize = (long)stream->GetSize();
+    pBookProps->filesize = (long) stream->GetSize();
     pBookProps->filename = lString32(name);
-    pBookProps->filedate = getDateTimeString( t );
+    pBookProps->filedate = getDateTimeString(t);
     pBookProps->crc32 = stream->getcrc32();
 
     delete doc;
@@ -212,121 +216,119 @@ static bool GetEPUBBookProperties(const char *name, LVStreamRef stream, BookProp
     return true;
 }
 
-static bool GetFB3BookProperties(const char *name, LVStreamRef stream, BookProperties * pBookProps)
-{
-	LVContainerRef arc = LVOpenArchieve( stream );
-	if ( arc.isNull() )
-		return false; // not a ZIP archive
+static bool GetFB3BookProperties(const char *name, LVStreamRef stream, BookProperties *pBookProps) {
+    LVContainerRef arc = LVOpenArchieve(stream);
+    if (arc.isNull())
+        return false; // not a ZIP archive
 
-	OpcPackage package(arc);
+    OpcPackage package(arc);
 
-	fb3ImportContext context(&package);
+    fb3ImportContext context(&package);
 
-	CRPropRef doc_props = LVCreatePropsContainer();
-	package.readCoreProperties(doc_props);
-	pBookProps->title = doc_props->getStringDef(DOC_PROP_TITLE, "");
-	pBookProps->author = doc_props->getStringDef(DOC_PROP_AUTHORS, "");
-	pBookProps->description = doc_props->getStringDef(DOC_PROP_DESCRIPTION, "");
+    CRPropRef doc_props = LVCreatePropsContainer();
+    package.readCoreProperties(doc_props);
+    pBookProps->title = doc_props->getStringDef(DOC_PROP_TITLE, "");
+    pBookProps->author = doc_props->getStringDef(DOC_PROP_AUTHORS, "");
+    pBookProps->description = doc_props->getStringDef(DOC_PROP_DESCRIPTION, "");
 
-	ldomDocument * descDoc = context.getDescription();
-	if ( descDoc ) {
-		pBookProps->language = descDoc->textFromXPath( cs32("fb3-description/lang") );
-	} else {
-		CRLog::error("Couldn't parse description doc");
-	}
+    ldomDocument *descDoc = context.getDescription();
+    if (descDoc) {
+        pBookProps->language = descDoc->textFromXPath(cs32("fb3-description/lang"));
+    } else {
+        CRLog::error("Couldn't parse description doc");
+    }
 
-	time_t t = (time_t)time(0);
-	struct stat fs;
-	if ( !stat( name, &fs ) ) {
-		t = fs.st_mtime;
-	}
-	pBookProps->filesize = (long)stream->GetSize();
-	pBookProps->filename = lString32(name);
-	pBookProps->filedate = getDateTimeString( t );
-	pBookProps->crc32 = stream->getcrc32();
-	return true;
+    time_t t = (time_t) time(0);
+    struct stat fs;
+    if (!stat(name, &fs)) {
+        t = fs.st_mtime;
+    }
+    pBookProps->filesize = (long) stream->GetSize();
+    pBookProps->filename = lString32(name);
+    pBookProps->filedate = getDateTimeString(t);
+    pBookProps->crc32 = stream->getcrc32();
+    return true;
 }
 
-static bool GetDOCXBookProperties(const char *name, LVStreamRef stream, BookProperties * pBookProps)
-{
-	LVContainerRef arc = LVOpenArchieve( stream );
-	if ( arc.isNull() )
-		return false; // not a ZIP archive
+static bool
+GetDOCXBookProperties(const char *name, LVStreamRef stream, BookProperties *pBookProps) {
+    LVContainerRef arc = LVOpenArchieve(stream);
+    if (arc.isNull())
+        return false; // not a ZIP archive
 
-	OpcPackage package(arc);
+    OpcPackage package(arc);
 
-	CRPropRef doc_props = LVCreatePropsContainer();
-	package.readCoreProperties(doc_props);
-	pBookProps->title = doc_props->getStringDef(DOC_PROP_TITLE, "");
-	pBookProps->author = doc_props->getStringDef(DOC_PROP_AUTHORS, "");
-	pBookProps->description = doc_props->getStringDef(DOC_PROP_DESCRIPTION, "");
-	pBookProps->language = doc_props->getStringDef(DOC_PROP_LANGUAGE, "");
+    CRPropRef doc_props = LVCreatePropsContainer();
+    package.readCoreProperties(doc_props);
+    pBookProps->title = doc_props->getStringDef(DOC_PROP_TITLE, "");
+    pBookProps->author = doc_props->getStringDef(DOC_PROP_AUTHORS, "");
+    pBookProps->description = doc_props->getStringDef(DOC_PROP_DESCRIPTION, "");
+    pBookProps->language = doc_props->getStringDef(DOC_PROP_LANGUAGE, "");
 
-	time_t t = (time_t)time(0);
-	struct stat fs;
-	if ( !stat( name, &fs ) ) {
-		t = fs.st_mtime;
-	}
-	pBookProps->filesize = (long)stream->GetSize();
-	pBookProps->filename = lString32(name);
-	pBookProps->filedate = getDateTimeString( t );
-	pBookProps->crc32 = stream->getcrc32();
+    time_t t = (time_t) time(0);
+    struct stat fs;
+    if (!stat(name, &fs)) {
+        t = fs.st_mtime;
+    }
+    pBookProps->filesize = (long) stream->GetSize();
+    pBookProps->filename = lString32(name);
+    pBookProps->filedate = getDateTimeString(t);
+    pBookProps->crc32 = stream->getcrc32();
 
-	return true;
+    return true;
 }
 
-static bool GetODTBookProperties(const char *name, LVStreamRef stream, BookProperties * pBookProps)
-{
-	LVContainerRef arc = LVOpenArchieve( stream );
-	if ( arc.isNull() )
-		return false; // not a ZIP archive
+static bool GetODTBookProperties(const char *name, LVStreamRef stream, BookProperties *pBookProps) {
+    LVContainerRef arc = LVOpenArchieve(stream);
+    if (arc.isNull())
+        return false; // not a ZIP archive
 
-	OpcPackage package(arc);
+    OpcPackage package(arc);
 
-	//Read document metadata
-	LVStreamRef meta_stream = arc->OpenStream(U"meta.xml", LVOM_READ);
-	if ( meta_stream.isNull() )
-		return false;
-	ldomDocument * metaDoc = LVParseXMLStream( meta_stream );
-	if ( !metaDoc ) {
-		CRLog::error("Couldn't parse document meta data");
-		return false;
-	} else {
-		CRPropRef doc_props = LVCreatePropsContainer();
+    //Read document metadata
+    LVStreamRef meta_stream = arc->OpenStream(U"meta.xml", LVOM_READ);
+    if (meta_stream.isNull())
+        return false;
+    ldomDocument *metaDoc = LVParseXMLStream(meta_stream);
+    if (!metaDoc) {
+        CRLog::error("Couldn't parse document meta data");
+        return false;
+    } else {
+        CRPropRef doc_props = LVCreatePropsContainer();
 
-		lString32 author = metaDoc->textFromXPath( cs32("document-meta/meta/creator") );
-		lString32 title = metaDoc->textFromXPath( cs32("document-meta/meta/title") );
-		lString32 description = metaDoc->textFromXPath( cs32("document-meta/meta/description") );
-		doc_props->setString(DOC_PROP_TITLE, title);
-		doc_props->setString(DOC_PROP_AUTHORS, author );
-		doc_props->setString(DOC_PROP_DESCRIPTION, description );
-		delete metaDoc;
-	}
+        lString32 author = metaDoc->textFromXPath(cs32("document-meta/meta/creator"));
+        lString32 title = metaDoc->textFromXPath(cs32("document-meta/meta/title"));
+        lString32 description = metaDoc->textFromXPath(cs32("document-meta/meta/description"));
+        doc_props->setString(DOC_PROP_TITLE, title);
+        doc_props->setString(DOC_PROP_AUTHORS, author);
+        doc_props->setString(DOC_PROP_DESCRIPTION, description);
+        delete metaDoc;
+    }
 
-	time_t t = (time_t)time(0);
-	struct stat fs;
-	if ( !stat( name, &fs ) ) {
-		t = fs.st_mtime;
-	}
-	pBookProps->filesize = (long)stream->GetSize();
-	pBookProps->filename = lString32(name);
-	pBookProps->filedate = getDateTimeString( t );
-	pBookProps->crc32 = stream->getcrc32();
+    time_t t = (time_t) time(0);
+    struct stat fs;
+    if (!stat(name, &fs)) {
+        t = fs.st_mtime;
+    }
+    pBookProps->filesize = (long) stream->GetSize();
+    pBookProps->filename = lString32(name);
+    pBookProps->filedate = getDateTimeString(t);
+    pBookProps->crc32 = stream->getcrc32();
 
-	return true;
+    return true;
 }
 
-static bool GetBookProperties(const char *name,  BookProperties * pBookProps)
-{
+static bool GetBookProperties(const char *name, BookProperties *pBookProps) {
     CRLog::trace("GetBookProperties( %s )", name);
 
     // check archieve
     lString32 arcPathName;
     lString32 arcItemPathName;
-    bool isArchiveFile = LVSplitArcName( lString32(name), arcPathName, arcItemPathName );
+    bool isArchiveFile = LVSplitArcName(lString32(name), arcPathName, arcItemPathName);
 
     // open stream
-    LVStreamRef stream = LVOpenFileStream( (isArchiveFile ? arcPathName : Utf8ToUnicode(lString8(name))).c_str() , LVOM_READ);
+    LVStreamRef stream = LVOpenFileStream(
+            (isArchiveFile ? arcPathName : Utf8ToUnicode(lString8(name))).c_str(), LVOM_READ);
     if (!stream) {
         CRLog::error("cannot open file %s", name);
         return false;
@@ -334,81 +336,81 @@ static bool GetBookProperties(const char *name,  BookProperties * pBookProps)
 
 
     pBookProps->format = doc_format_none;
-    if ( DetectEpubFormat( stream ) ) {
+    if (DetectEpubFormat(stream)) {
         CRLog::trace("GetBookProperties() : epub format detected");
         pBookProps->format = doc_format_epub;
-    	return GetEPUBBookProperties( name, stream, pBookProps );
+        return GetEPUBBookProperties(name, stream, pBookProps);
     }
-    if ( DetectFb3Format( stream ) ) {
+    if (DetectFb3Format(stream)) {
         CRLog::trace("GetBookProperties() : fb3 format detected");
         pBookProps->format = doc_format_fb3;
-        return GetFB3BookProperties( name, stream, pBookProps );
+        return GetFB3BookProperties(name, stream, pBookProps);
     }
-	if ( DetectDocXFormat( stream ) ) {
-		CRLog::trace("GetBookProperties() : docx format detected");
+    if (DetectDocXFormat(stream)) {
+        CRLog::trace("GetBookProperties() : docx format detected");
         pBookProps->format = doc_format_docx;
-		return GetDOCXBookProperties( name, stream, pBookProps );
-	}
-	if ( DetectOpenDocumentFormat( stream ) ) {
-		CRLog::trace("GetBookProperties() : odt format detected");
+        return GetDOCXBookProperties(name, stream, pBookProps);
+    }
+    if (DetectOpenDocumentFormat(stream)) {
+        CRLog::trace("GetBookProperties() : odt format detected");
         pBookProps->format = doc_format_odt;
-		return GetODTBookProperties( name, stream, pBookProps );
-	}
+        return GetODTBookProperties(name, stream, pBookProps);
+    }
 
-    time_t t = (time_t)time(0);
+    time_t t = (time_t) time(0);
 
-    if ( isArchiveFile ) {
-		lvsize_t arcsize = stream->GetSize();
+    if (isArchiveFile) {
+        lvsize_t arcsize = stream->GetSize();
         LVContainerRef container = LVOpenArchieve(stream);
-        if ( container.isNull() ) {
-            CRLog::error( "Cannot read archive contents from %s", LCSTR(arcPathName) );
+        if (container.isNull()) {
+            CRLog::error("Cannot read archive contents from %s", LCSTR(arcPathName));
             return false;
         }
         stream = container->OpenStream(arcItemPathName.c_str(), LVOM_READ);
-        if ( stream.isNull() ) {
-            CRLog::error( "Cannot open archive file item stream %s", LCSTR(lString32(name)) );
+        if (stream.isNull()) {
+            CRLog::error("Cannot open archive file item stream %s", LCSTR(lString32(name)));
             return false;
         }
     }
     struct stat fs;
-    if ( !stat( name, &fs ) ) {
+    if (!stat(name, &fs)) {
         t = fs.st_mtime;
     }
 
     // read document
-#if COMPACT_DOM==1
+#if COMPACT_DOM == 1
     ldomDocument doc(stream, 0);
 #else
     ldomDocument doc;
 #endif
     ldomDocumentWriter writer(&doc, true);
-    doc.setNodeTypes( fb2_elem_table );
-    doc.setAttributeTypes( fb2_attr_table );
-    doc.setNameSpaceTypes( fb2_ns_table );
-    LVXMLParser parser( stream, &writer );
-    CRLog::trace( "checking format..." );
-    if ( !parser.CheckFormat() ) {
+    doc.setNodeTypes(fb2_elem_table);
+    doc.setAttributeTypes(fb2_attr_table);
+    doc.setNameSpaceTypes(fb2_ns_table);
+    LVXMLParser parser(stream, &writer);
+    CRLog::trace("checking format...");
+    if (!parser.CheckFormat()) {
         return false;
     }
-    CRLog::trace( "parsing..." );
-    if ( !parser.Parse() ) {
+    CRLog::trace("parsing...");
+    if (!parser.Parse()) {
         return false;
     }
-    CRLog::trace( "parsed" );
-    #if 0
-        char ofname[512];
-        sprintf(ofname, "%s.xml", name);
-        CRLog::trace("    writing to file %s", ofname);
-        LVStreamRef out = LVOpenFileStream(ofname, LVOM_WRITE);
-        doc.saveToStream(out, "utf16");
-    #endif
-    lString32 authors = extractDocAuthors( &doc, lString32("|"), false );
-    lString32 title = extractDocTitle( &doc );
-    lString32 language = extractDocLanguage( &doc );
-    lString32 series = extractDocSeries( &doc, &pBookProps->seriesNumber );
-    lString32 keywords = extractDocKeywords( &doc );
-    lString32 description = extractDocDescription( &doc );
-#if SERIES_IN_AUTHORS==1
+    CRLog::trace("parsed");
+#if 0
+    char ofname[512];
+    sprintf(ofname, "%s.xml", name);
+    CRLog::trace("    writing to file %s", ofname);
+    LVStreamRef out = LVOpenFileStream(ofname, LVOM_WRITE);
+    doc.saveToStream(out, "utf16");
+#endif
+    lString32 authors = extractDocAuthors(&doc, lString32("|"), false);
+    lString32 title = extractDocTitle(&doc);
+    lString32 language = extractDocLanguage(&doc);
+    lString32 series = extractDocSeries(&doc, &pBookProps->seriesNumber);
+    lString32 keywords = extractDocKeywords(&doc);
+    lString32 description = extractDocDescription(&doc);
+#if SERIES_IN_AUTHORS == 1
     if ( !series.empty() )
         authors << "    " << series;
 #endif
@@ -416,9 +418,9 @@ static bool GetBookProperties(const char *name,  BookProperties * pBookProps)
     pBookProps->title = title;
     pBookProps->author = authors;
     pBookProps->series = series;
-    pBookProps->filesize = (long)stream->GetSize();
+    pBookProps->filesize = (long) stream->GetSize();
     pBookProps->filename = lString32(name);
-    pBookProps->filedate = getDateTimeString( t );
+    pBookProps->filedate = getDateTimeString(t);
     pBookProps->language = language;
     pBookProps->keywords = keywords;
     pBookProps->description = description;
@@ -504,8 +506,9 @@ jboolean initInternal(JNIEnv *penv, jclass obj, jobjectArray fontArray, jint sdk
     return fontMan->GetFontCount() ? JNI_TRUE : JNI_FALSE;
 }
 
-void drawBookCoverInternal(JNIEnv * _env, jclass _engine, jobject bitmap, jbyteArray _data, jboolean respectAspectRatio, jstring _fontFace, jstring _title, jstring _authors, jstring _seriesName, jint seriesNumber, jint bpp)
-{
+void drawBookCoverInternal(JNIEnv *_env, jclass _engine, jobject bitmap, jbyteArray _data,
+                           jboolean respectAspectRatio, jstring _fontFace, jstring _title,
+                           jstring _authors, jstring _seriesName, jint seriesNumber, jint bpp) {
     CRJNIEnv env(_env);
     CRLog::debug("drawBookCoverInternal called");
     lString8 fontFace = UnicodeToUtf8(env.fromJavaString(_fontFace));
@@ -513,7 +516,7 @@ void drawBookCoverInternal(JNIEnv * _env, jclass _engine, jobject bitmap, jbyteA
     lString32 authors = env.fromJavaString(_authors);
     lString32 seriesName = env.fromJavaString(_seriesName);
     LVStreamRef stream;
-    LVDrawBuf * drawbuf = BitmapAccessorInterface::getInstance()->lock(_env, bitmap);
+    LVDrawBuf *drawbuf = BitmapAccessorInterface::getInstance()->lock(_env, bitmap);
     if (drawbuf != NULL) {
         LVImageSourceRef image;
         if (_data != NULL && _env->GetArrayLength(_data) > 0) {
@@ -539,18 +542,20 @@ void drawBookCoverInternal(JNIEnv * _env, jclass _engine, jobject bitmap, jbyteA
                 factor = 2;
             }
         }
-        LVDrawBuf * drawbuf2 = drawbuf;
+        LVDrawBuf *drawbuf2 = drawbuf;
         if (factor > 1)
             drawbuf2 = new LVColorDrawBuf(dx, dy, drawbuf->GetBitsPerPixel());
 
         if (bpp >= 16) {
             // native color resolution
             CRLog::debug("drawBookCoverInternal : calling LVDrawBookCover");
-            LVDrawBookCover(*drawbuf2, image, respectAspectRatio, fontFace, title, authors, seriesName, seriesNumber);
+            LVDrawBookCover(*drawbuf2, image, respectAspectRatio, fontFace, title, authors,
+                            seriesName, seriesNumber);
             image.Clear();
         } else {
             LVGrayDrawBuf grayBuf(drawbuf2->GetWidth(), drawbuf2->GetHeight(), bpp);
-            LVDrawBookCover(grayBuf, image, respectAspectRatio, fontFace, title, authors, seriesName, seriesNumber);
+            LVDrawBookCover(grayBuf, image, respectAspectRatio, fontFace, title, authors,
+                            seriesName, seriesNumber);
             image.Clear();
             grayBuf.DrawTo(drawbuf2, 0, 0, 0, NULL);
         }
@@ -733,59 +738,58 @@ extern "C" {
  * Signature: (Lorg/coolreader/crengine/FileInfo;)Z
  */
 JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_Engine_scanBookPropertiesInternal
-  (JNIEnv * _env, jclass _engine, jobject _fileInfo)
-{
-	CRJNIEnv env(_env);
-	jclass objclass = env->GetObjectClass(_fileInfo);
-	jfieldID fid = env->GetFieldID(objclass, "pathname", "Ljava/lang/String;");
-	lString32 filename = env.fromJavaString( (jstring)env->GetObjectField(_fileInfo, fid) );
+        (JNIEnv *_env, jclass _engine, jobject _fileInfo) {
+    CRJNIEnv env(_env);
+    jclass objclass = env->GetObjectClass(_fileInfo);
+    jfieldID fid = env->GetFieldID(objclass, "pathname", "Ljava/lang/String;");
+    lString32 filename = env.fromJavaString((jstring) env->GetObjectField(_fileInfo, fid));
     fid = env->GetFieldID(objclass, "arcname", "Ljava/lang/String;");
-    lString32 arcname = env.fromJavaString( (jstring)env->GetObjectField(_fileInfo, fid) );
-	if ( filename.empty() )
-		return JNI_FALSE;
-	if ( !arcname.empty() )
-       filename = arcname + "@/" + filename;
+    lString32 arcname = env.fromJavaString((jstring) env->GetObjectField(_fileInfo, fid));
+    if (filename.empty())
+        return JNI_FALSE;
+    if (!arcname.empty())
+        filename = arcname + "@/" + filename;
 
-	BookProperties props;
-	CRLog::debug("Looking for properties of file %s", LCSTR(filename));
-	bool res = GetBookProperties(LCSTR(filename),  &props);
-	if ( !res )
-		return JNI_FALSE;
-	#define SET_STR_FLD(fldname,src) \
-	{ \
-	    jfieldID fid = env->GetFieldID(objclass, fldname, "Ljava/lang/String;"); \
-	    env->SetObjectField(_fileInfo,fid,env.toJavaString(src)); \
-	}
-	#define SET_INT_FLD(fldname,src) \
-	{ \
-	    jfieldID fid = env->GetFieldID(objclass, fldname, "I"); \
-	    env->SetIntField(_fileInfo,fid,src); \
-	}
-	#define SET_LONG_FLD(fldname,src) \
-	{ \
-	    jfieldID fid = env->GetFieldID(objclass, fldname, "J"); \
-	    env->SetLongField(_fileInfo,fid,src); \
-	}
-	SET_STR_FLD("title",props.title);
-	SET_STR_FLD("authors",props.author);
-	SET_STR_FLD("series",props.series);
-	SET_INT_FLD("seriesNumber",props.seriesNumber);
-	SET_STR_FLD("language",props.language);
-	SET_LONG_FLD("crc32",props.crc32);
-	if (doc_format_fb2 == props.format) {
-		// TODO: may be fb3 too...
-		// keywords separated by "\n", see lvtinydom.cpp:
-		//    lString32 extractDocKeywords( ldomDocument * doc )
-		int pos = props.keywords.pos('\n');
-		while (pos > 0) {
-			props.keywords[pos] = '|';
-			pos = props.keywords.pos('\n', pos + 1);
-		}
-		SET_STR_FLD("genres", props.keywords);
-	}
-	SET_STR_FLD("description",props.description);
+    BookProperties props;
+    CRLog::debug("Looking for properties of file %s", LCSTR(filename));
+    bool res = GetBookProperties(LCSTR(filename), &props);
+    if (!res)
+        return JNI_FALSE;
+#define SET_STR_FLD(fldname, src) \
+    { \
+        jfieldID fid = env->GetFieldID(objclass, fldname, "Ljava/lang/String;"); \
+        env->SetObjectField(_fileInfo,fid,env.toJavaString(src)); \
+    }
+#define SET_INT_FLD(fldname, src) \
+    { \
+        jfieldID fid = env->GetFieldID(objclass, fldname, "I"); \
+        env->SetIntField(_fileInfo,fid,src); \
+    }
+#define SET_LONG_FLD(fldname, src) \
+    { \
+        jfieldID fid = env->GetFieldID(objclass, fldname, "J"); \
+        env->SetLongField(_fileInfo,fid,src); \
+    }
+    SET_STR_FLD("title", props.title);
+    SET_STR_FLD("authors", props.author);
+    SET_STR_FLD("series", props.series);
+    SET_INT_FLD("seriesNumber", props.seriesNumber);
+    SET_STR_FLD("language", props.language);
+    SET_LONG_FLD("crc32", props.crc32);
+    if (doc_format_fb2 == props.format) {
+        // TODO: may be fb3 too...
+        // keywords separated by "\n", see lvtinydom.cpp:
+        //    lString32 extractDocKeywords( ldomDocument * doc )
+        int pos = props.keywords.pos('\n');
+        while (pos > 0) {
+            props.keywords[pos] = '|';
+            pos = props.keywords.pos('\n', pos + 1);
+        }
+        SET_STR_FLD("genres", props.keywords);
+    }
+    SET_STR_FLD("description", props.description);
 
-	return JNI_TRUE;
+    return JNI_TRUE;
 }
 
 /*
@@ -794,41 +798,40 @@ JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_Engine_scanBookPropertie
  * Signature: (Lorg/coolreader/crengine/FileInfo;)Z
  */
 JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_Engine_updateFileCRC32Internal
-		(JNIEnv * _env, jclass _engine, jobject _fileInfo)
-{
-	CRJNIEnv env(_env);
-	jclass objclass = env->GetObjectClass(_fileInfo);
-	jfieldID fid = env->GetFieldID(objclass, "pathname", "Ljava/lang/String;");
-	lString32 filename = env.fromJavaString( (jstring)env->GetObjectField(_fileInfo, fid) );
-	fid = env->GetFieldID(objclass, "arcname", "Ljava/lang/String;");
-	lString32 arcname = env.fromJavaString( (jstring)env->GetObjectField(_fileInfo, fid) );
-	if ( filename.empty() )
-		return JNI_FALSE;
-	bool isArchiveFile = !arcname.empty();
-	// open stream
-	LVStreamRef stream = LVOpenFileStream( (isArchiveFile ? arcname : filename).c_str() , LVOM_READ );
-	if (!stream.isNull()) {
-		if (isArchiveFile) {
-			LVContainerRef container = LVOpenArchieve(stream);
-			if (!container.isNull()) {
-				stream = container->OpenStream(filename.c_str(), LVOM_READ);
-				if (stream.isNull()) {
-					CRLog::error("Cannot open archive file item stream %s", LCSTR(filename));
-				}
-			} else {
-				CRLog::error("Cannot read archive contents from %s", LCSTR(arcname));
-				stream = LVStreamRef();
-			}
-		}
-	}
-	if (!stream.isNull()) {
-		fid = env->GetFieldID(objclass, "crc32", "J");
-	    env->SetLongField(_fileInfo, fid, stream->getcrc32());
-	} else {
-		CRLog::error("cannot open file %s", LCSTR(isArchiveFile ? arcname : filename));
-		return JNI_FALSE;
-	}
-	return JNI_TRUE;
+        (JNIEnv *_env, jclass _engine, jobject _fileInfo) {
+    CRJNIEnv env(_env);
+    jclass objclass = env->GetObjectClass(_fileInfo);
+    jfieldID fid = env->GetFieldID(objclass, "pathname", "Ljava/lang/String;");
+    lString32 filename = env.fromJavaString((jstring) env->GetObjectField(_fileInfo, fid));
+    fid = env->GetFieldID(objclass, "arcname", "Ljava/lang/String;");
+    lString32 arcname = env.fromJavaString((jstring) env->GetObjectField(_fileInfo, fid));
+    if (filename.empty())
+        return JNI_FALSE;
+    bool isArchiveFile = !arcname.empty();
+    // open stream
+    LVStreamRef stream = LVOpenFileStream((isArchiveFile ? arcname : filename).c_str(), LVOM_READ);
+    if (!stream.isNull()) {
+        if (isArchiveFile) {
+            LVContainerRef container = LVOpenArchieve(stream);
+            if (!container.isNull()) {
+                stream = container->OpenStream(filename.c_str(), LVOM_READ);
+                if (stream.isNull()) {
+                    CRLog::error("Cannot open archive file item stream %s", LCSTR(filename));
+                }
+            } else {
+                CRLog::error("Cannot read archive contents from %s", LCSTR(arcname));
+                stream = LVStreamRef();
+            }
+        }
+    }
+    if (!stream.isNull()) {
+        fid = env->GetFieldID(objclass, "crc32", "J");
+        env->SetLongField(_fileInfo, fid, stream->getcrc32());
+    } else {
+        CRLog::error("cannot open file %s", LCSTR(isArchiveFile ? arcname : filename));
+        return JNI_FALSE;
+    }
+    return JNI_TRUE;
 }
 
 /*
@@ -837,9 +840,12 @@ JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_Engine_updateFileCRC32In
  * Signature: (Landroid/graphics/Bitmap;[BZLjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;II)V
  */
 JNIEXPORT void JNICALL Java_org_coolreader_crengine_Engine_drawBookCoverInternal
-  (JNIEnv * _env, jclass _engine, jobject bitmap, jbyteArray _data, jboolean respectAspectRatio, jstring _fontFace, jstring _title, jstring _authors, jstring _seriesName, jint seriesNumber, jint bpp)
-{
-	COFFEE_TRY_JNI(_env, drawBookCoverInternal(_env, _engine, bitmap, _data, respectAspectRatio, _fontFace, _title, _authors, _seriesName, seriesNumber, bpp));
+        (JNIEnv *_env, jclass _engine, jobject bitmap, jbyteArray _data,
+         jboolean respectAspectRatio, jstring _fontFace, jstring _title, jstring _authors,
+         jstring _seriesName, jint seriesNumber, jint bpp) {
+    COFFEE_TRY_JNI(_env, drawBookCoverInternal(_env, _engine, bitmap, _data, respectAspectRatio,
+                                               _fontFace, _title, _authors, _seriesName,
+                                               seriesNumber, bpp));
 }
 
 /*
@@ -848,11 +854,10 @@ JNIEXPORT void JNICALL Java_org_coolreader_crengine_Engine_drawBookCoverInternal
  * Signature: (Ljava/lang/String;)[B
  */
 JNIEXPORT jbyteArray JNICALL Java_org_coolreader_crengine_Engine_scanBookCoverInternal
-  (JNIEnv * _env, jclass _class, jstring _path)
-{
-	jbyteArray res = NULL;
-	COFFEE_TRY_JNI(_env, res = scanBookCoverInternal( _env, _class, _path));
-	return res;
+        (JNIEnv *_env, jclass _class, jstring _path) {
+    jbyteArray res = NULL;
+    COFFEE_TRY_JNI(_env, res = scanBookCoverInternal(_env, _class, _path));
+    return res;
 }
 
 /*
@@ -861,8 +866,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_coolreader_crengine_Engine_scanBookCoverIn
  * Signature: (Ljava/lang/String;)Z
  */
 JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_Engine_isArchiveInternal
-  (JNIEnv * _env, jclass, jstring jarcName)
-{
+        (JNIEnv *_env, jclass, jstring jarcName) {
     jboolean res = JNI_FALSE;
     CRJNIEnv env(_env);
     lString32 arcName = env.fromJavaString(jarcName);
@@ -887,24 +891,23 @@ JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_Engine_isArchiveInternal
  * Signature: (Ljava/lang/String;)[Ljava/lang/String;
  */
 JNIEXPORT jobjectArray JNICALL Java_org_coolreader_crengine_Engine_getArchiveItemsInternal
-  (JNIEnv * _env, jclass, jstring jarcName)
-{
+        (JNIEnv *_env, jclass, jstring jarcName) {
     CRJNIEnv env(_env);
     lString32 arcName = env.fromJavaString(jarcName);
     lString32Collection list;
-    
+
     //fontMan->getFaceList(list);
-    LVStreamRef stream = LVOpenFileStream( arcName.c_str(), LVOM_READ );
-    if ( !stream.isNull() ) {
+    LVStreamRef stream = LVOpenFileStream(arcName.c_str(), LVOM_READ);
+    if (!stream.isNull()) {
         LVContainerRef arc = LVOpenArchieve(stream);
-        if ( !arc.isNull() ) {
+        if (!arc.isNull()) {
             // convert
-            for ( int i=0; i<arc->GetObjectCount(); i++ ) {
-                const LVContainerItemInfo * item = arc->GetObjectInfo(i);
-                if ( item->IsContainer())
+            for (int i = 0; i < arc->GetObjectCount(); i++) {
+                const LVContainerItemInfo *item = arc->GetObjectInfo(i);
+                if (item->IsContainer())
                     continue;
-                list.add( item->GetName() );
-                list.add( lString32::itoa(item->GetSize()) );
+                list.add(item->GetName());
+                list.add(lString32::itoa(item->GetSize()));
             }
         }
     }
@@ -917,16 +920,14 @@ JNIEXPORT jobjectArray JNICALL Java_org_coolreader_crengine_Engine_getArchiveIte
  * Signature: ([Ljava/lang/String;I)Z
  */
 JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_Engine_initInternal
-  (JNIEnv * penv, jclass obj, jobjectArray fontArray, jint sdk_int)
-{
-	jboolean res = JNI_FALSE;
-	COFFEE_TRY_JNI(penv, res = initInternal(penv, obj, fontArray, sdk_int));
-	return res;
+        (JNIEnv *penv, jclass obj, jobjectArray fontArray, jint sdk_int) {
+    jboolean res = JNI_FALSE;
+    COFFEE_TRY_JNI(penv, res = initInternal(penv, obj, fontArray, sdk_int));
+    return res;
 }
 
 JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_Engine_initDictionaries
- (JNIEnv * penv, jclass clazz, jobjectArray dictArray)
-{
+        (JNIEnv *penv, jclass clazz, jobjectArray dictArray) {
     jboolean res = JNI_FALSE;
     COFFEE_TRY_JNI(penv, res = initDictionaries(penv, clazz, dictArray));
     return res;
@@ -938,12 +939,11 @@ JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_Engine_initDictionaries
  * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_org_coolreader_crengine_Engine_uninitInternal
-  (JNIEnv *, jclass)
-{
-	LOGI("uninitInternal called");
-	HyphMan::uninit();
-	ShutdownFontManager();
-	CRLog::setLogger(NULL);
+        (JNIEnv *, jclass) {
+    LOGI("uninitInternal called");
+    HyphMan::uninit();
+    ShutdownFontManager();
+    CRLog::setLogger(NULL);
 }
 
 /*
@@ -952,13 +952,12 @@ JNIEXPORT void JNICALL Java_org_coolreader_crengine_Engine_uninitInternal
  * Signature: ()[Ljava/lang/String;
  */
 JNIEXPORT jobjectArray JNICALL Java_org_coolreader_crengine_Engine_getFontFaceListInternal
-  (JNIEnv * penv, jclass obj)
-{
-	LOGI("getFontFaceListInternal called");
-	CRJNIEnv env(penv);
-	lString32Collection list;
-	COFFEE_TRY_JNI(penv, fontMan->getFaceList(list));
-	return env.toJavaStringArray(list);
+        (JNIEnv *penv, jclass obj) {
+    LOGI("getFontFaceListInternal called");
+    CRJNIEnv env(penv);
+    lString32Collection list;
+    COFFEE_TRY_JNI(penv, fontMan->getFaceList(list));
+    return env.toJavaStringArray(list);
 }
 
 /*
@@ -967,8 +966,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_coolreader_crengine_Engine_getFontFaceLi
  * Signature: ()[Ljava/lang/String;
  */
 JNIEXPORT jobjectArray JNICALL Java_org_coolreader_crengine_Engine_getFontFileNameListInternal
-        (JNIEnv * penv, jclass cls)
-{
+        (JNIEnv *penv, jclass cls) {
     LOGI("getFontFileListInternal called");
     CRJNIEnv env(penv);
     lString32Collection list;
@@ -982,18 +980,17 @@ JNIEXPORT jobjectArray JNICALL Java_org_coolreader_crengine_Engine_getFontFileNa
  * Signature: (Ljava/lang/String;)[I
  */
 JNIEXPORT jintArray JNICALL Java_org_coolreader_crengine_Engine_getAvailableFontWeightInternal
-		(JNIEnv * penv, jclass cls, jstring fontFace)
-{
-	LOGI("getAvailableFontWeightInternal called");
-	CRJNIEnv env(penv);
-	lString32 fontFace32 = env.fromJavaString(fontFace);
-	LVArray<int> weights;
-	fontMan->GetAvailableFontWeights(weights, UnicodeToUtf8(fontFace32));
-	int len = weights.length();
-	jintArray array = env->NewIntArray(len);
-	if (NULL != array)
-		env->SetIntArrayRegion(array, 0, len, weights.get());
-	return array;
+        (JNIEnv *penv, jclass cls, jstring fontFace) {
+    LOGI("getAvailableFontWeightInternal called");
+    CRJNIEnv env(penv);
+    lString32 fontFace32 = env.fromJavaString(fontFace);
+    LVArray<int> weights;
+    fontMan->GetAvailableFontWeights(weights, UnicodeToUtf8(fontFace32));
+    int len = weights.length();
+    jintArray array = env->NewIntArray(len);
+    if (NULL != array)
+        env->SetIntArrayRegion(array, 0, len, weights.get());
+    return array;
 }
 
 /*
@@ -1002,24 +999,23 @@ JNIEXPORT jintArray JNICALL Java_org_coolreader_crengine_Engine_getAvailableFont
  * Signature: ()[I
  */
 JNIEXPORT jintArray JNICALL Java_org_coolreader_crengine_Engine_getAvailableSynthFontWeightInternal
-		(JNIEnv * penv, jclass cls)
-{
-	LOGI("getAvailableSynthFontWeightInternal called");
-	CRJNIEnv env(penv);
+        (JNIEnv *penv, jclass cls) {
+    LOGI("getAvailableSynthFontWeightInternal called");
+    CRJNIEnv env(penv);
 #if USE_FT_EMBOLDEN
-	int available_synth_weight[] = {
-			300, 400, 450, 475, 500, 525, 550, 600, 700, 800, 900
-	};
+    int available_synth_weight[] = {
+            300, 400, 450, 475, 500, 525, 550, 600, 700, 800, 900
+    };
 #else
-	int available_synth_weight[] = {
-			600
-	};
+    int available_synth_weight[] = {
+            600
+    };
 #endif
-	int len = sizeof(available_synth_weight)/sizeof(int);
-	jintArray array = env->NewIntArray(len);
-	if (NULL != array)
-		env->SetIntArrayRegion(array, 0, len, available_synth_weight);
-	return array;
+    int len = sizeof(available_synth_weight) / sizeof(int);
+    jintArray array = env->NewIntArray(len);
+    if (NULL != array)
+        env->SetIntArrayRegion(array, 0, len, available_synth_weight);
+    return array;
 }
 
 /*
@@ -1028,12 +1024,11 @@ JNIEXPORT jintArray JNICALL Java_org_coolreader_crengine_Engine_getAvailableSynt
  * Signature: (Ljava/lang/String;I)Z
  */
 JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_Engine_setCacheDirectoryInternal
-  (JNIEnv * penv, jclass obj, jstring dir, jint size)
-{
-	CRJNIEnv env(penv);
-	bool res = false;
-	COFFEE_TRY_JNI(penv, res = ldomDocCache::init(env.fromJavaString(dir), size ));
-	return res ? JNI_TRUE : JNI_FALSE;
+        (JNIEnv *penv, jclass obj, jstring dir, jint size) {
+    CRJNIEnv env(penv);
+    bool res = false;
+    COFFEE_TRY_JNI(penv, res = ldomDocCache::init(env.fromJavaString(dir), size));
+    return res ? JNI_TRUE : JNI_FALSE;
 }
 
 /*
@@ -1042,19 +1037,18 @@ JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_Engine_setCacheDirectory
  * Signature: (Ljava/lang/String;Ljava/lang/String;)Z
  */
 JNIEXPORT jint JNICALL Java_org_coolreader_crengine_Engine_checkFontLanguageCompatibilityInternal
-		(JNIEnv *env, jclass cls, jstring fontFace, jstring langTag)
-{
-	font_lang_compat res = font_lang_compat_invalid_tag;
-	const char* fontFace_ptr = env->GetStringUTFChars(fontFace, 0);
-	const char* langTag_ptr = env->GetStringUTFChars(langTag, 0);
-	if (fontFace_ptr && langTag_ptr) {
-		res = fontMan->checkFontLangCompat(lString8(fontFace_ptr), lString8(langTag_ptr));
-	}
-	if (langTag_ptr)
-		env->ReleaseStringUTFChars(langTag, langTag_ptr);
-	if (fontFace_ptr)
-		env->ReleaseStringUTFChars(fontFace, fontFace_ptr);
-	return (jint)res;
+        (JNIEnv *env, jclass cls, jstring fontFace, jstring langTag) {
+    font_lang_compat res = font_lang_compat_invalid_tag;
+    const char *fontFace_ptr = env->GetStringUTFChars(fontFace, 0);
+    const char *langTag_ptr = env->GetStringUTFChars(langTag, 0);
+    if (fontFace_ptr && langTag_ptr) {
+        res = fontMan->checkFontLangCompat(lString8(fontFace_ptr), lString8(langTag_ptr));
+    }
+    if (langTag_ptr)
+        env->ReleaseStringUTFChars(langTag, langTag_ptr);
+    if (fontFace_ptr)
+        env->ReleaseStringUTFChars(fontFace, fontFace_ptr);
+    return (jint) res;
 }
 
 /*
@@ -1063,31 +1057,30 @@ JNIEXPORT jint JNICALL Java_org_coolreader_crengine_Engine_checkFontLanguageComp
  * Signature: (Ljava/lang/String;)Ljava/lang/String;
  */
 JNIEXPORT jstring JNICALL Java_org_coolreader_crengine_Engine_getHumanReadableLocaleNameInternal
-		(JNIEnv *env, jclass cls, jstring langTag)
-{
-	jstring res = NULL;
-	const char* langTag_ptr = NULL;
-	if (langTag)
-		langTag_ptr = env->GetStringUTFChars(langTag, 0);
-	if (langTag_ptr) {
-		CRLocaleData loc(langTag_ptr);
-		if (loc.isValid()) {
-			lString8 langDescr = loc.langName();
-			if (loc.scriptNumeric() > 0) {
-				langDescr.append("-");
-				langDescr.append(loc.scriptName());
-			}
-			if (loc.regionNumeric() > 0) {
-				langDescr.append(" (");
-				langDescr.append(loc.regionAlpha3());
-				langDescr.append(")");
-			}
-			jstring str = env->NewStringUTF(langDescr.c_str());
-			res = (jstring)env->NewGlobalRef(str);
-		}
-		env->ReleaseStringUTFChars(langTag, langTag_ptr);
-	}
-	return res;
+        (JNIEnv *env, jclass cls, jstring langTag) {
+    jstring res = NULL;
+    const char *langTag_ptr = NULL;
+    if (langTag)
+        langTag_ptr = env->GetStringUTFChars(langTag, 0);
+    if (langTag_ptr) {
+        CRLocaleData loc(langTag_ptr);
+        if (loc.isValid()) {
+            lString8 langDescr = loc.langName();
+            if (loc.scriptNumeric() > 0) {
+                langDescr.append("-");
+                langDescr.append(loc.scriptName());
+            }
+            if (loc.regionNumeric() > 0) {
+                langDescr.append(" (");
+                langDescr.append(loc.regionAlpha3());
+                langDescr.append(")");
+            }
+            jstring str = env->NewStringUTF(langDescr.c_str());
+            res = (jstring) env->NewGlobalRef(str);
+        }
+        env->ReleaseStringUTFChars(langTag, langTag_ptr);
+    }
+    return res;
 }
 
 /*
@@ -1096,53 +1089,53 @@ JNIEXPORT jstring JNICALL Java_org_coolreader_crengine_Engine_getHumanReadableLo
  * Signature: (Ljava/io/File;)[Ljava/io/File;
  */
 JNIEXPORT jobjectArray JNICALL Java_org_coolreader_crengine_Engine_listFilesInternal
-		(JNIEnv *penv, jclass, jobject jdir)
-{
-	CRJNIEnv env(penv);
-	if (NULL == jdir)
-		return NULL;
-	jclass pjcFile = env->GetObjectClass(jdir);
-	if (NULL == pjcFile)
-		return NULL;
-	jmethodID pjmFile_GetAbsolutePath = env->GetMethodID(pjcFile, "getAbsolutePath", "()Ljava/lang/String;");
-	if (NULL == pjmFile_GetAbsolutePath)
-		return NULL;
-	jmethodID pjmFile_Ctor = env->GetMethodID(pjcFile, "<init>", "(Ljava/lang/String;)V");
-	if (NULL == pjmFile_Ctor)
-		return NULL;
-	jstring jpathname = (jstring)env->CallObjectMethod(jdir, pjmFile_GetAbsolutePath);
-	if (NULL == jpathname)
-		return NULL;
-	lString32 path = env.fromJavaString(jpathname);
-	jobjectArray jarray = NULL;
-	LVContainerRef dir = LVOpenDirectory(path);
-	if ( !dir.isNull() ) {
-		jstring emptyString = env->NewStringUTF("");
-		jobject emptyFile = env->NewObject(pjcFile, pjmFile_Ctor, emptyString);
-		jarray = env->NewObjectArray(dir->GetObjectCount(), pjcFile, emptyFile);
-		if (NULL != jarray) {
-			for (int i = 0; i < dir->GetObjectCount(); i++) {
-				const LVContainerItemInfo *item = dir->GetObjectInfo(i);
-				if (item && item->GetName()) {
-					lString32 fileName = path + "/" + item->GetName();
-					jstring jfilename = env.toJavaString(fileName);
-					if (NULL != jfilename) {
-						env->ExceptionClear();
-						jobject jfile = env->NewObject(pjcFile, pjmFile_Ctor, jfilename);
-						if (env->ExceptionCheck() == JNI_TRUE)
-							env->ExceptionClear();
-						else {
-							if (NULL != jfile)
-								env->SetObjectArrayElement(jarray, i, jfile);
-						}
-						env->DeleteLocalRef(jfile);
-						env->DeleteLocalRef(jfilename);
-					}
-				}
-			}
-		}
-	}
-	return jarray;
+        (JNIEnv *penv, jclass, jobject jdir) {
+    CRJNIEnv env(penv);
+    if (NULL == jdir)
+        return NULL;
+    jclass pjcFile = env->GetObjectClass(jdir);
+    if (NULL == pjcFile)
+        return NULL;
+    jmethodID pjmFile_GetAbsolutePath = env->GetMethodID(pjcFile, "getAbsolutePath",
+                                                         "()Ljava/lang/String;");
+    if (NULL == pjmFile_GetAbsolutePath)
+        return NULL;
+    jmethodID pjmFile_Ctor = env->GetMethodID(pjcFile, "<init>", "(Ljava/lang/String;)V");
+    if (NULL == pjmFile_Ctor)
+        return NULL;
+    jstring jpathname = (jstring) env->CallObjectMethod(jdir, pjmFile_GetAbsolutePath);
+    if (NULL == jpathname)
+        return NULL;
+    lString32 path = env.fromJavaString(jpathname);
+    jobjectArray jarray = NULL;
+    LVContainerRef dir = LVOpenDirectory(path);
+    if (!dir.isNull()) {
+        jstring emptyString = env->NewStringUTF("");
+        jobject emptyFile = env->NewObject(pjcFile, pjmFile_Ctor, emptyString);
+        jarray = env->NewObjectArray(dir->GetObjectCount(), pjcFile, emptyFile);
+        if (NULL != jarray) {
+            for (int i = 0; i < dir->GetObjectCount(); i++) {
+                const LVContainerItemInfo *item = dir->GetObjectInfo(i);
+                if (item && item->GetName()) {
+                    lString32 fileName = path + "/" + item->GetName();
+                    jstring jfilename = env.toJavaString(fileName);
+                    if (NULL != jfilename) {
+                        env->ExceptionClear();
+                        jobject jfile = env->NewObject(pjcFile, pjmFile_Ctor, jfilename);
+                        if (env->ExceptionCheck() == JNI_TRUE)
+                            env->ExceptionClear();
+                        else {
+                            if (NULL != jfile)
+                                env->SetObjectArrayElement(jarray, i, jfile);
+                        }
+                        env->DeleteLocalRef(jfile);
+                        env->DeleteLocalRef(jfilename);
+                    }
+                }
+            }
+        }
+    }
+    return jarray;
 }
 
 /*
@@ -1151,32 +1144,31 @@ JNIEXPORT jobjectArray JNICALL Java_org_coolreader_crengine_Engine_listFilesInte
  * Signature: (Ljava/lang/String;)Ljava/lang/String;
  */
 JNIEXPORT jstring JNICALL Java_org_coolreader_crengine_Engine_isLink
-  (JNIEnv * env, jclass obj, jstring pathname)
-{
-	//CRLog::trace("isLink : enter");
-	if (!pathname)
-		return NULL;
-	//CRLog::trace("isLink : pathname is not null");
-	int res = JNI_FALSE;
-	jboolean iscopy;
-	const char * s = env->GetStringUTFChars(pathname, &iscopy);
-	//CRLog::trace("isLink : read utf from pathname");
-	struct stat st;
-	lString8 path;
-	if ( !lstat( s, &st) ) {
-		if ( S_ISLNK(st.st_mode) ) {
-			char buf[2048];
-			int len = readlink(s, buf, sizeof(buf) - 1);
-			if (len != -1) {
-				buf[len] = 0;
-				path = lString8(buf);
-			}
-		}
-	}
-	//CRLog::trace("isLink : releasing utf pathname");
-	env->ReleaseStringUTFChars(pathname, s);
-	//CRLog::trace("isLink : returning");
-	return !path.empty() ? (jstring)env->NewGlobalRef(env->NewStringUTF(path.c_str())) : NULL;
+        (JNIEnv *env, jclass obj, jstring pathname) {
+    //CRLog::trace("isLink : enter");
+    if (!pathname)
+        return NULL;
+    //CRLog::trace("isLink : pathname is not null");
+    int res = JNI_FALSE;
+    jboolean iscopy;
+    const char *s = env->GetStringUTFChars(pathname, &iscopy);
+    //CRLog::trace("isLink : read utf from pathname");
+    struct stat st;
+    lString8 path;
+    if (!lstat(s, &st)) {
+        if (S_ISLNK(st.st_mode)) {
+            char buf[2048];
+            int len = readlink(s, buf, sizeof(buf) - 1);
+            if (len != -1) {
+                buf[len] = 0;
+                path = lString8(buf);
+            }
+        }
+    }
+    //CRLog::trace("isLink : releasing utf pathname");
+    env->ReleaseStringUTFChars(pathname, s);
+    //CRLog::trace("isLink : returning");
+    return !path.empty() ? (jstring) env->NewGlobalRef(env->NewStringUTF(path.c_str())) : NULL;
 }
 
 
@@ -1186,9 +1178,8 @@ JNIEXPORT jstring JNICALL Java_org_coolreader_crengine_Engine_isLink
  * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_org_coolreader_crengine_Engine_suspendLongOperationInternal
-  (JNIEnv *, jclass)
-{
-	_timeoutControl.cancel();
+        (JNIEnv *, jclass) {
+    _timeoutControl.cancel();
 }
 
 
@@ -1199,14 +1190,13 @@ JNIEXPORT void JNICALL Java_org_coolreader_crengine_Engine_suspendLongOperationI
  * Signature: (I)Z
  */
 JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_Engine_setKeyBacklightInternal
-  (JNIEnv *, jclass, jint n)
-{
-	FILE * f = fopen(BUTTON_BACKLIGHT_CONTROL_PATH, "wb");
-	if (!f)
-		return JNI_FALSE;
-	fwrite(n ? "1" : "0", 1, 1, f);
-	fclose(f);
-	return JNI_TRUE;
+        (JNIEnv *, jclass, jint n) {
+    FILE *f = fopen(BUTTON_BACKLIGHT_CONTROL_PATH, "wb");
+    if (!f)
+        return JNI_FALSE;
+    fwrite(n ? "1" : "0", 1, 1, f);
+    fclose(f);
+    return JNI_TRUE;
 }
 
 /*
@@ -1215,9 +1205,8 @@ JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_Engine_setKeyBacklightIn
  * Signature: ()I
  */
 JNIEXPORT jint JNICALL Java_org_coolreader_crengine_Engine_getDomVersionCurrent
-  (JNIEnv *, jclass)
-{
-	return gDOMVersionCurrent;
+        (JNIEnv *, jclass) {
+    return gDOMVersionCurrent;
 }
 
 #ifdef __cplusplus
@@ -1227,66 +1216,67 @@ JNIEXPORT jint JNICALL Java_org_coolreader_crengine_Engine_getDomVersionCurrent
 //=====================================================================
 
 static JNINativeMethod sEngineMethods[] = {
-  /* name, signature, funcPtr */
-  {"initInternal", "([Ljava/lang/String;I)Z", (void*)Java_org_coolreader_crengine_Engine_initInternal},
-  {"uninitInternal", "()V", (void*)Java_org_coolreader_crengine_Engine_uninitInternal},
-  {"initDictionaries", "([Lorg/coolreader/crengine/Engine$HyphDict;)Z", (void*)Java_org_coolreader_crengine_Engine_initDictionaries},
-  {"getFontFaceListInternal", "()[Ljava/lang/String;", (void*)Java_org_coolreader_crengine_Engine_getFontFaceListInternal},
-  {"getFontFileNameListInternal", "()[Ljava/lang/String;", (void*)Java_org_coolreader_crengine_Engine_getFontFileNameListInternal},
-  {"getAvailableFontWeightInternal", "(Ljava/lang/String;)[I", (void*)Java_org_coolreader_crengine_Engine_getAvailableFontWeightInternal},
-  {"getAvailableSynthFontWeightInternal", "()[I", (void*)Java_org_coolreader_crengine_Engine_getAvailableSynthFontWeightInternal},
-  {"setCacheDirectoryInternal", "(Ljava/lang/String;I)Z", (void*)Java_org_coolreader_crengine_Engine_setCacheDirectoryInternal},
-  {"scanBookPropertiesInternal", "(Lorg/coolreader/crengine/FileInfo;)Z", (void*)Java_org_coolreader_crengine_Engine_scanBookPropertiesInternal},
-  {"updateFileCRC32Internal", "(Lorg/coolreader/crengine/FileInfo;)Z", (void*)Java_org_coolreader_crengine_Engine_updateFileCRC32Internal},
-  {"isArchiveInternal", "(Ljava/lang/String;)Z", (void*)Java_org_coolreader_crengine_Engine_isArchiveInternal},
-  {"getArchiveItemsInternal", "(Ljava/lang/String;)[Ljava/lang/String;", (void*)Java_org_coolreader_crengine_Engine_getArchiveItemsInternal},
-  {"isLink", "(Ljava/lang/String;)Ljava/lang/String;", (void*)Java_org_coolreader_crengine_Engine_isLink},
-  {"suspendLongOperationInternal", "()V", (void*)Java_org_coolreader_crengine_Engine_suspendLongOperationInternal},
-  {"setKeyBacklightInternal", "(I)Z", (void*)Java_org_coolreader_crengine_Engine_setKeyBacklightInternal},
-  {"scanBookCoverInternal", "(Ljava/lang/String;)[B", (void*)Java_org_coolreader_crengine_Engine_scanBookCoverInternal},
-  {"drawBookCoverInternal", "(Landroid/graphics/Bitmap;[BZLjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;II)V", (void*)Java_org_coolreader_crengine_Engine_drawBookCoverInternal},
-  {"checkFontLanguageCompatibilityInternal", "(Ljava/lang/String;Ljava/lang/String;)I", (void*)Java_org_coolreader_crengine_Engine_checkFontLanguageCompatibilityInternal},
-  {"getHumanReadableLocaleNameInternal", "(Ljava/lang/String;)Ljava/lang/String;", (void*)Java_org_coolreader_crengine_Engine_getHumanReadableLocaleNameInternal},
-  {"listFilesInternal", "(Ljava/io/File;)[Ljava/io/File;", (void*)Java_org_coolreader_crengine_Engine_listFilesInternal},
-  {"getDomVersionCurrent", "()I", (void*)Java_org_coolreader_crengine_Engine_getDomVersionCurrent}
+        /* name, signature, funcPtr */
+        {"initInternal",                           "([Ljava/lang/String;I)Z",                                                                                   (void *) Java_org_coolreader_crengine_Engine_initInternal},
+        {"uninitInternal",                         "()V",                                                                                                       (void *) Java_org_coolreader_crengine_Engine_uninitInternal},
+        {"initDictionaries",                       "([Lorg/coolreader/crengine/Engine$HyphDict;)Z",                                                             (void *) Java_org_coolreader_crengine_Engine_initDictionaries},
+        {"getFontFaceListInternal",                "()[Ljava/lang/String;",                                                                                     (void *) Java_org_coolreader_crengine_Engine_getFontFaceListInternal},
+        {"getFontFileNameListInternal",            "()[Ljava/lang/String;",                                                                                     (void *) Java_org_coolreader_crengine_Engine_getFontFileNameListInternal},
+        {"getAvailableFontWeightInternal",         "(Ljava/lang/String;)[I",                                                                                    (void *) Java_org_coolreader_crengine_Engine_getAvailableFontWeightInternal},
+        {"getAvailableSynthFontWeightInternal",    "()[I",                                                                                                      (void *) Java_org_coolreader_crengine_Engine_getAvailableSynthFontWeightInternal},
+        {"setCacheDirectoryInternal",              "(Ljava/lang/String;I)Z",                                                                                    (void *) Java_org_coolreader_crengine_Engine_setCacheDirectoryInternal},
+        {"scanBookPropertiesInternal",             "(Lorg/coolreader/crengine/FileInfo;)Z",                                                                     (void *) Java_org_coolreader_crengine_Engine_scanBookPropertiesInternal},
+        {"updateFileCRC32Internal",                "(Lorg/coolreader/crengine/FileInfo;)Z",                                                                     (void *) Java_org_coolreader_crengine_Engine_updateFileCRC32Internal},
+        {"isArchiveInternal",                      "(Ljava/lang/String;)Z",                                                                                     (void *) Java_org_coolreader_crengine_Engine_isArchiveInternal},
+        {"getArchiveItemsInternal",                "(Ljava/lang/String;)[Ljava/lang/String;",                                                                   (void *) Java_org_coolreader_crengine_Engine_getArchiveItemsInternal},
+        {"isLink",                                 "(Ljava/lang/String;)Ljava/lang/String;",                                                                    (void *) Java_org_coolreader_crengine_Engine_isLink},
+        {"suspendLongOperationInternal",           "()V",                                                                                                       (void *) Java_org_coolreader_crengine_Engine_suspendLongOperationInternal},
+        {"setKeyBacklightInternal",                "(I)Z",                                                                                                      (void *) Java_org_coolreader_crengine_Engine_setKeyBacklightInternal},
+        {"scanBookCoverInternal",                  "(Ljava/lang/String;)[B",                                                                                    (void *) Java_org_coolreader_crengine_Engine_scanBookCoverInternal},
+        {"drawBookCoverInternal",                  "(Landroid/graphics/Bitmap;[BZLjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;II)V", (void *) Java_org_coolreader_crengine_Engine_drawBookCoverInternal},
+        {"checkFontLanguageCompatibilityInternal", "(Ljava/lang/String;Ljava/lang/String;)I",                                                                   (void *) Java_org_coolreader_crengine_Engine_checkFontLanguageCompatibilityInternal},
+        {"getHumanReadableLocaleNameInternal",     "(Ljava/lang/String;)Ljava/lang/String;",                                                                    (void *) Java_org_coolreader_crengine_Engine_getHumanReadableLocaleNameInternal},
+        {"listFilesInternal",                      "(Ljava/io/File;)[Ljava/io/File;",                                                                           (void *) Java_org_coolreader_crengine_Engine_listFilesInternal},
+        {"getDomVersionCurrent",                   "()I",                                                                                                       (void *) Java_org_coolreader_crengine_Engine_getDomVersionCurrent}
 };
 
 
 static JNINativeMethod sDocViewMethods[] = {
-  /* name, signature, funcPtr */
-  {"createInternal", "()V", (void*)Java_org_coolreader_crengine_DocView_createInternal},
-  {"destroyInternal", "()V", (void*)Java_org_coolreader_crengine_DocView_destroyInternal},
-  {"getPageImageInternal", "(Landroid/graphics/Bitmap;I)V", (void*)Java_org_coolreader_crengine_DocView_getPageImageInternal},
-  {"loadDocumentInternal", "(Ljava/lang/String;)Z", (void*)Java_org_coolreader_crengine_DocView_loadDocumentInternal},
-  {"loadDocumentFromMemoryInternal", "([BLjava/lang/String;)Z", (void*)Java_org_coolreader_crengine_DocView_loadDocumentFromMemoryInternal},
-  {"getSettingsInternal", "()Ljava/util/Properties;", (void*)Java_org_coolreader_crengine_DocView_getSettingsInternal},
-  {"getDocPropsInternal", "()Ljava/util/Properties;", (void*)Java_org_coolreader_crengine_DocView_getDocPropsInternal},
-  {"applySettingsInternal", "(Ljava/util/Properties;)Z", (void*)Java_org_coolreader_crengine_DocView_applySettingsInternal},
-  {"setStylesheetInternal", "(Ljava/lang/String;)V", (void*)Java_org_coolreader_crengine_DocView_setStylesheetInternal},
-  {"resizeInternal", "(II)V", (void*)Java_org_coolreader_crengine_DocView_resizeInternal},
-  {"doCommandInternal", "(II)Z", (void*)Java_org_coolreader_crengine_DocView_doCommandInternal},
-  {"getCurrentPageBookmarkInternal", "()Lorg/coolreader/crengine/Bookmark;", (void*)Java_org_coolreader_crengine_DocView_getCurrentPageBookmarkInternal},
-  {"goToPositionInternal", "(Ljava/lang/String;Z)Z", (void*)Java_org_coolreader_crengine_DocView_goToPositionInternal},
-  {"getPositionPropsInternal", "(Ljava/lang/String;Z)Lorg/coolreader/crengine/PositionProperties;", (void*)Java_org_coolreader_crengine_DocView_getPositionPropsInternal},
-  {"updateBookInfoInternal", "(Lorg/coolreader/crengine/BookInfo;Z)V", (void*)Java_org_coolreader_crengine_DocView_updateBookInfoInternal},
-  {"getTOCInternal", "()Lorg/coolreader/crengine/TOCItem;", (void*)Java_org_coolreader_crengine_DocView_getTOCInternal},
-  {"clearSelectionInternal", "()V", (void*)Java_org_coolreader_crengine_DocView_clearSelectionInternal},
-  {"findTextInternal", "(Ljava/lang/String;III)Z", (void*)Java_org_coolreader_crengine_DocView_findTextInternal},
-  {"setBatteryStateInternal", "(III)V", (void*)Java_org_coolreader_crengine_DocView_setBatteryStateInternal},
-  {"getCoverPageDataInternal", "()[B", (void*)Java_org_coolreader_crengine_DocView_getCoverPageDataInternal},
-  {"setPageBackgroundTextureInternal", "([BI)V", (void*)Java_org_coolreader_crengine_DocView_setPageBackgroundTextureInternal},
-  {"updateSelectionInternal", "(Lorg/coolreader/crengine/Selection;)V", (void*)Java_org_coolreader_crengine_DocView_updateSelectionInternal},
-  {"checkLinkInternal", "(III)Ljava/lang/String;", (void*)Java_org_coolreader_crengine_DocView_checkLinkInternal},
-  {"goLinkInternal", "(Ljava/lang/String;)I", (void*)Java_org_coolreader_crengine_DocView_goLinkInternal},
-  {"moveSelectionInternal", "(Lorg/coolreader/crengine/Selection;II)Z", (void*)Java_org_coolreader_crengine_DocView_moveSelectionInternal},
-  {"swapToCacheInternal", "()I", (void*)Java_org_coolreader_crengine_DocView_swapToCacheInternal},
-  {"checkImageInternal", "(IILorg/coolreader/crengine/ImageInfo;)Z", (void*)Java_org_coolreader_crengine_DocView_checkImageInternal},
-  {"drawImageInternal", "(Landroid/graphics/Bitmap;ILorg/coolreader/crengine/ImageInfo;)Z", (void*)Java_org_coolreader_crengine_DocView_drawImageInternal},
-  {"closeImageInternal", "()Z", (void*)Java_org_coolreader_crengine_DocView_closeImageInternal},
-  {"hilightBookmarksInternal", "([Lorg/coolreader/crengine/Bookmark;)V", (void*)Java_org_coolreader_crengine_DocView_hilightBookmarksInternal},
-  {"checkBookmarkInternal", "(IILorg/coolreader/crengine/Bookmark;)Z", (void*)Java_org_coolreader_crengine_DocView_checkBookmarkInternal},
-  {"isRenderedInternal", "()Z", (void*)Java_org_coolreader_crengine_DocView_isRenderedInternal},
-  {"isTimeChangedInternal", "()Z", (void*)Java_org_coolreader_crengine_DocView_isTimeChangedInternal}
+        /* name, signature, funcPtr */
+        {"createInternal",                   "()V",                                                               (void *) Java_org_coolreader_crengine_DocView_createInternal},
+        {"destroyInternal",                  "()V",                                                               (void *) Java_org_coolreader_crengine_DocView_destroyInternal},
+        {"getPageImageInternal",             "(Landroid/graphics/Bitmap;I)V",                                     (void *) Java_org_coolreader_crengine_DocView_getPageImageInternal},
+        {"loadDocumentInternal",             "(Ljava/lang/String;)Z",                                             (void *) Java_org_coolreader_crengine_DocView_loadDocumentInternal},
+        {"loadDocumentFromMemoryInternal",   "([BLjava/lang/String;)Z",                                           (void *) Java_org_coolreader_crengine_DocView_loadDocumentFromMemoryInternal},
+        {"getSettingsInternal",              "()Ljava/util/Properties;",                                          (void *) Java_org_coolreader_crengine_DocView_getSettingsInternal},
+        {"getDocPropsInternal",              "()Ljava/util/Properties;",                                          (void *) Java_org_coolreader_crengine_DocView_getDocPropsInternal},
+        {"applySettingsInternal",            "(Ljava/util/Properties;)Z",                                         (void *) Java_org_coolreader_crengine_DocView_applySettingsInternal},
+        {"setStylesheetInternal",            "(Ljava/lang/String;)V",                                             (void *) Java_org_coolreader_crengine_DocView_setStylesheetInternal},
+        {"resizeInternal",                   "(II)V",                                                             (void *) Java_org_coolreader_crengine_DocView_resizeInternal},
+        {"doCommandInternal",                "(II)Z",                                                             (void *) Java_org_coolreader_crengine_DocView_doCommandInternal},
+        {"getCurrentPageBookmarkInternal",   "()Lorg/coolreader/crengine/Bookmark;",                              (void *) Java_org_coolreader_crengine_DocView_getCurrentPageBookmarkInternal},
+        {"goToPositionInternal",             "(Ljava/lang/String;Z)Z",                                            (void *) Java_org_coolreader_crengine_DocView_goToPositionInternal},
+        {"getPositionPropsInternal",         "(Ljava/lang/String;Z)Lorg/coolreader/crengine/PositionProperties;", (void *) Java_org_coolreader_crengine_DocView_getPositionPropsInternal},
+        {"updateBookInfoInternal",           "(Lorg/coolreader/crengine/BookInfo;Z)V",                            (void *) Java_org_coolreader_crengine_DocView_updateBookInfoInternal},
+        {"getTOCInternal",                   "()Lorg/coolreader/crengine/TOCItem;",                               (void *) Java_org_coolreader_crengine_DocView_getTOCInternal},
+        {"clearSelectionInternal",           "()V",                                                               (void *) Java_org_coolreader_crengine_DocView_clearSelectionInternal},
+        {"findTextInternal",                 "(Ljava/lang/String;III)Z",                                          (void *) Java_org_coolreader_crengine_DocView_findTextInternal},
+        {"setBatteryStateInternal",          "(III)V",                                                            (void *) Java_org_coolreader_crengine_DocView_setBatteryStateInternal},
+        {"getCoverPageDataInternal",         "()[B",                                                              (void *) Java_org_coolreader_crengine_DocView_getCoverPageDataInternal},
+        {"setPageBackgroundTextureInternal", "([BI)V",                                                            (void *) Java_org_coolreader_crengine_DocView_setPageBackgroundTextureInternal},
+        {"updateSelectionInternal",          "(Lorg/coolreader/crengine/Selection;)V",                            (void *) Java_org_coolreader_crengine_DocView_updateSelectionInternal},
+        {"checkLinkInternal",                "(III)Ljava/lang/String;",                                           (void *) Java_org_coolreader_crengine_DocView_checkLinkInternal},
+        {"goLinkInternal",                   "(Ljava/lang/String;)I",                                             (void *) Java_org_coolreader_crengine_DocView_goLinkInternal},
+        {"moveSelectionInternal",            "(Lorg/coolreader/crengine/Selection;II)Z",                          (void *) Java_org_coolreader_crengine_DocView_moveSelectionInternal},
+        {"swapToCacheInternal",              "()I",                                                               (void *) Java_org_coolreader_crengine_DocView_swapToCacheInternal},
+        {"checkImageInternal",               "(IILorg/coolreader/crengine/ImageInfo;)Z",                          (void *) Java_org_coolreader_crengine_DocView_checkImageInternal},
+        {"drawImageInternal",                "(Landroid/graphics/Bitmap;ILorg/coolreader/crengine/ImageInfo;)Z",  (void *) Java_org_coolreader_crengine_DocView_drawImageInternal},
+        {"closeImageInternal",               "()Z",                                                               (void *) Java_org_coolreader_crengine_DocView_closeImageInternal},
+        {"hilightBookmarksInternal",         "([Lorg/coolreader/crengine/Bookmark;)V",                            (void *) Java_org_coolreader_crengine_DocView_hilightBookmarksInternal},
+        {"checkBookmarkInternal",            "(IILorg/coolreader/crengine/Bookmark;)Z",                           (void *) Java_org_coolreader_crengine_DocView_checkBookmarkInternal},
+        {"isRenderedInternal",               "()Z",                                                               (void *) Java_org_coolreader_crengine_DocView_isRenderedInternal},
+        {"isTimeChangedInternal",            "()Z",                                                               (void *) Java_org_coolreader_crengine_DocView_isTimeChangedInternal},
+        {"getXPointerRectsInternal",         "(Ljava/lang/String;Ljava/lang/String;)[I",                          (void *) Java_org_coolreader_crengine_DocView_getXPointerRectsInternal}
 };
 
 /*
@@ -1294,9 +1284,8 @@ static JNINativeMethod sDocViewMethods[] = {
  *
  * "className" looks like "java/lang/String".
  */
-static int jniRegisterNativeMethods(JNIEnv* env, const char* className,
-    const JNINativeMethod* gMethods, int numMethods)
-{
+static int jniRegisterNativeMethods(JNIEnv *env, const char *className,
+                                    const JNINativeMethod *gMethods, int numMethods) {
     jclass clazz;
 
     LOGV("Registering %s natives\n", className);
@@ -1313,34 +1302,35 @@ static int jniRegisterNativeMethods(JNIEnv* env, const char* className,
 }
 
 
-jint JNI_OnLoad(JavaVM* vm, void* reserved)
-{
-   JNIEnv* env = NULL;
-   jint res = -1;
- 
+jint JNI_OnLoad(JavaVM *vm, void *reserved) {
+    JNIEnv *env = NULL;
+    jint res = -1;
+
 #ifdef JNI_VERSION_1_6
-    if (res==-1 && vm->GetEnv((void**) &env, JNI_VERSION_1_6) == JNI_OK) {
+    if (res == -1 && vm->GetEnv((void **) &env, JNI_VERSION_1_6) == JNI_OK) {
         LOGI("JNI_OnLoad: JNI_VERSION_1_6\n");
-   	    res = JNI_VERSION_1_6;
+        res = JNI_VERSION_1_6;
     }
 #endif
 #ifdef JNI_VERSION_1_4
-    if (res==-1 && vm->GetEnv((void**) &env, JNI_VERSION_1_4) == JNI_OK) {
+    if (res == -1 && vm->GetEnv((void **) &env, JNI_VERSION_1_4) == JNI_OK) {
         LOGI("JNI_OnLoad: JNI_VERSION_1_4\n");
-   	    res = JNI_VERSION_1_4;
+        res = JNI_VERSION_1_4;
     }
 #endif
 #ifdef JNI_VERSION_1_2
-    if (res==-1 && vm->GetEnv((void**) &env, JNI_VERSION_1_2) == JNI_OK) {
+    if (res == -1 && vm->GetEnv((void **) &env, JNI_VERSION_1_2) == JNI_OK) {
         LOGI("JNI_OnLoad: JNI_VERSION_1_2\n");
-   	    res = JNI_VERSION_1_2;
+        res = JNI_VERSION_1_2;
     }
 #endif
-	if ( res==-1 )
-		return res;
- 
-    jniRegisterNativeMethods(env, "org/coolreader/crengine/Engine", sEngineMethods, sizeof(sEngineMethods)/sizeof(JNINativeMethod));
-    jniRegisterNativeMethods(env, "org/coolreader/crengine/DocView", sDocViewMethods, sizeof(sDocViewMethods)/sizeof(JNINativeMethod));
+    if (res == -1)
+        return res;
+
+    jniRegisterNativeMethods(env, "org/coolreader/crengine/Engine", sEngineMethods,
+                             sizeof(sEngineMethods) / sizeof(JNINativeMethod));
+    jniRegisterNativeMethods(env, "org/coolreader/crengine/DocView", sDocViewMethods,
+                             sizeof(sDocViewMethods) / sizeof(JNINativeMethod));
     LOGI("JNI_OnLoad: native methods are registered!\n");
     return res;
 }

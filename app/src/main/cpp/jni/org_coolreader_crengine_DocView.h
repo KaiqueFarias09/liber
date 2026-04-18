@@ -19,7 +19,7 @@ extern "C" {
  * Signature: (Landroid/graphics/Bitmap;I)V
  */
 JNIEXPORT void JNICALL Java_org_coolreader_crengine_DocView_getPageImageInternal
-  (JNIEnv *, jobject, jobject, jint);
+        (JNIEnv *, jobject, jobject, jint);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -27,7 +27,7 @@ JNIEXPORT void JNICALL Java_org_coolreader_crengine_DocView_getPageImageInternal
  * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_org_coolreader_crengine_DocView_createInternal
-  (JNIEnv *, jobject);
+        (JNIEnv *, jobject);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -35,7 +35,7 @@ JNIEXPORT void JNICALL Java_org_coolreader_crengine_DocView_createInternal
  * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_org_coolreader_crengine_DocView_destroyInternal
-  (JNIEnv *, jobject);
+        (JNIEnv *, jobject);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -43,7 +43,7 @@ JNIEXPORT void JNICALL Java_org_coolreader_crengine_DocView_destroyInternal
  * Signature: (Ljava/lang/String;Ljava/lang/String;)V
  */
 JNIEXPORT void JNICALL Java_org_coolreader_crengine_DocView_createDefaultDocumentInternal
-  (JNIEnv *, jobject, jstring, jstring);
+        (JNIEnv *, jobject, jstring, jstring);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -51,7 +51,7 @@ JNIEXPORT void JNICALL Java_org_coolreader_crengine_DocView_createDefaultDocumen
  * Signature: (Ljava/lang/String;)Z
  */
 JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_DocView_loadDocumentInternal
-  (JNIEnv *, jobject, jstring);
+        (JNIEnv *, jobject, jstring);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -59,7 +59,7 @@ JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_DocView_loadDocumentInte
  * Signature: ([BLjava/lang/String;)Z
  */
 JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_DocView_loadDocumentFromMemoryInternal
-  (JNIEnv *, jobject, jbyteArray, jstring);
+        (JNIEnv *, jobject, jbyteArray, jstring);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -67,7 +67,7 @@ JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_DocView_loadDocumentFrom
  * Signature: ()Ljava/util/Properties;
  */
 JNIEXPORT jobject JNICALL Java_org_coolreader_crengine_DocView_getSettingsInternal
-  (JNIEnv *, jobject);
+        (JNIEnv *, jobject);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -75,7 +75,7 @@ JNIEXPORT jobject JNICALL Java_org_coolreader_crengine_DocView_getSettingsIntern
  * Signature: (Ljava/util/Properties;)Z
  */
 JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_DocView_applySettingsInternal
-  (JNIEnv *, jobject, jobject);
+        (JNIEnv *, jobject, jobject);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -83,7 +83,7 @@ JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_DocView_applySettingsInt
  * Signature: ()Ljava/util/Properties;
  */
 JNIEXPORT jobject JNICALL Java_org_coolreader_crengine_DocView_getDocPropsInternal
-  (JNIEnv *, jobject);
+        (JNIEnv *, jobject);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -91,7 +91,7 @@ JNIEXPORT jobject JNICALL Java_org_coolreader_crengine_DocView_getDocPropsIntern
  * Signature: (Ljava/lang/String;)V
  */
 JNIEXPORT void JNICALL Java_org_coolreader_crengine_DocView_setStylesheetInternal
-  (JNIEnv *, jobject, jstring);
+        (JNIEnv *, jobject, jstring);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -99,7 +99,7 @@ JNIEXPORT void JNICALL Java_org_coolreader_crengine_DocView_setStylesheetInterna
  * Signature: (II)V
  */
 JNIEXPORT void JNICALL Java_org_coolreader_crengine_DocView_resizeInternal
-  (JNIEnv *, jobject, jint, jint);
+        (JNIEnv *, jobject, jint, jint);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -107,7 +107,7 @@ JNIEXPORT void JNICALL Java_org_coolreader_crengine_DocView_resizeInternal
  * Signature: (II)Z
  */
 JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_DocView_doCommandInternal
-  (JNIEnv *, jobject, jint, jint);
+        (JNIEnv *, jobject, jint, jint);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -115,7 +115,7 @@ JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_DocView_doCommandInterna
  * Signature: ()Lorg/coolreader/crengine/Bookmark;
  */
 JNIEXPORT jobject JNICALL Java_org_coolreader_crengine_DocView_getCurrentPageBookmarkInternal
-  (JNIEnv *, jobject);
+        (JNIEnv *, jobject);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -123,7 +123,7 @@ JNIEXPORT jobject JNICALL Java_org_coolreader_crengine_DocView_getCurrentPageBoo
  * Signature: (Ljava/lang/String;Z)Z
  */
 JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_DocView_goToPositionInternal
-  (JNIEnv *, jobject, jstring, jboolean);
+        (JNIEnv *, jobject, jstring, jboolean);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -131,7 +131,7 @@ JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_DocView_goToPositionInte
  * Signature: (Ljava/lang/String;Z)Lorg/coolreader/crengine/PositionProperties;
  */
 JNIEXPORT jobject JNICALL Java_org_coolreader_crengine_DocView_getPositionPropsInternal
-  (JNIEnv *, jobject, jstring, jboolean);
+        (JNIEnv *, jobject, jstring, jboolean);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -139,7 +139,7 @@ JNIEXPORT jobject JNICALL Java_org_coolreader_crengine_DocView_getPositionPropsI
  * Signature: (Lorg/coolreader/crengine/BookInfo;Z)V
  */
 JNIEXPORT void JNICALL Java_org_coolreader_crengine_DocView_updateBookInfoInternal
-  (JNIEnv *, jobject, jobject, jboolean);
+        (JNIEnv *, jobject, jobject, jboolean);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -147,7 +147,7 @@ JNIEXPORT void JNICALL Java_org_coolreader_crengine_DocView_updateBookInfoIntern
  * Signature: ()Lorg/coolreader/crengine/TOCItem;
  */
 JNIEXPORT jobject JNICALL Java_org_coolreader_crengine_DocView_getTOCInternal
-  (JNIEnv *, jobject);
+        (JNIEnv *, jobject);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -155,7 +155,7 @@ JNIEXPORT jobject JNICALL Java_org_coolreader_crengine_DocView_getTOCInternal
  * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_org_coolreader_crengine_DocView_clearSelectionInternal
-  (JNIEnv *, jobject);
+        (JNIEnv *, jobject);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -163,7 +163,7 @@ JNIEXPORT void JNICALL Java_org_coolreader_crengine_DocView_clearSelectionIntern
  * Signature: (Ljava/lang/String;III)Z
  */
 JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_DocView_findTextInternal
-  (JNIEnv *, jobject, jstring, jint, jint, jint);
+        (JNIEnv *, jobject, jstring, jint, jint, jint);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -171,7 +171,7 @@ JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_DocView_findTextInternal
  * Signature: (III)V
  */
 JNIEXPORT void JNICALL Java_org_coolreader_crengine_DocView_setBatteryStateInternal
-  (JNIEnv *, jobject, jint, jint, jint);
+        (JNIEnv *, jobject, jint, jint, jint);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -179,7 +179,7 @@ JNIEXPORT void JNICALL Java_org_coolreader_crengine_DocView_setBatteryStateInter
  * Signature: ()[B
  */
 JNIEXPORT jbyteArray JNICALL Java_org_coolreader_crengine_DocView_getCoverPageDataInternal
-  (JNIEnv *, jobject);
+        (JNIEnv *, jobject);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -187,7 +187,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_coolreader_crengine_DocView_getCoverPageDa
  * Signature: ([BI)V
  */
 JNIEXPORT void JNICALL Java_org_coolreader_crengine_DocView_setPageBackgroundTextureInternal
-  (JNIEnv *, jobject, jbyteArray, jint);
+        (JNIEnv *, jobject, jbyteArray, jint);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -195,7 +195,7 @@ JNIEXPORT void JNICALL Java_org_coolreader_crengine_DocView_setPageBackgroundTex
  * Signature: (Lorg/coolreader/crengine/Selection;)V
  */
 JNIEXPORT void JNICALL Java_org_coolreader_crengine_DocView_updateSelectionInternal
-  (JNIEnv *, jobject, jobject);
+        (JNIEnv *, jobject, jobject);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -203,7 +203,7 @@ JNIEXPORT void JNICALL Java_org_coolreader_crengine_DocView_updateSelectionInter
  * Signature: (Lorg/coolreader/crengine/Selection;II)Z
  */
 JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_DocView_moveSelectionInternal
-  (JNIEnv *, jobject, jobject, jint, jint);
+        (JNIEnv *, jobject, jobject, jint, jint);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -211,7 +211,7 @@ JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_DocView_moveSelectionInt
  * Signature: (III)Ljava/lang/String;
  */
 JNIEXPORT jstring JNICALL Java_org_coolreader_crengine_DocView_checkLinkInternal
-  (JNIEnv *, jobject, jint, jint, jint);
+        (JNIEnv *, jobject, jint, jint, jint);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -219,7 +219,7 @@ JNIEXPORT jstring JNICALL Java_org_coolreader_crengine_DocView_checkLinkInternal
  * Signature: (IILorg/coolreader/crengine/ImageInfo;)Z
  */
 JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_DocView_checkImageInternal
-  (JNIEnv *, jobject, jint, jint, jobject);
+        (JNIEnv *, jobject, jint, jint, jobject);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -227,7 +227,7 @@ JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_DocView_checkImageIntern
  * Signature: (IILorg/coolreader/crengine/Bookmark;)Z
  */
 JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_DocView_checkBookmarkInternal
-  (JNIEnv *, jobject, jint, jint, jobject);
+        (JNIEnv *, jobject, jint, jint, jobject);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -235,7 +235,7 @@ JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_DocView_checkBookmarkInt
  * Signature: (Landroid/graphics/Bitmap;ILorg/coolreader/crengine/ImageInfo;)Z
  */
 JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_DocView_drawImageInternal
-  (JNIEnv *, jobject, jobject, jint, jobject);
+        (JNIEnv *, jobject, jobject, jint, jobject);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -243,7 +243,7 @@ JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_DocView_drawImageInterna
  * Signature: ()Z
  */
 JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_DocView_closeImageInternal
-  (JNIEnv *, jobject);
+        (JNIEnv *, jobject);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -251,7 +251,7 @@ JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_DocView_closeImageIntern
  * Signature: ()Z
  */
 JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_DocView_isRenderedInternal
-  (JNIEnv *, jobject);
+        (JNIEnv *, jobject);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -259,7 +259,7 @@ JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_DocView_isRenderedIntern
  * Signature: (Ljava/lang/String;)I
  */
 JNIEXPORT jint JNICALL Java_org_coolreader_crengine_DocView_goLinkInternal
-  (JNIEnv *, jobject, jstring);
+        (JNIEnv *, jobject, jstring);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -267,7 +267,7 @@ JNIEXPORT jint JNICALL Java_org_coolreader_crengine_DocView_goLinkInternal
  * Signature: ([Lorg/coolreader/crengine/Bookmark;)V
  */
 JNIEXPORT void JNICALL Java_org_coolreader_crengine_DocView_hilightBookmarksInternal
-  (JNIEnv *, jobject, jobjectArray);
+        (JNIEnv *, jobject, jobjectArray);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -275,7 +275,7 @@ JNIEXPORT void JNICALL Java_org_coolreader_crengine_DocView_hilightBookmarksInte
  * Signature: ()I
  */
 JNIEXPORT jint JNICALL Java_org_coolreader_crengine_DocView_swapToCacheInternal
-  (JNIEnv *, jobject);
+        (JNIEnv *, jobject);
 
 /*
  * Class:     org_coolreader_crengine_DocView
@@ -283,7 +283,15 @@ JNIEXPORT jint JNICALL Java_org_coolreader_crengine_DocView_swapToCacheInternal
  * Signature: ()Z
  */
 JNIEXPORT jboolean JNICALL Java_org_coolreader_crengine_DocView_isTimeChangedInternal
-  (JNIEnv *, jobject);
+        (JNIEnv *, jobject);
+
+/*
+ * Class:     org_coolreader_crengine_DocView
+ * Method:    getXPointerRectsInternal
+ * Signature: (Ljava/lang/String;Ljava/lang/String;)[I
+ */
+JNIEXPORT jintArray JNICALL Java_org_coolreader_crengine_DocView_getXPointerRectsInternal
+        (JNIEnv *, jobject, jstring, jstring);
 
 #ifdef __cplusplus
 }

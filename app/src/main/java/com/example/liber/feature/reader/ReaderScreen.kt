@@ -156,6 +156,7 @@ fun ReaderScreen(
     val justifyText by viewModel.justifyText.collectAsState()
     val selectionActive by viewModel.selectionActive.collectAsState()
     val showSelectionMenu by viewModel.showSelectionMenu.collectAsState()
+    val highlightRects by viewModel.highlightRects.collectAsState()
 
     val theme = findReaderTheme(themeId)
 
@@ -376,6 +377,23 @@ fun ReaderScreen(
                             }
                         },
                 )
+
+                // Custom-colored highlight overlay drawn on top of the crengine bitmap.
+                // Rects are in screen pixels matching the bitmap coordinate space.
+                if (highlightRects.isNotEmpty()) {
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        for (rect in highlightRects) {
+                            drawRect(
+                                color = Color(rect.color),
+                                topLeft = Offset(rect.left.toFloat(), rect.top.toFloat()),
+                                size = Size(
+                                    (rect.right - rect.left).toFloat(),
+                                    (rect.bottom - rect.top).toFloat(),
+                                ),
+                            )
+                        }
+                    }
+                }
             }
         }
 
