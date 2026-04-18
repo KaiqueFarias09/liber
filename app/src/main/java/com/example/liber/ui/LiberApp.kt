@@ -72,7 +72,7 @@ fun LiberApp(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val showNavRail = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
+    val showNavRail = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
 
     // ── ViewModels via Hilt ──────────────────────────────────────────────────
     val homeViewModel: HomeViewModel = hiltViewModel()
@@ -339,7 +339,7 @@ fun LiberApp(
                     ) {
                         Box(
                             modifier = Modifier
-                                .widthIn(max = 840.dp)
+                                .widthIn(max = 1200.dp)
                                 .fillMaxSize()
                         ) {
                             AppNavHost(

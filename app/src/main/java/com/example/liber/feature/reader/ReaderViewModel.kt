@@ -341,6 +341,12 @@ class ReaderViewModel(
         startAnnotation("note", _pendingSelectedText.value, _pendingXPointer.value)
     }
 
+    // Coalesces rapid scroll deltas so only one render fires per batch of touch events.
+    private val scrollChannel = Channel<Int>(Channel.UNLIMITED)
+
+    // Conflated: only the latest drag position is kept; stale intermediates are dropped.
+    private val selectionDragChannel = Channel<Pair<Int, Int>>(Channel.CONFLATED)
+
     // ── Initialization ───────────────────────────────────────────────────────
 
     init {
@@ -473,12 +479,6 @@ class ReaderViewModel(
     fun prevPage() = navigate(ReaderCommand.DCMD_PAGEUP)
     fun nextChapter() = navigate(ReaderCommand.DCMD_MOVE_BY_CHAPTER, 1)
     fun prevChapter() = navigate(ReaderCommand.DCMD_MOVE_BY_CHAPTER, -1)
-
-    // Coalesces rapid scroll deltas so only one render fires per batch of touch events.
-    private val scrollChannel = Channel<Int>(Channel.UNLIMITED)
-
-    // Conflated: only the latest drag position is kept; stale intermediates are dropped.
-    private val selectionDragChannel = Channel<Pair<Int, Int>>(Channel.CONFLATED)
 
     fun scrollBy(pixels: Int) {
         scrollChannel.trySend(pixels)
