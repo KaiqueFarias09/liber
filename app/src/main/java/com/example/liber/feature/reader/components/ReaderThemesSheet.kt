@@ -28,6 +28,10 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -260,7 +264,7 @@ fun ThemesSheet(
                         )
                     },
                     value = lineSpacing.toFloat().coerceIn(0.8f, 2.0f),
-                    valueText = "${"%.2f".format(lineSpacing)}",
+                    valueFormatter = { "%.2f".format(it) },
                     valueRange = 0.8f..2.0f, onValueChange = { onLineSpacingChange(it.toDouble()) })
                 Divider()
                 LayoutSliderRow(
@@ -273,7 +277,7 @@ fun ThemesSheet(
                         )
                     },
                     value = characterSpacing.toFloat().coerceIn(0f, 20f),
-                    valueText = "${characterSpacing.toInt().coerceIn(0, 20)}",
+                    valueFormatter = { it.toInt().coerceIn(0, 20).toString() },
                     valueRange = 0f..20f,
                     onValueChange = { onCharacterSpacingChange(it.toDouble()) })
                 Divider()
@@ -288,7 +292,7 @@ fun ThemesSheet(
                         )
                     },
                     value = wordSpacing.toFloat().coerceIn(-75f, 400f),
-                    valueText = "${100 + wordSpacing.toInt()}%",
+                    valueFormatter = { "${100 + it.toInt()}%" },
                     valueRange = -75f..400f, onValueChange = { onWordSpacingChange(it.toDouble()) })
                 Divider()
                 LayoutSliderRow(
@@ -302,7 +306,7 @@ fun ThemesSheet(
                         )
                     },
                     value = margins.toFloat(),
-                    valueText = "${margins.toInt()} dp",
+                    valueFormatter = { "${it.toInt()} dp" },
                     valueRange = 0f..60f, onValueChange = { onMarginsChange(it.toDouble()) })
             }
         }
@@ -376,10 +380,12 @@ private fun LayoutSliderRow(
     label: String,
     icon: @Composable () -> Unit,
     value: Float,
-    valueText: String,
+    valueFormatter: (Float) -> String,
     valueRange: ClosedFloatingPointRange<Float>,
     onValueChange: (Float) -> Unit,
 ) {
+    var localValue by remember(value) { mutableStateOf(value) }
+
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
@@ -390,7 +396,7 @@ private fun LayoutSliderRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.5.sp
             )
             Text(
-                valueText,
+                valueFormatter(localValue),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -402,8 +408,9 @@ private fun LayoutSliderRow(
         ) {
             icon()
             Slider(
-                value = value,
-                onValueChange = onValueChange,
+                value = localValue,
+                onValueChange = { localValue = it },
+                onValueChangeFinished = { onValueChange(localValue) },
                 valueRange = valueRange,
                 modifier = Modifier.weight(1f)
             )
