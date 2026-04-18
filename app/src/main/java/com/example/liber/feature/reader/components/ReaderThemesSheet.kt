@@ -259,8 +259,9 @@ fun ThemesSheet(
                             MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     },
-                    value = lineSpacing.toFloat(), valueText = "${"%.2f".format(lineSpacing)}",
-                    valueRange = 0.8f..2.5f, onValueChange = { onLineSpacingChange(it.toDouble()) })
+                    value = lineSpacing.toFloat().coerceIn(0.8f, 2.0f),
+                    valueText = "${"%.2f".format(lineSpacing)}",
+                    valueRange = 0.8f..2.0f, onValueChange = { onLineSpacingChange(it.toDouble()) })
                 Divider()
                 LayoutSliderRow(
                     stringResource(R.string.reader_themes_character_spacing),
@@ -286,9 +287,9 @@ fun ThemesSheet(
                             MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     },
-                    value = wordSpacing.toFloat(),
+                    value = wordSpacing.toFloat().coerceIn(-75f, 400f),
                     valueText = "${100 + wordSpacing.toInt()}%",
-                    valueRange = -20f..20f, onValueChange = { onWordSpacingChange(it.toDouble()) })
+                    valueRange = -75f..400f, onValueChange = { onWordSpacingChange(it.toDouble()) })
                 Divider()
                 LayoutSliderRow(
                     stringResource(R.string.reader_themes_margins),

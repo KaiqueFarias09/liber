@@ -568,34 +568,36 @@ class ReaderViewModel(
             // Page/scroll view mode: "crengine.page.view.mode" — 1=pages, 0=scroll
             setProperty("crengine.page.view.mode", if (_pageScroll.value) "0" else "1")
 
-            // Line spacing (integer percent; always sent so disabling customize resets to 100)
-            val lineSpacePct = if (customize) (_lineSpacing.value * 100).toInt() else 100
+            // Line spacing (integer percent; clamped to 200 which is the engine's maximum)
+            val lineSpacePct =
+                if (customize) (_lineSpacing.value * 100).toInt().coerceIn(80, 200) else 100
             setProperty("crengine.interline.space", lineSpacePct.toString())
 
             // Word spacing: scales width of space characters (100 = normal)
-            // slider range is -20..20; engine range 10..500
+            // slider range is -75..400; engine range 10..500
             val wordSpacePct = if (customize)
                 (100 + _wordSpacing.value.toInt()).coerceIn(10, 500)
             else 100
             setProperty("crengine.style.space.width.scale.percent", wordSpacePct.toString())
 
-            // Letter spacing: max % added between letters during justification (0..20)
-            val letterSpacingPct = if (customize)
-                _characterSpacing.value.toInt().coerceIn(0, 20)
-            else 0
-            setProperty(
-                "crengine.style.max.added.letter.spacing.percent",
-                letterSpacingPct.toString()
-            )
+            // Character spacing: CSS letter-spacing applied globally via stylesheet macro.
+            // crengine.style.max.added.letter.spacing.percent only works during justification;
+            // styles.def.letter-spacing is a real CSS property that always takes effect.
+            val letterSpacingEm = if (customize && _characterSpacing.value > 0)
+                "letter-spacing: ${"%.3f".format(_characterSpacing.value * 0.01)}em"
+            else
+                "letter-spacing: normal"
+            setProperty("styles.def.letter-spacing", letterSpacingEm)
 
             // Text justification via document style rule (txt.def.format is TXT-only)
             setProperty(
                 "styles.def.align",
-                if (_justifyText.value) "text-align: justify" else "text-align: left"
+                if (customize && _justifyText.value) "text-align: justify" else "text-align: left"
             )
 
             // Margins: slider is dp → convert to px → snap to engine's allowed list.
-            val marginPx = snapMargin((_margins.value * dm.density).toInt()).toString()
+            val marginsValue = if (customize) _margins.value else DEFAULT_MARGINS.toDouble()
+            val marginPx = snapMargin((marginsValue * dm.density).toInt()).toString()
             setProperty("crengine.page.margin.left", marginPx)
             setProperty("crengine.page.margin.right", marginPx)
             setProperty("crengine.page.margin.top", marginPx)
