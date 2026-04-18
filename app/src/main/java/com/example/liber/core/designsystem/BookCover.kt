@@ -64,10 +64,13 @@ fun BookCover(
     isActive: Boolean = false,
     isPlaying: Boolean = false,
 ) {
+    val finalModifier =
+        if (fillBounds) modifier else modifier.aspectRatio(if (book.isAudiobook) 1f else 2f / 3f)
+
     if (book.isAudiobook) {
         AudiobookCover(
             book = book,
-            modifier = modifier,
+            modifier = finalModifier,
             style = style,
             isActive = isActive,
             isPlaying = isPlaying,
@@ -76,7 +79,7 @@ fun BookCover(
         BookCover(
             coverUri = book.coverUri,
             title = book.title,
-            modifier = modifier,
+            modifier = finalModifier,
             style = style,
             fillBounds = fillBounds,
         )
@@ -100,6 +103,7 @@ fun BookCover(
             .then(
                 if (fillBounds) Modifier.fillMaxSize() else Modifier.fillMaxWidth()
             )
+            .aspectRatio(2f / 3f)
             .background(MaterialTheme.colorScheme.surfaceVariant)
     ) {
         if (coverUri != null) {
