@@ -41,6 +41,9 @@ data class HighlightRect(
     val color: Int
 )
 
+/** Screen-pixel position for a draggable selection handle. */
+data class SelectionAnchor(val x: Float, val y: Float)
+
 private const val DEFAULT_LINE_SPACING = 1.4f
 private const val DEFAULT_CHAR_SPACING = 0.0f
 private const val DEFAULT_WORD_SPACING = 0.0f
@@ -264,17 +267,38 @@ class ReaderViewModel(
     // Screen-pixel anchor of the current selection gesture (set on long-press).
     private var selectionStartX = 0
     private var selectionStartY = 0
+    private var selectionEndX = 0
+    private var selectionEndY = 0
+
+    // Saved selection data from the initial long-press word snap (used as fallback).
+    private var savedWordStartPos = ""
+    private var savedWordEndPos = ""
+    private var savedWordText = ""
+    private var startSelectionJob: kotlinx.coroutines.Job? = null
+
+    private val _selectionStartAnchor = MutableStateFlow<SelectionAnchor?>(null)
+    val selectionStartAnchor: StateFlow<SelectionAnchor?> = _selectionStartAnchor
+
+    private val _selectionEndAnchor = MutableStateFlow<SelectionAnchor?>(null)
+    val selectionEndAnchor: StateFlow<SelectionAnchor?> = _selectionEndAnchor
 
     /** Called on long-press; anchors the selection at the pressed coordinates. */
     fun startTextSelection(x: Int, y: Int) {
         selectionStartX = x
         selectionStartY = y
+        savedWordStartPos = ""
+        savedWordEndPos = ""
+        savedWordText = ""
         _selectionActive.value = true
-        viewModelScope.launch(Dispatchers.IO) {
+        startSelectionJob = viewModelScope.launch(Dispatchers.IO) {
             val sel = Selection().apply {
                 startX = x; startY = y; endX = x; endY = y
             }
             docView.updateSelection(sel)
+            // Save the word the engine snapped to so finalizeTextSelection can fall back to it.
+            savedWordStartPos = sel.startPos
+            savedWordEndPos = sel.endPos
+            savedWordText = sel.text
             renderPage()
         }
     }
@@ -286,23 +310,34 @@ class ReaderViewModel(
 
     /**
      * Called when the finger lifts after a selection drag. If the engine found
-     * text, opens the highlight-colour picker; otherwise clears the selection.
+     * text, opens the selection menu; otherwise clears the selection.
      */
     fun finalizeTextSelection(endX: Int, endY: Int) {
         viewModelScope.launch(Dispatchers.IO) {
+            // Ensure the initial word-snap from startTextSelection has completed so
+            // savedWord* fields are populated before we read them as fallback.
+            startSelectionJob?.join()
+
             val sel = Selection().apply {
                 startX = selectionStartX; startY = selectionStartY
                 this.endX = endX; this.endY = endY
             }
             docView.updateSelection(sel)
-            val text = sel.text
-            val xpointer = sel.startPos
-            val endXpointer = sel.endPos
+
+            // Fall back to the word captured in startTextSelection if the engine
+            // returns empty text for same-point coordinates (word-tap case).
+            val text = sel.text.takeIf { it.isNotBlank() } ?: savedWordText
+            val xpointer = sel.startPos.takeIf { it.isNotBlank() } ?: savedWordStartPos
+            val endXpointer = sel.endPos.takeIf { it.isNotBlank() } ?: savedWordEndPos
+
             _selectionActive.value = false
-            if (!text.isNullOrBlank()) {
+            if (text.isNotBlank()) {
+                selectionEndX = endX
+                selectionEndY = endY
                 _pendingSelectedText.value = text
                 _pendingXPointer.value = xpointer.takeIf { it.isNotBlank() }
                 _pendingEndXPointer.value = endXpointer.takeIf { it.isNotBlank() }
+                updateHandleAnchors(xpointer, endXpointer, endX.toFloat(), endY.toFloat())
                 _showSelectionMenu.value = true
             } else {
                 docView.clearSelection()
@@ -314,6 +349,8 @@ class ReaderViewModel(
     /** Cancels any in-progress text selection. */
     fun cancelTextSelection() {
         _selectionActive.value = false
+        _selectionStartAnchor.value = null
+        _selectionEndAnchor.value = null
         viewModelScope.launch(Dispatchers.IO) {
             docView.clearSelection()
             renderPage()
@@ -322,6 +359,8 @@ class ReaderViewModel(
 
     fun dismissSelectionMenu() {
         _showSelectionMenu.value = false
+        _selectionStartAnchor.value = null
+        _selectionEndAnchor.value = null
         _pendingSelectedText.value = null
         _pendingXPointer.value = null
         _pendingEndXPointer.value = null
@@ -341,11 +380,50 @@ class ReaderViewModel(
         startAnnotation("note", _pendingSelectedText.value, _pendingXPointer.value)
     }
 
+    fun moveSelectionStartHandle(x: Int, y: Int) {
+        startHandleChannel.trySend(Pair(x, y))
+    }
+
+    fun moveSelectionEndHandle(x: Int, y: Int) {
+        endHandleChannel.trySend(Pair(x, y))
+    }
+
+    private fun updateHandleAnchors(
+        startPos: String,
+        endPos: String,
+        fallbackX: Float = -1f,
+        fallbackY: Float = -1f,
+    ) {
+        val rects = if (startPos.isNotBlank() && endPos.isNotBlank()) {
+            docView.getXPointerRects(startPos, endPos)
+        } else null
+
+        if (rects != null && rects.size >= 4) {
+            _selectionStartAnchor.value = SelectionAnchor(rects[0].toFloat(), rects[3].toFloat())
+            val last = rects.size - 4
+            _selectionEndAnchor.value =
+                SelectionAnchor(rects[last + 2].toFloat(), rects[last + 3].toFloat())
+        } else if (fallbackX >= 0f) {
+            _selectionStartAnchor.value = SelectionAnchor(fallbackX - 20f, fallbackY)
+            _selectionEndAnchor.value = SelectionAnchor(fallbackX + 20f, fallbackY)
+        }
+    }
+
+    fun finalizeHandleDrag() {
+        val xp = _pendingXPointer.value ?: return
+        val endXp = _pendingEndXPointer.value ?: return
+        viewModelScope.launch(Dispatchers.IO) { updateHandleAnchors(xp, endXp) }
+    }
+
     // Coalesces rapid scroll deltas so only one render fires per batch of touch events.
     private val scrollChannel = Channel<Int>(Channel.UNLIMITED)
 
     // Conflated: only the latest drag position is kept; stale intermediates are dropped.
     private val selectionDragChannel = Channel<Pair<Int, Int>>(Channel.CONFLATED)
+
+    // Handle drag channels — conflated so only the latest position renders per frame.
+    private val startHandleChannel = Channel<Pair<Int, Int>>(Channel.CONFLATED)
+    private val endHandleChannel = Channel<Pair<Int, Int>>(Channel.CONFLATED)
 
     // ── Initialization ───────────────────────────────────────────────────────
 
@@ -432,6 +510,60 @@ class ReaderViewModel(
                     this.endX = endX; this.endY = endY
                 }
                 docView.updateSelection(sel)
+                renderPage()
+            }
+        }
+
+        // Drain start handle drag channel.
+        viewModelScope.launch(Dispatchers.IO) {
+            for ((x, y) in startHandleChannel) {
+                val prevStartX = selectionStartX
+                val prevStartY = selectionStartY
+                val sel = Selection().apply {
+                    startX = x; startY = y; endX = selectionEndX; endY = selectionEndY
+                }
+                docView.updateSelection(sel)
+                if (!sel.text.isNullOrBlank()) {
+                    selectionStartX = x
+                    selectionStartY = y
+                    _pendingSelectedText.value = sel.text
+                    _pendingXPointer.value = sel.startPos.takeIf { it.isNotBlank() }
+                    _pendingEndXPointer.value = sel.endPos.takeIf { it.isNotBlank() }
+                } else {
+                    // Engine found no text at this position (e.g. inter-line gap); keep previous selection.
+                    val restore = Selection().apply {
+                        startX = prevStartX; startY = prevStartY
+                        endX = selectionEndX; endY = selectionEndY
+                    }
+                    docView.updateSelection(restore)
+                }
+                renderPage()
+            }
+        }
+
+        // Drain end handle drag channel.
+        viewModelScope.launch(Dispatchers.IO) {
+            for ((x, y) in endHandleChannel) {
+                val prevEndX = selectionEndX
+                val prevEndY = selectionEndY
+                val sel = Selection().apply {
+                    startX = selectionStartX; startY = selectionStartY; endX = x; endY = y
+                }
+                docView.updateSelection(sel)
+                if (!sel.text.isNullOrBlank()) {
+                    selectionEndX = x
+                    selectionEndY = y
+                    _pendingSelectedText.value = sel.text
+                    _pendingXPointer.value = sel.startPos.takeIf { it.isNotBlank() }
+                    _pendingEndXPointer.value = sel.endPos.takeIf { it.isNotBlank() }
+                } else {
+                    // Engine found no text at this position (e.g. inter-line gap); keep previous selection.
+                    val restore = Selection().apply {
+                        startX = selectionStartX; startY = selectionStartY
+                        endX = prevEndX; endY = prevEndY
+                    }
+                    docView.updateSelection(restore)
+                }
                 renderPage()
             }
         }
@@ -605,6 +737,9 @@ class ReaderViewModel(
 
             // Native bookmark highlights disabled; we draw custom-colored overlays in Compose.
             setProperty("crengine.highlight.bookmarks", "0")
+
+            // Disable the native crengine status bar (author/title/clock/page-number header).
+            setProperty("window.status.line", "0")
         }
         docView.applySettings(props)
     }

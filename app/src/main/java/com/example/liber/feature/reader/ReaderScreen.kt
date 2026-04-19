@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -66,6 +67,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
@@ -157,6 +159,8 @@ fun ReaderScreen(
     val selectionActive by viewModel.selectionActive.collectAsState()
     val showSelectionMenu by viewModel.showSelectionMenu.collectAsState()
     val highlightRects by viewModel.highlightRects.collectAsState()
+    val selectionStartAnchor by viewModel.selectionStartAnchor.collectAsState()
+    val selectionEndAnchor by viewModel.selectionEndAnchor.collectAsState()
 
     val theme = findReaderTheme(themeId)
 
@@ -392,6 +396,26 @@ fun ReaderScreen(
                                 ),
                             )
                         }
+                    }
+                }
+
+                // Draggable selection handles — shown when the selection menu is visible.
+                if (showSelectionMenu) {
+                    selectionStartAnchor?.let { anchor ->
+                        SelectionHandle(
+                            anchor = anchor,
+                            isStart = true,
+                            onDrag = { x, y -> viewModel.moveSelectionStartHandle(x, y) },
+                            onDragEnd = { viewModel.finalizeHandleDrag() },
+                        )
+                    }
+                    selectionEndAnchor?.let { anchor ->
+                        SelectionHandle(
+                            anchor = anchor,
+                            isStart = false,
+                            onDrag = { x, y -> viewModel.moveSelectionEndHandle(x, y) },
+                            onDragEnd = { viewModel.finalizeHandleDrag() },
+                        )
                     }
                 }
             }
@@ -944,6 +968,59 @@ private fun ProgressScrubber(
             center = Offset(thumbX, size.height / 2f + 1.dp.toPx()),
         )
         drawCircle(color = Color.White, radius = thumbR, center = Offset(thumbX, size.height / 2f))
+    }
+}
+
+// ── SelectionHandle ───────────────────────────────────────────────────────────
+
+@Composable
+private fun SelectionHandle(
+    anchor: SelectionAnchor,
+    isStart: Boolean,
+    onDrag: (x: Int, y: Int) -> Unit,
+    onDragEnd: () -> Unit = {},
+) {
+    val density = LocalDensity.current
+    val handleSizePx = with(density) { 20.dp.roundToPx() }
+    val color = MaterialTheme.colorScheme.primary
+
+    // Not keyed on anchor so cumulative drag survives anchor updates during a drag session.
+    // LaunchedEffect resets the offset whenever a new selection is established (anchor changes).
+    var cumDx by remember { mutableStateOf(0f) }
+    var cumDy by remember { mutableStateOf(0f) }
+    LaunchedEffect(anchor) {
+        cumDx = 0f
+        cumDy = 0f
+    }
+
+    Box(
+        modifier = Modifier
+            .offset {
+                val baseX = if (isStart) anchor.x.toInt() - handleSizePx else anchor.x.toInt()
+                IntOffset(baseX + cumDx.toInt(), anchor.y.toInt() + cumDy.toInt())
+            }
+            .size(40.dp)
+            .pointerInput(anchor) {
+                detectDragGestures(
+                    onDrag = { _, dragAmount ->
+                        cumDx += dragAmount.x
+                        cumDy += dragAmount.y
+                        val queryX =
+                            anchor.x + (if (isStart) -handleSizePx / 2f else handleSizePx / 2f) + cumDx
+                        val queryY = anchor.y + cumDy
+                        onDrag(queryX.toInt(), queryY.toInt())
+                    },
+                    onDragEnd = { onDragEnd() },
+                    onDragCancel = { onDragEnd() },
+                )
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(20.dp)
+                .background(color, CircleShape)
+        )
     }
 }
 
