@@ -162,6 +162,7 @@ fun ReaderScreen(
     val highlightRects by viewModel.highlightRects.collectAsState()
     val selectionStartAnchor by viewModel.selectionStartAnchor.collectAsState()
     val selectionEndAnchor by viewModel.selectionEndAnchor.collectAsState()
+    val pendingText by viewModel.pendingSelectedText.collectAsState()
 
     val theme = findReaderTheme(themeId)
 
@@ -426,6 +427,50 @@ fun ReaderScreen(
                             onDragEnd = { viewModel.finalizeHandleDrag() },
                         )
                     }
+
+                    // Floating selection menu, anchored just below the selection handles.
+                    // Handles are 40.dp tall positioned at anchor.y, so offset by handle height + gap.
+                    val endAnchor = selectionEndAnchor
+                    val handleHeightPx = with(density) { 40.dp.toPx() }
+                    val menuGapPx = with(density) { 8.dp.toPx() }
+                    val maxMenuY = heightPx.toFloat() - with(density) { 80.dp.toPx() }
+                    val menuTopY =
+                        ((endAnchor?.y ?: (heightPx * 0.5f)) + handleHeightPx + menuGapPx)
+                            .coerceAtMost(maxMenuY)
+                            .coerceAtLeast(0f)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .offset { IntOffset(0, menuTopY.toInt()) },
+                        contentAlignment = Alignment.TopCenter,
+                    ) {
+                        SelectionActionsMenu(
+                            onHighlight = { viewModel.onSelectionMenuHighlight() },
+                            onNote = { viewModel.onSelectionMenuNote() },
+                            onShare = {
+                                if (!pendingText.isNullOrBlank()) {
+                                    val shareText = buildString {
+                                        append("\u201C").append(pendingText).append("\u201D\n\n")
+                                        append(context.getString(R.string.reader_share_excerpt_from))
+                                        append("\u201C").append(bookTitle)
+                                            .append(".\u201D Liber.\n\n")
+                                        append(context.getString(R.string.reader_share_copyright_notice))
+                                    }
+                                    context.startActivity(
+                                        Intent.createChooser(
+                                            Intent(Intent.ACTION_SEND).apply {
+                                                type = "text/plain"
+                                                putExtra(Intent.EXTRA_TEXT, shareText)
+                                            },
+                                            null,
+                                        )
+                                    )
+                                }
+                                viewModel.dismissSelectionMenu()
+                            },
+                            onDismiss = { viewModel.dismissSelectionMenu() },
+                        )
+                    }
                 }
             }
         }
@@ -541,41 +586,6 @@ fun ReaderScreen(
                     viewModel.dismissHighlightColorPicker()
                 },
                 onDismiss = { viewModel.dismissHighlightColorPicker() },
-            )
-        }
-
-        // ── Selection Actions Menu ────────────────────────────────────────────
-        if (showSelectionMenu) {
-            val pendingText by viewModel.pendingSelectedText.collectAsState()
-            SelectionActionsMenu(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-                    .padding(bottom = 24.dp),
-                onHighlight = { viewModel.onSelectionMenuHighlight() },
-                onNote = { viewModel.onSelectionMenuNote() },
-                onShare = {
-                    val text = pendingText
-                    if (!text.isNullOrBlank()) {
-                        val shareText = buildString {
-                            append("\u201C").append(text).append("\u201D\n\n")
-                            append(context.getString(R.string.reader_share_excerpt_from))
-                            append("\u201C").append(bookTitle).append(".\u201D Liber.\n\n")
-                            append(context.getString(R.string.reader_share_copyright_notice))
-                        }
-                        context.startActivity(
-                            Intent.createChooser(
-                                Intent(Intent.ACTION_SEND).apply {
-                                    type = "text/plain"
-                                    putExtra(Intent.EXTRA_TEXT, shareText)
-                                },
-                                null,
-                            )
-                        )
-                    }
-                    viewModel.dismissSelectionMenu()
-                },
-                onDismiss = { viewModel.dismissSelectionMenu() },
             )
         }
 

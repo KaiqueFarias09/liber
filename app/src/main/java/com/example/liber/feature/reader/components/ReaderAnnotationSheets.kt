@@ -364,13 +364,12 @@ fun SelectionActionsMenu(
 ) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
-        color = Color(0xCC1C1C1E),
-        shadowElevation = 12.dp,
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shadowElevation = 4.dp,
+        tonalElevation = 0.dp,
     ) {
         Row(
-            modifier = Modifier.padding(start = 4.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(0.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             SelectionMenuAction(
@@ -378,29 +377,45 @@ fun SelectionActionsMenu(
                 label = stringResource(R.string.reader_annotation_highlight),
                 onClick = onHighlight,
             )
+            Box(
+                Modifier
+                    .height(20.dp)
+                    .width(0.5.dp)
+                    .background(MaterialTheme.colorScheme.outlineVariant)
+            )
             SelectionMenuAction(
                 icon = PhosphorIcons.Regular.NotePencil,
                 label = stringResource(R.string.reader_annotation_note),
                 onClick = onNote,
+            )
+            Box(
+                Modifier
+                    .height(20.dp)
+                    .width(0.5.dp)
+                    .background(MaterialTheme.colorScheme.outlineVariant)
             )
             SelectionMenuAction(
                 icon = PhosphorIcons.Regular.Export,
                 label = stringResource(R.string.action_share),
                 onClick = onShare,
             )
-            Spacer(Modifier.width(8.dp))
+            Box(
+                Modifier
+                    .height(20.dp)
+                    .width(0.5.dp)
+                    .background(MaterialTheme.colorScheme.outlineVariant)
+            )
             Box(
                 modifier = Modifier
-                    .size(28.dp)
-                    .background(Color.White.copy(alpha = 0.15f), CircleShape)
-                    .clickable(onClick = onDismiss),
+                    .clickable(onClick = onDismiss)
+                    .padding(horizontal = 12.dp, vertical = 12.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     PhosphorIcons.Regular.X,
                     contentDescription = stringResource(R.string.action_cancel),
-                    tint = Color.White,
-                    modifier = Modifier.size(12.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp),
                 )
             }
         }
@@ -413,18 +428,23 @@ private fun SelectionMenuAction(
     label: String,
     onClick: () -> Unit,
 ) {
-    Column(
+    Row(
         modifier = Modifier
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.size(17.dp)
+        )
         Text(
             label,
-            style = MaterialTheme.typography.labelSmall,
-            color = Color.White.copy(alpha = 0.85f),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurface,
         )
     }
 }
