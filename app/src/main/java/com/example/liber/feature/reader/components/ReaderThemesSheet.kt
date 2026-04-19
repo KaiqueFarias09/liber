@@ -45,7 +45,7 @@ import com.adamglin.phosphoricons.regular.FrameCorners
 import com.adamglin.phosphoricons.regular.LineSegments
 import com.adamglin.phosphoricons.regular.Minus
 import com.adamglin.phosphoricons.regular.Paragraph
-import com.adamglin.phosphoricons.regular.TextAa
+import com.adamglin.phosphoricons.regular.Plus
 import com.example.liber.R
 import com.example.liber.feature.reader.ReaderTheme
 import com.example.liber.feature.reader.ReaderThemes
@@ -141,7 +141,7 @@ fun ThemesSheet(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    PhosphorIcons.Regular.TextAa,
+                    PhosphorIcons.Regular.Plus,
                     contentDescription = stringResource(R.string.reader_themes_increase_font),
                     tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(24.dp)
                 )
