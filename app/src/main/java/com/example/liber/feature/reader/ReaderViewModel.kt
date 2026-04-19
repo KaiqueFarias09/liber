@@ -41,7 +41,8 @@ data class HighlightRect(
     val top: Int,
     val right: Int,
     val bottom: Int,
-    val color: Int
+    val color: Int,
+    val annotationId: Long,
 )
 
 /** Screen-pixel position for a draggable selection handle. */
@@ -818,7 +819,16 @@ class ReaderViewModel(
             val raw = docView.getXPointerRects(start, end) ?: continue
             var i = 0
             while (i + 3 < raw.size) {
-                rects.add(HighlightRect(raw[i], raw[i + 1], raw[i + 2], raw[i + 3], ann.color))
+                rects.add(
+                    HighlightRect(
+                        raw[i],
+                        raw[i + 1],
+                        raw[i + 2],
+                        raw[i + 3],
+                        ann.color,
+                        ann.id
+                    )
+                )
                 i += 4
             }
         }
@@ -886,6 +896,11 @@ class ReaderViewModel(
     fun dismissAnnotationMenu() {
         _tappedAnnotationId.value = null
     }
+
+    fun findAnnotationAtPoint(x: Float, y: Float): Long? =
+        _highlightRects.value.lastOrNull { rect ->
+            x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom
+        }?.annotationId
 
     fun startAnnotationEdit(annotation: Annotation) {
         _tappedAnnotationId.value = null

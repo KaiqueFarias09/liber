@@ -324,8 +324,13 @@ fun ReaderScreen(
                                         change.consume()
                                     }
                                     if (!navigationDone) {
-                                        // No drag detected → treat as tap
-                                        viewModel.toggleUI()
+                                        val annotationId =
+                                            viewModel.findAnnotationAtPoint(startX, startY)
+                                        if (annotationId != null) {
+                                            viewModel.onAnnotationTapped(annotationId)
+                                        } else {
+                                            viewModel.toggleUI()
+                                        }
                                     }
                                 } else {
                                     val longPress = awaitLongPressOrCancellation(down.id)
@@ -378,11 +383,17 @@ fun ReaderScreen(
                                             if (dx < viewConfiguration.touchSlop &&
                                                 dy < viewConfiguration.touchSlop
                                             ) {
-                                                val w = size.width.toFloat()
-                                                when {
-                                                    startX < w * 0.3f -> viewModel.prevPage()
-                                                    startX > w * 0.7f -> viewModel.nextPage()
-                                                    else -> viewModel.toggleUI()
+                                                val annotationId =
+                                                    viewModel.findAnnotationAtPoint(startX, startY)
+                                                if (annotationId != null) {
+                                                    viewModel.onAnnotationTapped(annotationId)
+                                                } else {
+                                                    val w = size.width.toFloat()
+                                                    when {
+                                                        startX < w * 0.3f -> viewModel.prevPage()
+                                                        startX > w * 0.7f -> viewModel.nextPage()
+                                                        else -> viewModel.toggleUI()
+                                                    }
                                                 }
                                             }
                                         }
