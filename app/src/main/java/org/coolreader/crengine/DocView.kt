@@ -109,6 +109,14 @@ class DocView(private val mutex: Any = Any()) {
     fun getXPointerRects(startPos: String, endPos: String): IntArray? =
         synchronized(mutex) { getXPointerRectsInternal(startPos, endPos) }
 
+    fun checkImage(x: Int, y: Int, imageInfo: ImageInfo): Boolean =
+        synchronized(mutex) { checkImageInternal(x, y, imageInfo) }
+
+    fun drawImage(bitmap: Bitmap, imageInfo: ImageInfo): Boolean =
+        synchronized(mutex) { drawImageInternal(bitmap, 32, imageInfo) }
+
+    fun closeImage(): Boolean = synchronized(mutex) { closeImageInternal() }
+
     fun checkBookmark(x: Int, y: Int, bookmark: Bookmark): Boolean = synchronized(mutex) {
         checkBookmarkInternal(x, y, bookmark)
     }
@@ -132,7 +140,11 @@ class DocView(private val mutex: Any = Any()) {
     private external fun destroyInternal()
     private external fun getPageImageInternal(bitmap: Bitmap, bpp: Int)
     private external fun loadDocumentInternal(path: String): Boolean
-    private external fun loadDocumentFromMemoryInternal(data: ByteArray, contentPath: String): Boolean
+    private external fun loadDocumentFromMemoryInternal(
+        data: ByteArray,
+        contentPath: String
+    ): Boolean
+
     private external fun getSettingsInternal(): Properties
     private external fun getDocPropsInternal(): Properties
     private external fun applySettingsInternal(props: Properties): Boolean
@@ -141,11 +153,21 @@ class DocView(private val mutex: Any = Any()) {
     private external fun doCommandInternal(cmd: Int, param: Int): Boolean
     private external fun getCurrentPageBookmarkInternal(): Bookmark?
     private external fun goToPositionInternal(path: String, precise: Boolean): Boolean
-    private external fun getPositionPropsInternal(path: String, precise: Boolean): PositionProperties?
+    private external fun getPositionPropsInternal(
+        path: String,
+        precise: Boolean
+    ): PositionProperties?
+
     private external fun updateBookInfoInternal(info: BookInfo, updatePath: Boolean)
     private external fun getTOCInternal(): TOCItem
     private external fun clearSelectionInternal()
-    private external fun findTextInternal(pattern: String, origin: Int, reverse: Int, caseInsensitive: Int): Boolean
+    private external fun findTextInternal(
+        pattern: String,
+        origin: Int,
+        reverse: Int,
+        caseInsensitive: Int
+    ): Boolean
+
     private external fun setBatteryStateInternal(state: Int, chargingConn: Int, chargeLevel: Int)
     private external fun getCoverPageDataInternal(): ByteArray?
     private external fun setPageBackgroundTextureInternal(imageBytes: ByteArray, tileFlags: Int)

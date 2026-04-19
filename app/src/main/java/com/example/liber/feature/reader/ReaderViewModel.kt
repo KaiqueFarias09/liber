@@ -902,6 +902,67 @@ class ReaderViewModel(
             x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom
         }?.annotationId
 
+    // ── Fullscreen image viewer ──────────────────────────────────────────────
+
+    private val _fullscreenImage = MutableStateFlow<Bitmap?>(null)
+    val fullscreenImage: StateFlow<Bitmap?> = _fullscreenImage
+
+    // Bitmap decoded on IO as soon as the finger goes down; consumed (or cancelled)
+    // when the long-press fires 500 ms later — avoids calling suspend fns from a
+    // @RestrictsSuspension pointer-input scope.
+    private var pendingImageJob: kotlinx.coroutines.Job? = null
+    private val pendingImageBitmap = MutableStateFlow<Bitmap?>(null)
+
+    /** Called at finger-down. Starts a background decode of any image under (x,y). */
+    fun preloadImageAtPoint(x: Int, y: Int) {
+        pendingImageJob?.cancel()
+        pendingImageBitmap.value = null
+        pendingImageJob = viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val imageInfo = org.coolreader.crengine.ImageInfo()
+                val found = docView.checkImage(x, y, imageInfo)
+                        && imageInfo.bufWidth > 0 && imageInfo.bufHeight > 0
+                if (!found) return@launch
+                val bmp = Bitmap.createBitmap(
+                    imageInfo.bufWidth,
+                    imageInfo.bufHeight,
+                    Bitmap.Config.ARGB_8888
+                )
+                if (docView.drawImage(bmp, imageInfo)) {
+                    docView.closeImage()
+                    pendingImageBitmap.value = bmp
+                } else {
+                    docView.closeImage()
+                }
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    /**
+     * Called when a long-press fires. If a decoded bitmap is ready, promotes it
+     * to the fullscreen viewer and returns true. Returns false if no image was
+     * found so the caller can fall back to text selection.
+     */
+    fun consumePendingImage(): Boolean {
+        val bmp = pendingImageBitmap.value ?: return false
+        pendingImageBitmap.value = null
+        pendingImageJob = null
+        _fullscreenImage.value = bmp
+        return true
+    }
+
+    /** Called when a gesture is resolved as something other than a long press. */
+    fun cancelImagePreload() {
+        pendingImageJob?.cancel()
+        pendingImageJob = null
+        pendingImageBitmap.value = null
+    }
+
+    fun dismissFullscreenImage() {
+        _fullscreenImage.value = null
+    }
+
     fun startAnnotationEdit(annotation: Annotation) {
         _tappedAnnotationId.value = null
         _editingAnnotationId.value = annotation.id

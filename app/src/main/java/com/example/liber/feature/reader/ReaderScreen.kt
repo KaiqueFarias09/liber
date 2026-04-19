@@ -4,7 +4,6 @@ import android.app.Activity
 import android.app.Application
 import android.content.Intent
 import android.net.Uri
-import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
@@ -52,6 +51,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -93,6 +93,7 @@ import com.example.liber.feature.reader.components.NotebookView
 import com.example.liber.feature.reader.components.SearchView
 import com.example.liber.feature.reader.components.SelectionActionsMenu
 import com.example.liber.feature.reader.components.ThemesSheet
+import kotlinx.coroutines.launch
 import org.coolreader.crengine.TOCItem
 import kotlin.math.abs
 import com.example.liber.data.model.Bookmark as BookmarkModel
@@ -163,6 +164,7 @@ fun ReaderScreen(
     val selectionStartAnchor by viewModel.selectionStartAnchor.collectAsState()
     val selectionEndAnchor by viewModel.selectionEndAnchor.collectAsState()
     val pendingText by viewModel.pendingSelectedText.collectAsState()
+    val fullscreenImage by viewModel.fullscreenImage.collectAsState()
 
     val theme = findReaderTheme(themeId)
 
@@ -234,7 +236,7 @@ fun ReaderScreen(
     val isAnyModalOpen =
         showContents || showSearch || showNotebook || showThemes ||
                 showAnnotationCreator || showHighlightColorPicker || showSelectionMenu ||
-                (tappedAnnotationId != null)
+                (tappedAnnotationId != null) || (fullscreenImage != null)
 
     // ── Derived state ────────────────────────────────────────────────────────
 
@@ -309,8 +311,37 @@ fun ReaderScreen(
                                 var lastY = startY
                                 var navigationDone = false
 
-                                if (pageScroll) {
-                                    // Scroll mode — start tracking drag immediately (no long-press wait)
+                                // Kick off image decode immediately at finger-down so the 500 ms
+                                // long-press window gives the IO thread time to finish.
+                                viewModel.preloadImageAtPoint(startX.toInt(), startY.toInt())
+
+                                // Long-press is the entry point for both modes:
+                                //  • fires → consume preloaded image (viewer) or start text selection
+                                //  • cancelled (finger moved) → scroll (scroll mode) or swipe/tap (page mode)
+                                val longPress = awaitLongPressOrCancellation(down.id)
+
+                                if (longPress != null) {
+                                    val imageOpened = viewModel.consumePendingImage()
+                                    if (!imageOpened) {
+                                        // Long-press on text → selection
+                                        viewModel.startTextSelection(startX.toInt(), startY.toInt())
+                                        drag(longPress.id) { change ->
+                                            lastX = change.position.x
+                                            lastY = change.position.y
+                                            viewModel.updateTextSelectionDrag(
+                                                lastX.toInt(),
+                                                lastY.toInt()
+                                            )
+                                            change.consume()
+                                        }
+                                        viewModel.finalizeTextSelection(
+                                            lastX.toInt(),
+                                            lastY.toInt()
+                                        )
+                                    }
+                                } else if (pageScroll) {
+                                    // Drag cancelled the long-press wait → scroll
+                                    viewModel.cancelImagePreload()
                                     var prevY = startY
                                     drag(down.id) { change ->
                                         val dy = change.position.y - prevY
@@ -333,67 +364,40 @@ fun ReaderScreen(
                                         }
                                     }
                                 } else {
-                                    val longPress = awaitLongPressOrCancellation(down.id)
+                                    // Drag cancelled the long-press wait → page swipe / tap
+                                    viewModel.cancelImagePreload()
+                                    drag(down.id) { change ->
+                                        lastX = change.position.x
+                                        lastY = change.position.y
+                                        val dx = lastX - startX
+                                        val dy = lastY - startY
 
-                                    if (longPress != null) {
-                                        // Long-press → text selection
-                                        Log.d(
-                                            "LiberSelection",
-                                            "longPress detected at ($startX, $startY)"
-                                        )
-                                        viewModel.startTextSelection(startX.toInt(), startY.toInt())
-                                        drag(longPress.id) { change ->
-                                            lastX = change.position.x
-                                            lastY = change.position.y
-                                            viewModel.updateTextSelectionDrag(
-                                                lastX.toInt(),
-                                                lastY.toInt()
-                                            )
-                                            change.consume()
+                                        if (!navigationDone &&
+                                            abs(dx) > swipeThreshold &&
+                                            abs(dx) > abs(dy)
+                                        ) {
+                                            navigationDone = true
+                                            if (dx < 0) viewModel.nextPage() else viewModel.prevPage()
                                         }
-                                        Log.d(
-                                            "LiberSelection",
-                                            "drag ended, calling finalizeTextSelection($lastX, $lastY)"
-                                        )
-                                        viewModel.finalizeTextSelection(
-                                            lastX.toInt(),
-                                            lastY.toInt()
-                                        )
-                                    } else {
-                                        // Page mode — horizontal swipe or tap zones
-                                        drag(down.id) { change ->
-                                            lastX = change.position.x
-                                            lastY = change.position.y
-                                            val dx = lastX - startX
-                                            val dy = lastY - startY
+                                        change.consume()
+                                    }
 
-                                            if (!navigationDone &&
-                                                abs(dx) > swipeThreshold &&
-                                                abs(dx) > abs(dy)
-                                            ) {
-                                                navigationDone = true
-                                                if (dx < 0) viewModel.nextPage() else viewModel.prevPage()
-                                            }
-                                            change.consume()
-                                        }
-
-                                        if (!navigationDone) {
-                                            val dx = abs(lastX - startX)
-                                            val dy = abs(lastY - startY)
-                                            if (dx < viewConfiguration.touchSlop &&
-                                                dy < viewConfiguration.touchSlop
-                                            ) {
-                                                val annotationId =
-                                                    viewModel.findAnnotationAtPoint(startX, startY)
-                                                if (annotationId != null) {
-                                                    viewModel.onAnnotationTapped(annotationId)
-                                                } else {
-                                                    val w = size.width.toFloat()
-                                                    when {
-                                                        startX < w * 0.3f -> viewModel.prevPage()
-                                                        startX > w * 0.7f -> viewModel.nextPage()
-                                                        else -> viewModel.toggleUI()
-                                                    }
+                                    if (!navigationDone) {
+                                        val dx = abs(lastX - startX)
+                                        val dy = abs(lastY - startY)
+                                        if (dx < viewConfiguration.touchSlop &&
+                                            dy < viewConfiguration.touchSlop
+                                        ) {
+                                            val annotationId =
+                                                viewModel.findAnnotationAtPoint(startX, startY)
+                                            if (annotationId != null) {
+                                                viewModel.onAnnotationTapped(annotationId)
+                                            } else {
+                                                val w = size.width.toFloat()
+                                                when {
+                                                    startX < w * 0.3f -> viewModel.prevPage()
+                                                    startX > w * 0.7f -> viewModel.nextPage()
+                                                    else -> viewModel.toggleUI()
                                                 }
                                             }
                                         }
@@ -714,6 +718,88 @@ fun ReaderScreen(
                     showSearch = false
                 },
             )
+        }
+
+        // ── Fullscreen image viewer ──────────────────────────────────────────
+        val imageScope = rememberCoroutineScope()
+        AnimatedVisibility(
+            visible = fullscreenImage != null,
+            enter = androidx.compose.animation.fadeIn(),
+            exit = androidx.compose.animation.fadeOut(),
+        ) {
+            fullscreenImage?.let { bmp ->
+                com.example.liber.feature.reader.components.ImageViewerOverlay(
+                    bitmap = bmp,
+                    onShare = {
+                        imageScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                            val file = java.io.File(context.cacheDir, "liber_share_image.jpg")
+                            file.outputStream().use {
+                                bmp.compress(
+                                    android.graphics.Bitmap.CompressFormat.JPEG,
+                                    95,
+                                    it
+                                )
+                            }
+                            val uri = androidx.core.content.FileProvider.getUriForFile(
+                                context, "${context.packageName}.fileprovider", file
+                            )
+                            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                context.startActivity(
+                                    Intent.createChooser(
+                                        Intent(Intent.ACTION_SEND).apply {
+                                            type = "image/jpeg"
+                                            putExtra(Intent.EXTRA_STREAM, uri)
+                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                        },
+                                        null,
+                                    )
+                                )
+                            }
+                        }
+                    },
+                    onSave = {
+                        imageScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                            val filename = "liber_image_${System.currentTimeMillis()}.jpg"
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                                val cv = android.content.ContentValues().apply {
+                                    put(
+                                        android.provider.MediaStore.Downloads.DISPLAY_NAME,
+                                        filename
+                                    )
+                                    put(
+                                        android.provider.MediaStore.Downloads.MIME_TYPE,
+                                        "image/jpeg"
+                                    )
+                                    put(
+                                        android.provider.MediaStore.Downloads.RELATIVE_PATH,
+                                        android.os.Environment.DIRECTORY_DOWNLOADS
+                                    )
+                                }
+                                val saveUri = context.contentResolver.insert(
+                                    android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, cv
+                                )
+                                saveUri?.let {
+                                    context.contentResolver.openOutputStream(it)?.use { out ->
+                                        bmp.compress(
+                                            android.graphics.Bitmap.CompressFormat.JPEG,
+                                            95,
+                                            out
+                                        )
+                                    }
+                                }
+                            }
+                            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                android.widget.Toast.makeText(
+                                    context,
+                                    R.string.reader_image_saved,
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
+                    },
+                    onDismiss = { viewModel.dismissFullscreenImage() },
+                )
+            }
         }
     } // end root Box
 

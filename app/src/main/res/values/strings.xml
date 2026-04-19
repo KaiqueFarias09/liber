@@ -153,6 +153,8 @@
     <string name="sort_option_recent">Recent</string>
     <string name="sort_option_title">Title</string>
     <string name="sort_option_author">Author</string>
+    <string name="reader_image_save_to_downloads">Save to Downloads</string>
+    <string name="reader_image_saved">Image saved to Downloads</string>
     <string name="reader_share_excerpt_from">Excerpt From: </string>
     <string name="reader_share_unknown_title">Unknown Title</string>
     <string name="reader_share_copyright_notice">This material may be protected by copyright.</string>
