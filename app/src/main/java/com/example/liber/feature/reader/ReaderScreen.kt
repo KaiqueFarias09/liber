@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.Application
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
@@ -330,6 +331,10 @@ fun ReaderScreen(
 
                                     if (longPress != null) {
                                         // Long-press → text selection
+                                        Log.d(
+                                            "LiberSelection",
+                                            "longPress detected at ($startX, $startY)"
+                                        )
                                         viewModel.startTextSelection(startX.toInt(), startY.toInt())
                                         drag(longPress.id) { change ->
                                             lastX = change.position.x
@@ -340,6 +345,10 @@ fun ReaderScreen(
                                             )
                                             change.consume()
                                         }
+                                        Log.d(
+                                            "LiberSelection",
+                                            "drag ended, calling finalizeTextSelection($lastX, $lastY)"
+                                        )
                                         viewModel.finalizeTextSelection(
                                             lastX.toInt(),
                                             lastY.toInt()

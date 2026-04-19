@@ -5,6 +5,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import android.provider.OpenableColumns
+import android.util.Log
 import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -28,6 +29,8 @@ import org.coolreader.crengine.PositionProperties
 import org.coolreader.crengine.Selection
 import org.coolreader.crengine.TOCItem
 import java.util.Properties
+
+private const val TAG = "LiberSelection"
 
 // Default annotation colour — yellow at 50 % opacity
 private val DEFAULT_ANNOTATION_COLOR = 0x80FFD60A.toInt()
@@ -289,16 +292,19 @@ class ReaderViewModel(
         savedWordStartPos = ""
         savedWordEndPos = ""
         savedWordText = ""
-        _selectionActive.value = true
+        Log.d(TAG, "startTextSelection($x, $y)")
         startSelectionJob = viewModelScope.launch(Dispatchers.IO) {
             val sel = Selection().apply {
                 startX = x; startY = y; endX = x; endY = y
             }
             docView.updateSelection(sel)
-            // Save the word the engine snapped to so finalizeTextSelection can fall back to it.
             savedWordStartPos = sel.startPos
             savedWordEndPos = sel.endPos
             savedWordText = sel.text
+            Log.d(
+                TAG,
+                "startTextSelection job done: text='${sel.text}' startPos='${sel.startPos}' endPos='${sel.endPos}'"
+            )
             renderPage()
         }
     }
@@ -313,24 +319,47 @@ class ReaderViewModel(
      * text, opens the selection menu; otherwise clears the selection.
      */
     fun finalizeTextSelection(endX: Int, endY: Int) {
+        Log.d(
+            TAG,
+            "finalizeTextSelection($endX, $endY) called, startX=$selectionStartX startY=$selectionStartY"
+        )
         viewModelScope.launch(Dispatchers.IO) {
-            // Ensure the initial word-snap from startTextSelection has completed so
-            // savedWord* fields are populated before we read them as fallback.
             startSelectionJob?.join()
 
-            val sel = Selection().apply {
-                startX = selectionStartX; startY = selectionStartY
-                this.endX = endX; this.endY = endY
+            Log.d(
+                TAG,
+                "finalizeTextSelection after join: savedWordText='$savedWordText' savedStart='$savedWordStartPos' savedEnd='$savedWordEndPos'"
+            )
+
+            val isWordTap = endX == selectionStartX && endY == selectionStartY
+            val text: String
+            val xpointer: String
+            val endXpointer: String
+
+            if (isWordTap) {
+                // Word-tap: the engine already selected the word in startTextSelection.
+                // Calling updateSelection again with the same point is redundant and can
+                // produce an empty range if the engine re-evaluates the point differently.
+                // Use the saved word data directly.
+                text = savedWordText
+                xpointer = savedWordStartPos
+                endXpointer = savedWordEndPos
+                Log.d(TAG, "finalizeTextSelection: word-tap path, text='$text'")
+            } else {
+                val sel = Selection().apply {
+                    startX = selectionStartX; startY = selectionStartY
+                    this.endX = endX; this.endY = endY
+                }
+                docView.updateSelection(sel)
+                text = sel.text.takeIf { it.isNotBlank() } ?: savedWordText
+                xpointer = sel.startPos.takeIf { it.isNotBlank() } ?: savedWordStartPos
+                endXpointer = sel.endPos.takeIf { it.isNotBlank() } ?: savedWordEndPos
+                Log.d(
+                    TAG,
+                    "finalizeTextSelection: drag path, selText='${sel.text}' finalText='$text'"
+                )
             }
-            docView.updateSelection(sel)
 
-            // Fall back to the word captured in startTextSelection if the engine
-            // returns empty text for same-point coordinates (word-tap case).
-            val text = sel.text.takeIf { it.isNotBlank() } ?: savedWordText
-            val xpointer = sel.startPos.takeIf { it.isNotBlank() } ?: savedWordStartPos
-            val endXpointer = sel.endPos.takeIf { it.isNotBlank() } ?: savedWordEndPos
-
-            _selectionActive.value = false
             if (text.isNotBlank()) {
                 selectionEndX = endX
                 selectionEndY = endY
@@ -338,8 +367,14 @@ class ReaderViewModel(
                 _pendingXPointer.value = xpointer.takeIf { it.isNotBlank() }
                 _pendingEndXPointer.value = endXpointer.takeIf { it.isNotBlank() }
                 updateHandleAnchors(xpointer, endXpointer, endX.toFloat(), endY.toFloat())
+                Log.d(
+                    TAG,
+                    "finalizeTextSelection: setting showSelectionMenu=true, startAnchor=${_selectionStartAnchor.value} endAnchor=${_selectionEndAnchor.value}"
+                )
+                _selectionActive.value = true
                 _showSelectionMenu.value = true
             } else {
+                Log.d(TAG, "finalizeTextSelection: text blank, clearing selection")
                 docView.clearSelection()
                 renderPage()
             }
@@ -398,14 +433,29 @@ class ReaderViewModel(
             docView.getXPointerRects(startPos, endPos)
         } else null
 
+        Log.d(
+            TAG,
+            "updateHandleAnchors: startPos='$startPos' endPos='$endPos' rects=${rects?.size} fallbackX=$fallbackX fallbackY=$fallbackY"
+        )
+
         if (rects != null && rects.size >= 4) {
             _selectionStartAnchor.value = SelectionAnchor(rects[0].toFloat(), rects[3].toFloat())
             val last = rects.size - 4
             _selectionEndAnchor.value =
                 SelectionAnchor(rects[last + 2].toFloat(), rects[last + 3].toFloat())
+            Log.d(
+                TAG,
+                "updateHandleAnchors: from rects start=${_selectionStartAnchor.value} end=${_selectionEndAnchor.value}"
+            )
         } else if (fallbackX >= 0f) {
             _selectionStartAnchor.value = SelectionAnchor(fallbackX - 20f, fallbackY)
             _selectionEndAnchor.value = SelectionAnchor(fallbackX + 20f, fallbackY)
+            Log.d(
+                TAG,
+                "updateHandleAnchors: from fallback start=${_selectionStartAnchor.value} end=${_selectionEndAnchor.value}"
+            )
+        } else {
+            Log.d(TAG, "updateHandleAnchors: NO anchors set (no rects and no fallback)")
         }
     }
 
