@@ -1,1 +1,0 @@
-Unmanaged thirdparty library packages.
