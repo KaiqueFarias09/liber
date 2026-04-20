@@ -7,6 +7,7 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Log
 import androidx.compose.ui.graphics.toArgb
+import androidx.core.graphics.createBitmap
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -922,15 +923,18 @@ class ReaderViewModel(
         pendingImageBitmap.value = null
         pendingImageJob = viewModelScope.launch(Dispatchers.IO) {
             try {
-                val imageInfo = org.coolreader.crengine.ImageInfo()
-                val found = docView.checkImage(x, y, imageInfo)
-                        && imageInfo.bufWidth > 0 && imageInfo.bufHeight > 0
-                if (!found) return@launch
-                val bmp = Bitmap.createBitmap(
-                    imageInfo.bufWidth,
-                    imageInfo.bufHeight,
-                    Bitmap.Config.ARGB_8888
-                )
+                val imageInfo = org.coolreader.crengine.ImageInfo().apply {
+                    // bufWidth/bufHeight are inputs: crengine uses them to decide whether
+                    // to auto-rotate the image (portrait vs landscape screen orientation).
+                    bufWidth = viewWidth
+                    bufHeight = viewHeight
+                }
+                if (!docView.checkImage(x, y, imageInfo)) return@launch
+                // scaledWidth/scaledHeight are the outputs: the final decoded dimensions.
+                val w = imageInfo.scaledWidth
+                val h = imageInfo.scaledHeight
+                if (w <= 0 || h <= 0) return@launch
+                val bmp = createBitmap(w, h)
                 if (docView.drawImage(bmp, imageInfo)) {
                     docView.closeImage()
                     pendingImageBitmap.value = bmp
@@ -990,7 +994,7 @@ class ReaderViewModel(
 
         val bmp = currentBitmap?.takeIf {
             it.width == viewWidth && it.height == viewHeight
-        } ?: Bitmap.createBitmap(viewWidth, viewHeight, Bitmap.Config.ARGB_8888).also {
+        } ?: createBitmap(viewWidth, viewHeight).also {
             currentBitmap = it
         }
 
