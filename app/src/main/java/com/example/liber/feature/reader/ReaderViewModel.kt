@@ -395,6 +395,7 @@ class ReaderViewModel(
 
     fun dismissSelectionMenu() {
         _showSelectionMenu.value = false
+        _selectionActive.value = false
         _selectionStartAnchor.value = null
         _selectionEndAnchor.value = null
         _pendingSelectedText.value = null
@@ -408,11 +409,13 @@ class ReaderViewModel(
 
     fun onSelectionMenuHighlight() {
         _showSelectionMenu.value = false
+        _selectionActive.value = false
         startHighlightColorPicker(_pendingSelectedText.value, _pendingXPointer.value)
     }
 
     fun onSelectionMenuNote() {
         _showSelectionMenu.value = false
+        _selectionActive.value = false
         startAnnotation("note", _pendingSelectedText.value, _pendingXPointer.value)
     }
 
@@ -679,7 +682,7 @@ class ReaderViewModel(
         if (props.fullHeight <= props.pageHeight) return
         val targetY = ((props.fullHeight - props.pageHeight) * fraction).toInt()
         viewModelScope.launch(Dispatchers.IO) {
-            docView.doCommand(ReaderCommand.DCMD_GO_SCROLL_POS, targetY)
+            docView.doCommand(ReaderCommand.DCMD_GO_POS, targetY)
             renderPage()
         }
     }

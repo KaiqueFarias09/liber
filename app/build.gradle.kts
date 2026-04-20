@@ -24,7 +24,10 @@ android {
         externalNativeBuild {
             cmake {
                 cppFlags("-std=c++17", "-frtti", "-fexceptions")
-                arguments("-DANDROID_STL=c++_static")
+                arguments(
+                    "-DANDROID_STL=c++_static",
+                    "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
+                )
             }
         }
         ndk {
@@ -38,6 +41,8 @@ android {
             version = "3.22.1"
         }
     }
+
+    ndkVersion = "27.2.12479018"
 
     androidResources {
         localeFilters += listOf("en", "pt-rBR", "b+es+419")

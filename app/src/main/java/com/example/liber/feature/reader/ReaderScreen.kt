@@ -15,6 +15,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
+import androidx.compose.foundation.gestures.awaitTouchSlopOrCancellation
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.drag
@@ -311,50 +312,73 @@ fun ReaderScreen(
                                 var lastY = startY
                                 var navigationDone = false
 
-                                // Kick off image decode immediately at finger-down so the 500 ms
-                                // long-press window gives the IO thread time to finish.
                                 viewModel.preloadImageAtPoint(startX.toInt(), startY.toInt())
 
-                                // Long-press is the entry point for both modes:
-                                //  • fires → consume preloaded image (viewer) or start text selection
-                                //  • cancelled (finger moved) → scroll (scroll mode) or swipe/tap (page mode)
-                                val longPress = awaitLongPressOrCancellation(down.id)
+                                if (pageScroll) {
+                                    // Scroll mode: detect movement before the long-press window so
+                                    // that a slow scroll doesn't accidentally trigger text selection.
+                                    // • finger moves past touch slop  → scroll
+                                    // • finger still for long-press timeout → text selection
+                                    // • quick tap (released before timeout, no slop) → toggleUI
+                                    var slopChange: androidx.compose.ui.input.pointer.PointerInputChange? =
+                                        null
+                                    val completedBeforeTimeout =
+                                        withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+                                            slopChange =
+                                                awaitTouchSlopOrCancellation(down.id) { change, _ ->
+                                                    change.consume()
+                                                }
+                                        } != null
 
-                                if (longPress != null) {
-                                    val imageOpened = viewModel.consumePendingImage()
-                                    if (!imageOpened) {
-                                        // Long-press on text → selection
-                                        viewModel.startTextSelection(startX.toInt(), startY.toInt())
-                                        drag(longPress.id) { change ->
+                                    if (slopChange != null) {
+                                        // Movement detected → scroll
+                                        viewModel.cancelImagePreload()
+                                        var prevY = slopChange!!.position.y
+                                        drag(slopChange!!.id) { change ->
+                                            val dy = change.position.y - prevY
+                                            prevY = change.position.y
                                             lastX = change.position.x
                                             lastY = change.position.y
-                                            viewModel.updateTextSelectionDrag(
+                                            if (dy != 0f) {
+                                                navigationDone = true
+                                                viewModel.scrollBy(-dy.toInt())
+                                            }
+                                            change.consume()
+                                        }
+                                        if (!navigationDone) {
+                                            val annotationId =
+                                                viewModel.findAnnotationAtPoint(startX, startY)
+                                            if (annotationId != null) {
+                                                viewModel.onAnnotationTapped(annotationId)
+                                            } else {
+                                                viewModel.toggleUI()
+                                            }
+                                        }
+                                    } else if (!completedBeforeTimeout) {
+                                        // Finger held still past long-press timeout → text selection
+                                        val imageOpened = viewModel.consumePendingImage()
+                                        if (!imageOpened) {
+                                            viewModel.startTextSelection(
+                                                startX.toInt(),
+                                                startY.toInt()
+                                            )
+                                            drag(down.id) { change ->
+                                                lastX = change.position.x
+                                                lastY = change.position.y
+                                                viewModel.updateTextSelectionDrag(
+                                                    lastX.toInt(),
+                                                    lastY.toInt()
+                                                )
+                                                change.consume()
+                                            }
+                                            viewModel.finalizeTextSelection(
                                                 lastX.toInt(),
                                                 lastY.toInt()
                                             )
-                                            change.consume()
                                         }
-                                        viewModel.finalizeTextSelection(
-                                            lastX.toInt(),
-                                            lastY.toInt()
-                                        )
-                                    }
-                                } else if (pageScroll) {
-                                    // Drag cancelled the long-press wait → scroll
-                                    viewModel.cancelImagePreload()
-                                    var prevY = startY
-                                    drag(down.id) { change ->
-                                        val dy = change.position.y - prevY
-                                        prevY = change.position.y
-                                        lastX = change.position.x
-                                        lastY = change.position.y
-                                        if (dy != 0f) {
-                                            navigationDone = true
-                                            viewModel.scrollBy(-dy.toInt())
-                                        }
-                                        change.consume()
-                                    }
-                                    if (!navigationDone) {
+                                    } else {
+                                        // Quick tap → toggleUI or annotation
+                                        viewModel.cancelImagePreload()
                                         val annotationId =
                                             viewModel.findAnnotationAtPoint(startX, startY)
                                         if (annotationId != null) {
@@ -364,40 +388,68 @@ fun ReaderScreen(
                                         }
                                     }
                                 } else {
-                                    // Drag cancelled the long-press wait → page swipe / tap
-                                    viewModel.cancelImagePreload()
-                                    drag(down.id) { change ->
-                                        lastX = change.position.x
-                                        lastY = change.position.y
-                                        val dx = lastX - startX
-                                        val dy = lastY - startY
+                                    // Page mode: long-press fires after 500 ms of stillness
+                                    // (cancels on movement) → text selection or image viewer.
+                                    // Movement cancels → swipe for page turn or tap for nav.
+                                    val longPress = awaitLongPressOrCancellation(down.id)
 
-                                        if (!navigationDone &&
-                                            abs(dx) > swipeThreshold &&
-                                            abs(dx) > abs(dy)
-                                        ) {
-                                            navigationDone = true
-                                            if (dx < 0) viewModel.nextPage() else viewModel.prevPage()
+                                    if (longPress != null) {
+                                        val imageOpened = viewModel.consumePendingImage()
+                                        if (!imageOpened) {
+                                            viewModel.startTextSelection(
+                                                startX.toInt(),
+                                                startY.toInt()
+                                            )
+                                            drag(longPress.id) { change ->
+                                                lastX = change.position.x
+                                                lastY = change.position.y
+                                                viewModel.updateTextSelectionDrag(
+                                                    lastX.toInt(),
+                                                    lastY.toInt()
+                                                )
+                                                change.consume()
+                                            }
+                                            viewModel.finalizeTextSelection(
+                                                lastX.toInt(),
+                                                lastY.toInt()
+                                            )
                                         }
-                                        change.consume()
-                                    }
+                                    } else {
+                                        // Drag cancelled the long-press wait → page swipe / tap
+                                        viewModel.cancelImagePreload()
+                                        drag(down.id) { change ->
+                                            lastX = change.position.x
+                                            lastY = change.position.y
+                                            val dx = lastX - startX
+                                            val dy = lastY - startY
 
-                                    if (!navigationDone) {
-                                        val dx = abs(lastX - startX)
-                                        val dy = abs(lastY - startY)
-                                        if (dx < viewConfiguration.touchSlop &&
-                                            dy < viewConfiguration.touchSlop
-                                        ) {
-                                            val annotationId =
-                                                viewModel.findAnnotationAtPoint(startX, startY)
-                                            if (annotationId != null) {
-                                                viewModel.onAnnotationTapped(annotationId)
-                                            } else {
-                                                val w = size.width.toFloat()
-                                                when {
-                                                    startX < w * 0.3f -> viewModel.prevPage()
-                                                    startX > w * 0.7f -> viewModel.nextPage()
-                                                    else -> viewModel.toggleUI()
+                                            if (!navigationDone &&
+                                                abs(dx) > swipeThreshold &&
+                                                abs(dx) > abs(dy)
+                                            ) {
+                                                navigationDone = true
+                                                if (dx < 0) viewModel.nextPage() else viewModel.prevPage()
+                                            }
+                                            change.consume()
+                                        }
+
+                                        if (!navigationDone) {
+                                            val dx = abs(lastX - startX)
+                                            val dy = abs(lastY - startY)
+                                            if (dx < viewConfiguration.touchSlop &&
+                                                dy < viewConfiguration.touchSlop
+                                            ) {
+                                                val annotationId =
+                                                    viewModel.findAnnotationAtPoint(startX, startY)
+                                                if (annotationId != null) {
+                                                    viewModel.onAnnotationTapped(annotationId)
+                                                } else {
+                                                    val w = size.width.toFloat()
+                                                    when {
+                                                        startX < w * 0.3f -> viewModel.prevPage()
+                                                        startX > w * 0.7f -> viewModel.nextPage()
+                                                        else -> viewModel.toggleUI()
+                                                    }
                                                 }
                                             }
                                         }

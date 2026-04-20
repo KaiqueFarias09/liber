@@ -38,25 +38,30 @@
 #include "org_coolreader_crengine_DocView.h"
 
 #include "cr3java.h"
-#include "../../crengine/include/cr3version.h"
-#include "docview.h"
-#include "../../crengine/include/crengine.h"
-#include "../../crengine/include/epubfmt.h"
-#include "../../crengine/include/pdbfmt.h"
-#include "../../crengine/include/fb3fmt.h"
-#include "../../crengine/include/docxfmt.h"
-#include "../../crengine/include/odtfmt.h"
-#include "../../crengine/include/lvstream.h"
-#include "../../crengine/include/lvxmlparser.h"
-#include "../../crengine/include/lvxmlutils.h"
+// crengine-ng does not ship cr3version.h; define the version string inline.
+#define CR_ENGINE_VERSION   "crengine-ng 0.9.13"
+#define CR_ENGINE_BUILD_DATE ""
 
-#include <../../crengine/include/fb2def.h>
+#include "docview.h"
+#include <crengine.h>
+#include <epubfmt.h>
+#include <pdbfmt.h>
+#include <fb3fmt.h>
+#include <docxfmt.h>
+#include <odtfmt.h>
+#include <lvstream.h>
+
+#include <fb2def.h>
 
 #define XS_IMPLEMENT_SCHEME 1
 
-#include <../../crengine/include/fb2def.h>
+#include <fb2def.h>
 
-#include "../../crengine/include/crlocaledata.h"
+#include <crlocaledata.h>
+#include <lvgraydrawbuf.h>
+#include <lvtinydom/ldomdocumentwriter.h>
+#include <lvxmlparser.h>
+#include <lvxmlutils.h>
 
 #if defined(__arm__) || defined(__aarch64__) || defined(__i386__) || defined(__mips__)
 #define USE_COFFEECATCH 1
@@ -431,29 +436,36 @@ static bool GetBookProperties(const char *name, BookProperties *pBookProps) {
 class JNICDRLogger : public CRLog {
 public:
     JNICDRLogger() {
-        curr_level = CRLog::LL_DEBUG;
+        m_currLevel = CRLog::LL_DEBUG;
     }
 
 protected:
 
-    virtual void log(const char *lvl, const char *msg, va_list args) {
+    virtual void log(CRLog::log_level lvl, const char *msg, va_list args) override {
 #define MAX_LOG_MSG_SIZE 1024
         static char buffer[MAX_LOG_MSG_SIZE + 1];
         vsnprintf(buffer, MAX_LOG_MSG_SIZE, msg, args);
-        int level = ANDROID_LOG_DEBUG;
-        //LOGD("CRLog::log is called with LEVEL %s, pattern %s", lvl, msg);
-        if (!strcmp(lvl, "FATAL"))
-            level = ANDROID_LOG_FATAL;
-        else if (!strcmp(lvl, "ERROR"))
-            level = ANDROID_LOG_ERROR;
-        else if (!strcmp(lvl, "WARN"))
-            level = ANDROID_LOG_WARN;
-        else if (!strcmp(lvl, "INFO"))
-            level = ANDROID_LOG_INFO;
-        else if (!strcmp(lvl, "DEBUG"))
-            level = ANDROID_LOG_DEBUG;
-        else if (!strcmp(lvl, "TRACE"))
-            level = ANDROID_LOG_VERBOSE;
+        int level;
+        switch (lvl) {
+            case CRLog::LL_FATAL:
+                level = ANDROID_LOG_FATAL;
+                break;
+            case CRLog::LL_ERROR:
+                level = ANDROID_LOG_ERROR;
+                break;
+            case CRLog::LL_WARN:
+                level = ANDROID_LOG_WARN;
+                break;
+            case CRLog::LL_INFO:
+                level = ANDROID_LOG_INFO;
+                break;
+            case CRLog::LL_DEBUG:
+                level = ANDROID_LOG_DEBUG;
+                break;
+            default:
+                level = ANDROID_LOG_VERBOSE;
+                break;
+        }
         __android_log_write(level, LOG_TAG, buffer);
     }
 };

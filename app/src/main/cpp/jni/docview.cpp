@@ -21,10 +21,12 @@
  ***************************************************************************/
 
 #include "docview.h"
-#include "lvdocview.h"
-#include "lvgraydrawbuf.h"
-#include "lvcolordrawbuf.h"
-#include "lvstreamutils.h"
+#include <lvdocview.h>
+#include <lvdocviewcallback.h>
+#include <ldomdocument.h>
+#include <lvgraydrawbuf.h>
+#include <lvcolordrawbuf.h>
+#include <lvstreamutils.h>
 //#include "crgl.h"
 
 #if defined(__arm__) || defined(__aarch64__) || defined(__i386__) || defined(__mips__)
@@ -2086,7 +2088,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_coolreader_crengine_DocView_getCoverPageDa
         return NULL;
     }
 //	CRLog::trace("getCoverPageDataInternal() : requesting cover image stream");
-    LVStreamRef stream = p->_docview->getCoverPageImageStream();
+    LVStreamRef stream = p->_docview->getBookCoverImageStream();
 //	CRLog::trace("getCoverPageDataInternal() : converting stream to byte array");
     jbyteArray array = env.streamToJByteArray(stream);
     if (array != NULL)

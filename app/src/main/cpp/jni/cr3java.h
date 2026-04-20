@@ -36,10 +36,11 @@
 #define  LOGD(...)  __android_log_print(ANDROID_LOG_DEBUG,LOG_TAG,__VA_ARGS__)
 #define  LOGASSERTFAILED(cond,...)  __android_log_assert(cond,LOG_TAG,__VA_ARGS__)
 
-#include "../../crengine/include/lvstring.h"
-#include "../../crengine/include/lvdrawbuf.h"
-#include "../../crengine/include/props.h"
-#include "../../crengine/include/lvtinydom.h"
+#include <lvstring.h>
+#include <lvdrawbuf.h>
+#include <crprops.h>
+#include <lvtocitem.h>
+#include <lvstream.h>
 
 //====================================================================
 // libjnigraphics replacement for pre-2.2 SDKs 
