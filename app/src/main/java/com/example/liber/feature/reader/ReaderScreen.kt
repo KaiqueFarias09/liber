@@ -88,6 +88,8 @@ import com.example.liber.core.util.UiText
 import com.example.liber.data.model.Annotation
 import com.example.liber.data.model.AnnotationType
 import com.example.liber.data.repository.UserPreferencesRepository
+import com.example.liber.feature.dictionary.DictionaryLookupSheet
+import com.example.liber.feature.dictionary.DictionaryViewModel
 import com.example.liber.feature.reader.components.AnnotationActionsSheet
 import com.example.liber.feature.reader.components.CreateAnnotationSheet
 import com.example.liber.feature.reader.components.HighlightColorPicker
@@ -110,6 +112,7 @@ fun ReaderScreen(
     bookUri: Uri,
     bookTitle: String,
     bookId: String,
+    dictionaryViewModel: DictionaryViewModel,
     userPreferencesRepository: UserPreferencesRepository,
     initialXPointer: String?,
     annotations: List<Annotation>,
@@ -136,6 +139,10 @@ fun ReaderScreen(
         )
     )
     val context = LocalContext.current
+    val localeLanguageTag = remember {
+        runCatching { context.resources.configuration.locales[0].toLanguageTag() }
+            .getOrDefault("en")
+    }
     val density = LocalDensity.current
 
     // ── Observe ViewModel state ──────────────────────────────────────────────
@@ -167,6 +174,9 @@ fun ReaderScreen(
     val selectionEndAnchor by viewModel.selectionEndAnchor.collectAsState()
     val pendingText by viewModel.pendingSelectedText.collectAsState()
     val fullscreenImage by viewModel.fullscreenImage.collectAsState()
+    val dictionaryLookupState by dictionaryViewModel.lookupState.collectAsState()
+    val activeLookupQuery by dictionaryViewModel.activeLookupQuery.collectAsState()
+    var showDictionaryLookupSheet by remember { mutableStateOf(false) }
 
     val theme = findReaderTheme(themeId)
 
@@ -513,6 +523,18 @@ fun ReaderScreen(
                         SelectionActionsMenu(
                             onHighlight = { viewModel.onSelectionMenuHighlight() },
                             onNote = { viewModel.onSelectionMenuNote() },
+                            onDefine = {
+                                val selected = pendingText?.trim().orEmpty()
+                                if (selected.isNotEmpty()) {
+                                    dictionaryViewModel.lookupWord(
+                                        query = selected,
+                                        languageTag = localeLanguageTag,
+                                        sourceBookId = bookId,
+                                    )
+                                    showDictionaryLookupSheet = true
+                                }
+                                viewModel.dismissSelectionMenu()
+                            },
                             onShare = {
                                 if (!pendingText.isNullOrBlank()) {
                                     val shareText = buildString {
@@ -968,6 +990,18 @@ fun ReaderScreen(
                 onResetSettings = { viewModel.resetLayoutSettings() },
             )
         }
+    }
+
+    // ── Dictionary Lookup ───────────────────────────────────────────────────
+    if (showDictionaryLookupSheet) {
+        DictionaryLookupSheet(
+            query = activeLookupQuery.orEmpty(),
+            lookupState = dictionaryLookupState,
+            onDismiss = {
+                showDictionaryLookupSheet = false
+                dictionaryViewModel.clearLookupState()
+            },
+        )
     }
 
     // ── Create / Edit Annotation ──────────────────────────────────────────────

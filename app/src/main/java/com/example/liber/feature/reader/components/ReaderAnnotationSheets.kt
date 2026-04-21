@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.Export
+import com.adamglin.phosphoricons.regular.MagnifyingGlass
 import com.adamglin.phosphoricons.regular.NotePencil
 import com.adamglin.phosphoricons.regular.PencilSimple
 import com.adamglin.phosphoricons.regular.Trash
@@ -358,6 +359,7 @@ fun CreateAnnotationSheet(
 fun SelectionActionsMenu(
     onHighlight: () -> Unit,
     onNote: () -> Unit,
+    onDefine: () -> Unit,
     onShare: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
@@ -387,6 +389,17 @@ fun SelectionActionsMenu(
                 icon = PhosphorIcons.Regular.NotePencil,
                 label = stringResource(R.string.reader_annotation_note),
                 onClick = onNote,
+            )
+            Box(
+                Modifier
+                    .height(20.dp)
+                    .width(0.5.dp)
+                    .background(MaterialTheme.colorScheme.outlineVariant)
+            )
+            SelectionMenuAction(
+                icon = PhosphorIcons.Regular.MagnifyingGlass,
+                label = stringResource(R.string.reader_action_define),
+                onClick = onDefine,
             )
             Box(
                 Modifier
