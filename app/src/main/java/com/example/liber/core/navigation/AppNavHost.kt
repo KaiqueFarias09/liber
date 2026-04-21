@@ -10,6 +10,8 @@ import androidx.navigation.compose.composable
 import com.example.liber.data.model.Book
 import com.example.liber.data.model.ScanSource
 import com.example.liber.feature.collections.CollectionsViewModel
+import com.example.liber.feature.dictionary.DictionaryManagementScreen
+import com.example.liber.feature.dictionary.DictionaryViewModel
 import com.example.liber.feature.home.HomeScreen
 import com.example.liber.feature.home.HomeViewModel
 import com.example.liber.feature.library.LibraryScreen
@@ -22,6 +24,7 @@ object AppRoute {
     const val HOME = "home"
     const val LIBRARY = "library"
     const val SETTINGS = "settings"
+    const val DICTIONARIES = "dictionaries"
 }
 
 /**
@@ -35,6 +38,7 @@ fun AppNavHost(
     collectionsViewModel: CollectionsViewModel,
     liberAppViewModel: LiberAppViewModel,
     settingsViewModel: SettingsViewModel,
+    dictionaryViewModel: DictionaryViewModel,
     onOpenBook: (Book) -> Unit,
     onAddBooks: () -> Unit,
     onShareBook: (Book) -> Unit,
@@ -80,6 +84,15 @@ fun AppNavHost(
                 onAddScanFolder = onScanFolder,
                 onRescanFolder = onRescanFolder,
                 onRemoveFolder = onRemoveScanFolder,
+                onOpenDictionaryManager = { navController.navigate(AppRoute.DICTIONARIES) },
+                modifier = modifier,
+            )
+        }
+
+        composable(AppRoute.DICTIONARIES) {
+            DictionaryManagementScreen(
+                viewModel = dictionaryViewModel,
+                onBack = { navController.popBackStack() },
                 modifier = modifier,
             )
         }

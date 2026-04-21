@@ -1,0 +1,190 @@
+package com.example.liber.data.repository
+
+import android.app.Application
+import com.example.liber.api.FreeDictApi
+import com.example.liber.data.local.DictionaryDao
+import com.example.liber.data.local.DictionaryEntryWithSenses
+import com.example.liber.data.model.Dictionary
+import com.example.liber.data.model.FreeDictCatalogItem
+import com.example.liber.data.model.DictionaryLookupHistory
+import kotlinx.coroutines.flow.Flow
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.io.File
+import java.util.Locale
+import java.util.UUID
+
+class DictionaryRepository(
+    private val dictionaryDao: DictionaryDao,
+    private val freeDictApi: FreeDictApi,
+    application: Application,
+) {
+
+    private val appContext = application.applicationContext
+    private val httpClient = OkHttpClient()
+
+    fun getAllDictionaries(): Flow<List<Dictionary>> = dictionaryDao.getAllDictionaries()
+
+    fun getLookupHistory(limit: Int = 100): Flow<List<DictionaryLookupHistory>> =
+        dictionaryDao.getLookupHistory(limit)
+
+    suspend fun createManualDictionary(
+        displayName: String,
+        sourceLanguageTag: String,
+        targetLanguageTag: String?,
+        dictionaryType: String,
+    ) {
+        val now = System.currentTimeMillis()
+        dictionaryDao.upsertDictionary(
+            Dictionary(
+                id = UUID.randomUUID().toString(),
+                displayName = displayName,
+                sourceLanguageTag = sourceLanguageTag,
+                targetLanguageTag = targetLanguageTag,
+                dictionaryType = dictionaryType,
+                packageFormat = "manual",
+                version = "local-1",
+                localFilePath = null,
+                remoteUrl = null,
+                installedAt = now,
+                updatedAt = now,
+            )
+        )
+    }
+
+    suspend fun fetchFreeDictCatalog(): List<FreeDictCatalogItem> {
+        return freeDictApi.getDatabase()
+            .mapNotNull { dto ->
+                val name = dto.name ?: return@mapNotNull null
+                val stardict = dto.releases
+                    .filter { it.platform.equals("stardict", ignoreCase = true) }
+                    .maxByOrNull { it.date.orEmpty() }
+                    ?: return@mapNotNull null
+
+                val parts = name.split("-")
+                if (parts.size < 2) return@mapNotNull null
+
+                FreeDictCatalogItem(
+                    code = name,
+                    sourceLanguageTag = parts.first(),
+                    targetLanguageTag = parts.last(),
+                    version = stardict.version,
+                    headwords = dto.headwords?.toIntOrNull(),
+                    stardictUrl = stardict.url,
+                    stardictSizeBytes = stardict.size?.toLongOrNull(),
+                )
+            }
+            .sortedWith(compareBy({ it.sourceLanguageTag }, { it.targetLanguageTag }))
+    }
+
+    suspend fun downloadAndInstallFreeDict(item: FreeDictCatalogItem): Dictionary {
+        val dictionariesDir = File(appContext.filesDir, "dictionaries")
+        if (!dictionariesDir.exists()) {
+            dictionariesDir.mkdirs()
+        }
+
+        val fileName = "${item.code}-${item.version}.stardict.tar.xz"
+        val targetFile = File(dictionariesDir, fileName)
+
+        val request = Request.Builder()
+            .url(item.stardictUrl)
+            .build()
+
+        httpClient.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                throw IllegalStateException("Failed to download dictionary (${response.code})")
+            }
+            val body = response.body ?: throw IllegalStateException("Empty dictionary response")
+            body.byteStream().use { input ->
+                targetFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+        }
+
+        val now = now()
+        val id = "freedict-${item.code}"
+        val existing = dictionaryDao.getDictionaryById(id)
+        val dictionary = Dictionary(
+            id = id,
+            displayName = item.code,
+            localAlias = existing?.localAlias,
+            sourceLanguageTag = item.sourceLanguageTag,
+            targetLanguageTag = item.targetLanguageTag,
+            dictionaryType = "bilingual",
+            packageFormat = "stardict.tar.xz",
+            version = item.version,
+            localFilePath = targetFile.absolutePath,
+            remoteUrl = item.stardictUrl,
+            installSizeBytes = targetFile.length(),
+            isEnabled = existing?.isEnabled ?: false,
+            priority = existing?.priority ?: 100,
+            installedAt = existing?.installedAt ?: now,
+            updatedAt = now,
+        )
+        dictionaryDao.upsertDictionary(dictionary)
+        return dictionary
+    }
+
+    suspend fun renameDictionary(id: String, localAlias: String?) {
+        dictionaryDao.setDictionaryAlias(id, localAlias?.trim()?.ifEmpty { null }, now())
+    }
+
+    suspend fun setDictionaryEnabled(id: String, enabled: Boolean) {
+        dictionaryDao.setDictionaryEnabled(id, enabled, now())
+    }
+
+    suspend fun setDictionaryPriority(id: String, priority: Int) {
+        dictionaryDao.setDictionaryPriority(id, priority, now())
+    }
+
+    suspend fun deleteDictionary(id: String) {
+        dictionaryDao.deleteDictionary(id)
+    }
+
+    suspend fun searchEntries(
+        query: String,
+        languageTag: String,
+        limit: Int = 30,
+    ): List<DictionaryEntryWithSenses> {
+        val trimmed = query.trim()
+        if (trimmed.isBlank()) return emptyList()
+
+        val normalizedPrefix = normalize(trimmed) + "%"
+        val rawPrefix = trimmed + "%"
+        val entries = dictionaryDao.searchEntries(languageTag, normalizedPrefix, rawPrefix, limit)
+        if (entries.isEmpty()) return emptyList()
+
+        return dictionaryDao.getEntriesWithSenses(entries.map { it.id })
+    }
+
+    suspend fun addLookupHistory(
+        query: String,
+        entryId: Long?,
+        dictionaryId: String?,
+        sourceBookId: String?,
+    ) {
+        dictionaryDao.insertLookupHistory(
+            DictionaryLookupHistory(
+                query = query,
+                entryId = entryId,
+                dictionaryId = dictionaryId,
+                sourceBookId = sourceBookId,
+            )
+        )
+    }
+
+    suspend fun deleteLookupHistory(id: Long) {
+        dictionaryDao.deleteLookupHistory(id)
+    }
+
+    suspend fun clearLookupHistory() {
+        dictionaryDao.clearLookupHistory()
+    }
+
+    private fun now(): Long = System.currentTimeMillis()
+
+    private fun normalize(value: String): String {
+        return value.trim().lowercase(Locale.ROOT)
+    }
+}

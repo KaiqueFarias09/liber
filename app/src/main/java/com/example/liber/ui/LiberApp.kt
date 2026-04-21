@@ -55,6 +55,7 @@ import com.example.liber.feature.audiobook.AudioPlayerScreen
 import com.example.liber.feature.audiobook.AudiobookPlayerViewModel
 import com.example.liber.feature.audiobook.components.NowPlayingBar
 import com.example.liber.feature.collections.CollectionsViewModel
+import com.example.liber.feature.dictionary.DictionaryViewModel
 import com.example.liber.feature.home.HomeViewModel
 import com.example.liber.feature.reader.ReaderScreen
 import com.example.liber.feature.settings.SettingsViewModel
@@ -80,6 +81,7 @@ fun LiberApp(
     val collectionsViewModel: CollectionsViewModel = hiltViewModel()
     val liberAppViewModel: LiberAppViewModel = hiltViewModel()
     val settingsViewModel: SettingsViewModel = hiltViewModel()
+    val dictionaryViewModel: DictionaryViewModel = hiltViewModel()
     val audiobookPlayerViewModel: AudiobookPlayerViewModel = hiltViewModel()
     val userPreferencesRepository = remember {
         com.example.liber.data.repository.UserPreferencesRepository(context.applicationContext)
@@ -89,6 +91,8 @@ fun LiberApp(
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
+
+    val isTopLevelRoute = currentRoute in listOf(AppRoute.HOME, AppRoute.LIBRARY, AppRoute.SETTINGS)
 
     val activeTab = when (currentRoute) {
         AppRoute.LIBRARY -> AppTab.LIBRARY
@@ -268,6 +272,7 @@ fun LiberApp(
                 bookUri = book.fileUri,
                 bookTitle = book.title,
                 bookId = book.id,
+                dictionaryViewModel = dictionaryViewModel,
                 userPreferencesRepository = userPreferencesRepository,
                 initialXPointer = book.lastLocator,
                 annotations = annotations,
@@ -309,11 +314,13 @@ fun LiberApp(
                                 Spacer(Modifier.height(4.dp))
                             }
                         }
-                        if (!showNavRail) {
+                        if (!showNavRail && isTopLevelRoute) {
                             LiberBottomNav(
                                 activeTab = activeTab,
                                 onTabChange = onTabChange,
                             )
+                        } else if (!showNavRail && !isTopLevelRoute) {
+                            Spacer(Modifier.navigationBarsPadding())
                         } else {
                             Spacer(Modifier.navigationBarsPadding())
                         }
@@ -325,7 +332,7 @@ fun LiberApp(
                         .padding(innerPadding)
                         .fillMaxSize()
                 ) {
-                    if (showNavRail) {
+                    if (showNavRail && isTopLevelRoute) {
                         LiberNavRail(
                             activeTab = activeTab,
                             onTabChange = onTabChange,
@@ -350,6 +357,7 @@ fun LiberApp(
                                 collectionsViewModel = collectionsViewModel,
                                 liberAppViewModel = liberAppViewModel,
                                 settingsViewModel = settingsViewModel,
+                                dictionaryViewModel = dictionaryViewModel,
                                 onOpenBook = onOpenBook,
                                 onAddBooks = onAddBooks,
                                 onShareBook = { bookToShare ->

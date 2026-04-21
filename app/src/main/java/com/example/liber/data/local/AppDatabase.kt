@@ -12,6 +12,10 @@ import com.example.liber.data.model.Book
 import com.example.liber.data.model.BookCollection
 import com.example.liber.data.model.Bookmark
 import com.example.liber.data.model.Collection
+import com.example.liber.data.model.Dictionary
+import com.example.liber.data.model.DictionaryEntry
+import com.example.liber.data.model.DictionaryLookupHistory
+import com.example.liber.data.model.DictionarySense
 import com.example.liber.data.model.ScanSource
 
 @Database(
@@ -22,8 +26,12 @@ import com.example.liber.data.model.ScanSource
         Collection::class,
         BookCollection::class,
         ScanSource::class,
+        Dictionary::class,
+        DictionaryEntry::class,
+        DictionarySense::class,
+        DictionaryLookupHistory::class,
     ],
-    version = 12,
+    version = 13,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)
@@ -31,6 +39,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun bookDao(): BookDao
     abstract fun collectionDao(): CollectionDao
     abstract fun scanSourceDao(): ScanSourceDao
+    abstract fun dictionaryDao(): DictionaryDao
 
     companion object {
         @Volatile
@@ -158,6 +167,83 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `dictionaries` (
+                        `id` TEXT NOT NULL,
+                        `displayName` TEXT NOT NULL,
+                        `localAlias` TEXT,
+                        `sourceLanguageTag` TEXT NOT NULL,
+                        `targetLanguageTag` TEXT,
+                        `dictionaryType` TEXT NOT NULL,
+                        `packageFormat` TEXT NOT NULL,
+                        `version` TEXT NOT NULL,
+                        `localFilePath` TEXT,
+                        `remoteUrl` TEXT,
+                        `installSizeBytes` INTEGER NOT NULL,
+                        `isEnabled` INTEGER NOT NULL,
+                        `priority` INTEGER NOT NULL,
+                        `installedAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent()
+                )
+
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `dictionary_entries` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `dictionaryId` TEXT NOT NULL,
+                        `headword` TEXT NOT NULL,
+                        `normalizedHeadword` TEXT NOT NULL,
+                        `lemma` TEXT,
+                        `languageTag` TEXT NOT NULL,
+                        FOREIGN KEY(`dictionaryId`) REFERENCES `dictionaries`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `dictionary_senses` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `entryId` INTEGER NOT NULL,
+                        `partOfSpeech` TEXT,
+                        `definition` TEXT NOT NULL,
+                        `example` TEXT,
+                        FOREIGN KEY(`entryId`) REFERENCES `dictionary_entries`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `dictionary_lookup_history` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `query` TEXT NOT NULL,
+                        `entryId` INTEGER,
+                        `dictionaryId` TEXT,
+                        `sourceBookId` TEXT,
+                        `lookedUpAt` INTEGER NOT NULL,
+                        FOREIGN KEY(`entryId`) REFERENCES `dictionary_entries`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL,
+                        FOREIGN KEY(`dictionaryId`) REFERENCES `dictionaries`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL
+                    )
+                    """.trimIndent()
+                )
+
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_dictionary_entries_dictionaryId` ON `dictionary_entries` (`dictionaryId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_dictionary_entries_normalizedHeadword` ON `dictionary_entries` (`normalizedHeadword`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_dictionary_entries_languageTag` ON `dictionary_entries` (`languageTag`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_dictionary_senses_entryId` ON `dictionary_senses` (`entryId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_dictionary_lookup_history_entryId` ON `dictionary_lookup_history` (`entryId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_dictionary_lookup_history_dictionaryId` ON `dictionary_lookup_history` (`dictionaryId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_dictionary_lookup_history_lookedUpAt` ON `dictionary_lookup_history` (`lookedUpAt`)")
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -176,6 +262,7 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_9_10,
                         MIGRATION_10_11,
                         MIGRATION_11_12,
+                        MIGRATION_12_13,
                     )
                     .build()
                 INSTANCE = instance

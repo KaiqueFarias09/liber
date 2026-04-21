@@ -4,6 +4,7 @@ import android.content.Context
 import com.example.liber.data.local.AppDatabase
 import com.example.liber.data.local.BookDao
 import com.example.liber.data.local.CollectionDao
+import com.example.liber.data.local.DictionaryDao
 import com.example.liber.data.local.ScanSourceDao
 import dagger.Module
 import dagger.Provides
@@ -29,4 +30,7 @@ object DatabaseModule {
 
     @Provides
     fun provideScanSourceDao(db: AppDatabase): ScanSourceDao = db.scanSourceDao()
+
+    @Provides
+    fun provideDictionaryDao(db: AppDatabase): DictionaryDao = db.dictionaryDao()
 }

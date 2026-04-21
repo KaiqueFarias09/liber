@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.example.liber.feature.library.LibrarySortOption
@@ -37,6 +38,8 @@ class UserPreferencesRepository(private val context: Context) {
         val BOOKS_SORT_OPTION = stringPreferencesKey("books_sort_option")
         val AUDIOBOOKS_VIEW_MODE = stringPreferencesKey("audiobooks_view_mode")
         val AUDIOBOOKS_SORT_OPTION = stringPreferencesKey("audiobooks_sort_option")
+        val DICTIONARY_HISTORY_ENABLED = booleanPreferencesKey("dictionary_history_enabled")
+        val DICTIONARY_HISTORY_RETENTION_DAYS = intPreferencesKey("dictionary_history_retention_days")
     }
 
     val themeMode: Flow<ThemeMode> = context.dataStore.data
@@ -160,8 +163,22 @@ class UserPreferencesRepository(private val context: Context) {
             LibrarySortOption.valueOf(name)
         }
 
+    val dictionaryHistoryEnabled: Flow<Boolean> = context.dataStore.data
+        .map { it[PreferencesKeys.DICTIONARY_HISTORY_ENABLED] ?: true }
+
+    val dictionaryHistoryRetentionDays: Flow<Int> = context.dataStore.data
+        .map { it[PreferencesKeys.DICTIONARY_HISTORY_RETENTION_DAYS] ?: 90 }
+
     suspend fun setAudiobooksSortOption(option: LibrarySortOption) {
         context.dataStore.edit { it[PreferencesKeys.AUDIOBOOKS_SORT_OPTION] = option.name }
+    }
+
+    suspend fun setDictionaryHistoryEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.DICTIONARY_HISTORY_ENABLED] = enabled }
+    }
+
+    suspend fun setDictionaryHistoryRetentionDays(days: Int) {
+        context.dataStore.edit { it[PreferencesKeys.DICTIONARY_HISTORY_RETENTION_DAYS] = days }
     }
 
     suspend fun resetReaderSettings() {

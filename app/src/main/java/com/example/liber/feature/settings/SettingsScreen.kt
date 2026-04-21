@@ -59,6 +59,7 @@ fun SettingsScreen(
     onAddScanFolder: () -> Unit = {},
     onRescanFolder: (ScanSource) -> Unit = {},
     onRemoveFolder: (ScanSource) -> Unit = {},
+    onOpenDictionaryManager: () -> Unit = {},
 ) {
     val themeMode by viewModel.themeMode.collectAsState()
     val currentLanguage by viewModel.currentLanguage.collectAsState()
@@ -81,6 +82,14 @@ fun SettingsScreen(
                     onAddScanFolder = onAddScanFolder,
                     onRescanFolder = onRescanFolder,
                     onRemoveFolder = onRemoveFolder,
+                )
+            }
+
+            SettingsSection(title = UiText.StringResource(R.string.settings_section_dictionary)) {
+                SettingsActionRow(
+                    icon = PhosphorIcons.Regular.Translate,
+                    label = UiText.StringResource(R.string.settings_dictionary_manage_action),
+                    onClick = onOpenDictionaryManager,
                 )
             }
 
