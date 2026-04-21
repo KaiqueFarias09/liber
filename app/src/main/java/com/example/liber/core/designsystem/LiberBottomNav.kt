@@ -1,10 +1,12 @@
 package com.example.liber.core.designsystem
 
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
@@ -19,6 +21,7 @@ import com.example.liber.core.navigation.AppTab
 fun LiberBottomNav(
     activeTab: AppTab,
     onTabChange: (AppTab) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val itemColors = NavigationBarItemDefaults.colors(
         selectedIconColor = MaterialTheme.colorScheme.onSurface,
@@ -29,9 +32,12 @@ fun LiberBottomNav(
     )
 
     NavigationBar(
+        modifier = modifier
+            .windowInsetsPadding(NavigationBarDefaults.windowInsets)
+            .height(68.dp),
         containerColor = MaterialTheme.colorScheme.surface,
         tonalElevation = 0.dp,
-        modifier = Modifier.height(76.dp)
+        windowInsets = WindowInsets(0, 0, 0, 0)
     ) {
         AppTab.entries.forEach { tab ->
             val selected = tab == activeTab
@@ -42,7 +48,6 @@ fun LiberBottomNav(
                     Icon(
                         imageVector = if (selected) tab.activeIcon else tab.inactiveIcon,
                         contentDescription = stringResource(tab.labelRes),
-                        modifier = Modifier.padding(top = 4.dp)
                     )
                 },
                 label = {

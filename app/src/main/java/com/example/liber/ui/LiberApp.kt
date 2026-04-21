@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
@@ -303,8 +304,9 @@ fun LiberApp(
                                     onRewind = { audiobookPlayerViewModel.skipBackward(15) },
                                     onForward = { audiobookPlayerViewModel.skipForward(15) },
                                     onClick = { liberAppViewModel.openReader() },
-                                    modifier = Modifier.padding(bottom = if (showNavRail) 16.dp else 4.dp)
+                                    modifier = Modifier.padding(horizontal = 8.dp)
                                 )
+                                Spacer(Modifier.height(4.dp))
                             }
                         }
                         if (!showNavRail) {
