@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -47,7 +48,9 @@ fun BookListCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             BookCover(
