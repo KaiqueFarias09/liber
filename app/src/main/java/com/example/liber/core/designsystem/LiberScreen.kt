@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.MaterialTheme
@@ -29,13 +30,18 @@ import com.example.liber.core.util.UiText
 fun LiberScreen(
     title: UiText?,
     modifier: Modifier = Modifier,
+    navigationIcon: (@Composable () -> Unit)? = null,
     headerActions: (@Composable RowScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Column(
         modifier = modifier.fillMaxSize()
     ) {
-        LiberHeader(title = title, actions = headerActions)
+        LiberHeader(
+            title = title,
+            navigationIcon = navigationIcon,
+            actions = headerActions
+        )
         content()
     }
 }
@@ -47,6 +53,7 @@ fun LiberScreen(
 fun LiberScrollableScreen(
     title: UiText?,
     modifier: Modifier = Modifier,
+    navigationIcon: (@Composable () -> Unit)? = null,
     headerActions: (@Composable RowScope.() -> Unit)? = null,
     contentPadding: PaddingValues = PaddingValues(bottom = 24.dp),
     content: LazyListScope.() -> Unit
@@ -56,7 +63,11 @@ fun LiberScrollableScreen(
         contentPadding = contentPadding
     ) {
         item {
-            LiberHeader(title = title, actions = headerActions)
+            LiberHeader(
+                title = title,
+                navigationIcon = navigationIcon,
+                actions = headerActions
+            )
         }
         content()
     }
@@ -66,10 +77,11 @@ fun LiberScrollableScreen(
 fun LiberHeader(
     title: UiText?,
     modifier: Modifier = Modifier,
+    navigationIcon: (@Composable () -> Unit)? = null,
     actions: (@Composable RowScope.() -> Unit)? = null
 ) {
     // If absolutely nothing to show, just provide a standard top margin
-    if (title == null && actions == null) {
+    if (title == null && actions == null && navigationIcon == null) {
         Spacer(modifier = modifier.height(24.dp))
         return
     }
@@ -78,16 +90,27 @@ fun LiberHeader(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 64.dp) // Standard Material-ish header height
-            .padding(horizontal = 24.dp)
-            .padding(top = 8.dp), // Slight top offset for status bar area breathing room
-        horizontalArrangement = Arrangement.SpaceBetween,
+            .padding(
+                start = if (navigationIcon != null) 4.dp else 24.dp,
+                end = if (actions != null) 12.dp else 24.dp,
+                top = 8.dp
+            ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (navigationIcon != null) {
+            navigationIcon()
+            // Minimal spacer because IconButton already has internal padding
+            Spacer(modifier = Modifier.width(4.dp))
+        }
+
         if (title != null) {
             Text(
                 text = title.asString(),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = if (navigationIcon == null) 0.dp else 4.dp)
             )
         } else {
             // Keep a spacer if we have actions but no title
