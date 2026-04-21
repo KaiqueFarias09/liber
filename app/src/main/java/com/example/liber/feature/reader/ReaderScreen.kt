@@ -59,6 +59,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
@@ -256,12 +257,10 @@ fun ReaderScreen(
     }
 
     // ── UI chrome colors ─────────────────────────────────────────────────────
-    val colorScheme = MaterialTheme.colorScheme
-    val chromeBg = colorScheme.surfaceContainerHighest.copy(alpha = 0.95f)
-    val chromeIcon = colorScheme.onSurfaceVariant
-    val chromeOnIcon = colorScheme.onSurface
-    val chromeDivider = colorScheme.outlineVariant
-    val chromeLabel = colorScheme.onSurfaceVariant
+    val chromeBg = theme.background
+    val chromeIcon = theme.textColor.copy(alpha = 0.7f)
+    val chromeOnIcon = theme.textColor
+    val chromeLabel = theme.textColor.copy(alpha = 0.5f)
 
     // ── Back handling ────────────────────────────────────────────────────────
     val handleBack: () -> Unit = {
@@ -549,81 +548,83 @@ fun ReaderScreen(
             exit = slideOutVertically { -it },
             modifier = Modifier.align(Alignment.TopStart),
         ) {
-            Surface(
-                color = chromeBg,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(64.dp)
-                        .statusBarsPadding()
-                        .padding(horizontal = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Surface(
+                    color = chromeBg,
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
-                    IconButton(onClick = handleBack) {
-                        Icon(
-                            PhosphorIcons.Regular.ArrowLeft,
-                            contentDescription = "Back",
-                            tint = chromeOnIcon,
-                        )
-                    }
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.weight(1f),
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(64.dp)
+                            .statusBarsPadding()
+                            .padding(horizontal = 4.dp),
+                        contentAlignment = Alignment.Center
                     ) {
+                        IconButton(
+                            onClick = handleBack,
+                            modifier = Modifier.align(Alignment.CenterStart)
+                        ) {
+                            Icon(
+                                PhosphorIcons.Regular.ArrowLeft,
+                                contentDescription = "Back",
+                                tint = chromeOnIcon,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+
                         Text(
                             text = bookTitle,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            letterSpacing = 0.8.sp,
-                            color = chromeLabel,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
+                                color = chromeOnIcon.copy(alpha = 0.6f)
+                            ),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(horizontal = 56.dp)
                         )
-                        if (currentChapter != null) {
-                            Text(
-                                text = currentChapter,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = chromeOnIcon,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
+
+                        IconButton(
+                            onClick = {
+                                if (isCurrentPageBookmarked) {
+                                    val match = bookmarks.minByOrNull { bm ->
+                                        abs(
+                                            (bm.locator.toFloatOrNull()
+                                                ?: Float.MAX_VALUE) - progress
+                                        )
+                                    }
+                                    match?.let { onDeleteBookmark(it.id) }
+                                } else {
+                                    onSaveBookmark(
+                                        BookmarkModel(
+                                            bookId = bookId,
+                                            locator = progress.toString(),
+                                            chapter = currentChapter,
+                                        )
+                                    )
+                                }
+                            },
+                            modifier = Modifier.align(Alignment.CenterEnd)
+                        ) {
+                            Icon(
+                                PhosphorIcons.Regular.Bookmark,
+                                contentDescription = if (isCurrentPageBookmarked) "Remove bookmark" else "Add bookmark",
+                                tint = if (isCurrentPageBookmarked) RedAccent else chromeIcon,
+                                modifier = Modifier.size(24.dp)
                             )
                         }
                     }
-                    IconButton(
-                        onClick = {
-                            if (isCurrentPageBookmarked) {
-                                val match = bookmarks.minByOrNull { bm ->
-                                    abs((bm.locator.toFloatOrNull() ?: Float.MAX_VALUE) - progress)
-                                }
-                                match?.let { onDeleteBookmark(it.id) }
-                            } else {
-                                onSaveBookmark(
-                                    BookmarkModel(
-                                        bookId = bookId,
-                                        locator = progress.toString(),
-                                        chapter = currentChapter,
-                                    )
-                                )
-                            }
-                        }
-                    ) {
-                        Icon(
-                            PhosphorIcons.Regular.Bookmark,
-                            contentDescription = if (isCurrentPageBookmarked) "Remove bookmark" else "Add bookmark",
-                            tint = if (isCurrentPageBookmarked) RedAccent else chromeIcon,
-                        )
-                    }
                 }
+                // Gradient shadow
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(0.5.dp)
-                        .align(Alignment.BottomCenter)
-                        .background(chromeDivider)
+                        .height(24.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(chromeBg, Color.Transparent)
+                            )
+                        )
                 )
             }
         }
@@ -663,94 +664,125 @@ fun ReaderScreen(
             exit = slideOutVertically { it },
             modifier = Modifier.align(Alignment.BottomCenter),
         ) {
-            Surface(
-                color = chromeBg,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(
+            Column(modifier = Modifier.fillMaxWidth()) {
+                // Gradient shadow
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .navigationBarsPadding(),
+                        .height(24.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color.Transparent, chromeBg)
+                            )
+                        )
+                )
+                Surface(
+                    color = chromeBg,
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Box(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(0.5.dp)
-                            .background(chromeDivider)
-                    )
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp)
-                            .padding(top = 16.dp, bottom = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            .navigationBarsPadding()
+                            .padding(horizontal = 24.dp)
+                            .padding(top = 8.dp, bottom = 12.dp),
                     ) {
-                        Text(
-                            text = "${(progress * 100).toInt()}%",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = chromeLabel,
-                        )
-                        ProgressScrubber(
-                            progress = progress,
-                            onProgressChange = { viewModel.goToProgress(it) },
-                            modifier = Modifier.weight(1f),
-                        )
-                        Text(
-                            text = "100%",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = chromeLabel,
-                        )
-                    }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp)
-                            .padding(bottom = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceAround,
-                    ) {
-                        ReaderNavItem(
-                            icon = { Icon(PhosphorIcons.Regular.List, null, tint = chromeIcon) },
-                            label = UiText.StringResource(R.string.reader_nav_contents),
-                            labelColor = chromeLabel,
-                            onClick = { showContents = true },
-                        )
-                        ReaderNavItem(
-                            icon = {
-                                Icon(
-                                    PhosphorIcons.Regular.MagnifyingGlass,
-                                    null,
-                                    tint = chromeIcon
-                                )
-                            },
-                            label = UiText.StringResource(R.string.reader_nav_search),
-                            labelColor = chromeLabel,
-                            onClick = { showSearch = true },
-                        )
-                        ReaderNavItem(
-                            icon = {
-                                Box {
-                                    Icon(PhosphorIcons.Regular.NotePencil, null, tint = chromeIcon)
-                                    if (bookmarks.isNotEmpty() || annotations.isNotEmpty()) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(8.dp)
-                                                .align(Alignment.TopEnd)
-                                                .background(GreenAccent, CircleShape)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            Text(
+                                text = "${(progress * 100).toInt()}%",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = chromeLabel,
+                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                            )
+                            ProgressScrubber(
+                                progress = progress,
+                                onProgressChange = { viewModel.goToProgress(it) },
+                                trackColor = theme.textColor.copy(alpha = 0.1f),
+                                progressColor = RedAccent,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Text(
+                                text = "100%",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = chromeLabel,
+                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                            )
+                        }
+
+                        Spacer(Modifier.height(8.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            ReaderNavItem(
+                                icon = {
+                                    Icon(
+                                        PhosphorIcons.Regular.List,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(24.dp),
+                                        tint = chromeIcon
+                                    )
+                                },
+                                label = UiText.StringResource(R.string.reader_nav_contents),
+                                labelColor = chromeIcon,
+                                onClick = { showContents = true }
+                            )
+                            ReaderNavItem(
+                                icon = {
+                                    Icon(
+                                        PhosphorIcons.Regular.MagnifyingGlass,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(24.dp),
+                                        tint = chromeIcon
+                                    )
+                                },
+                                label = UiText.StringResource(R.string.reader_nav_search),
+                                labelColor = chromeIcon,
+                                onClick = { showSearch = true }
+                            )
+                            ReaderNavItem(
+                                icon = {
+                                    Box {
+                                        Icon(
+                                            PhosphorIcons.Regular.NotePencil,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(24.dp),
+                                            tint = chromeIcon
                                         )
+                                        if (bookmarks.isNotEmpty() || annotations.isNotEmpty()) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(6.dp)
+                                                    .align(Alignment.TopEnd)
+                                                    .offset(x = 2.dp, y = (-2).dp)
+                                                    .background(GreenAccent, CircleShape)
+                                            )
+                                        }
                                     }
-                                }
-                            },
-                            label = UiText.StringResource(R.string.reader_nav_notebook),
-                            labelColor = chromeLabel,
-                            onClick = { showNotebook = true },
-                        )
-                        ReaderNavItem(
-                            icon = { Icon(PhosphorIcons.Regular.TextAa, null, tint = chromeIcon) },
-                            label = UiText.StringResource(R.string.reader_nav_themes),
-                            labelColor = chromeLabel,
-                            onClick = { showThemes = true },
-                        )
+                                },
+                                label = UiText.StringResource(R.string.reader_nav_notebook),
+                                labelColor = chromeIcon,
+                                onClick = { showNotebook = true }
+                            )
+                            ReaderNavItem(
+                                icon = {
+                                    Icon(
+                                        PhosphorIcons.Regular.TextAa,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(24.dp),
+                                        tint = chromeIcon
+                                    )
+                                },
+                                label = UiText.StringResource(R.string.reader_nav_themes),
+                                labelColor = chromeIcon,
+                                onClick = { showThemes = true }
+                            )
+                        }
                     }
                 }
             }
@@ -1082,10 +1114,10 @@ private fun TocItemRow(item: TOCItem, onClick: () -> Unit) {
 private fun ProgressScrubber(
     progress: Float,
     onProgressChange: (Float) -> Unit,
+    trackColor: Color,
+    progressColor: Color,
     modifier: Modifier = Modifier,
 ) {
-    val trackColor = MaterialTheme.colorScheme.outlineVariant
-    val progressColor = MaterialTheme.colorScheme.onSurfaceVariant
     var draggingProgress by remember { mutableStateOf<Float?>(null) }
     val displayProgress = draggingProgress ?: progress
 
@@ -1128,14 +1160,14 @@ private fun ProgressScrubber(
                 size = Size(fillW, trackH), cornerRadius = CornerRadius(trackH / 2f),
             )
         }
-        val thumbR = 10.dp.toPx()
+        val thumbR = 8.dp.toPx()
         val thumbX = fillW.coerceIn(thumbR, size.width - thumbR)
+
         drawCircle(
-            color = Color.Black.copy(alpha = 0.15f),
-            radius = thumbR + 1.dp.toPx(),
-            center = Offset(thumbX, size.height / 2f + 1.dp.toPx()),
+            color = progressColor,
+            radius = thumbR,
+            center = Offset(thumbX, size.height / 2f)
         )
-        drawCircle(color = Color.White, radius = thumbR, center = Offset(thumbX, size.height / 2f))
     }
 }
 
