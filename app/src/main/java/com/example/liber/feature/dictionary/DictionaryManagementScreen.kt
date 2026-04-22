@@ -1,7 +1,6 @@
 package com.example.liber.feature.dictionary
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,7 +32,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -41,20 +39,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
-import com.adamglin.phosphoricons.regular.ArrowClockwise
 import com.adamglin.phosphoricons.regular.ArrowLeft
 import com.adamglin.phosphoricons.regular.Book
 import com.adamglin.phosphoricons.regular.CheckCircle
 import com.adamglin.phosphoricons.regular.DownloadSimple
 import com.adamglin.phosphoricons.regular.FileArrowUp
-import com.adamglin.phosphoricons.regular.MagnifyingGlass
 import com.adamglin.phosphoricons.regular.PencilSimple
 import com.adamglin.phosphoricons.regular.Trash
-import com.adamglin.phosphoricons.regular.WarningCircle
 import com.example.liber.R
 import com.example.liber.core.designsystem.LiberDialog
 import com.example.liber.core.designsystem.LiberScreen
 import com.example.liber.core.designsystem.LiberSearchField
+import com.example.liber.core.designsystem.LiberTabBar
 import com.example.liber.core.designsystem.LiberTextField
 import com.example.liber.core.util.UiState
 import com.example.liber.core.util.UiText
@@ -70,7 +66,8 @@ private val languageMap = mapOf(
 
 private fun getLanguageName(tag: String): String {
     return languageMap[tag] ?: try {
-        Locale.forLanguageTag(tag).getDisplayLanguage(Locale.ENGLISH).replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
+        Locale.forLanguageTag(tag).getDisplayLanguage(Locale.ENGLISH)
+            .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
             .ifEmpty { tag.uppercase(Locale.ROOT) }
     } catch (e: Exception) {
         tag.uppercase(Locale.ROOT)
@@ -121,43 +118,18 @@ fun DictionaryManagementScreen(
         }
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // TABS
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-                    .padding(top = 8.dp)
-            ) {
-                val tabs = listOf("installed" to "Installed (${dictionaries.size})", "available" to "FreeDict API")
-                tabs.forEach { (id, label) ->
-                    val selected = activeTab == id
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { activeTab = id }
-                            .padding(vertical = 12.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = label,
-                                style = MaterialTheme.typography.labelLarge,
-                                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Box(
-                                modifier = Modifier
-                                    .height(2.dp)
-                                    .fillMaxWidth()
-                                    .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent)
-                            )
-                        }
-                    }
-                }
-            }
+            val tabTitles = listOf(
+                UiText.DynamicString("Installed (${dictionaries.size})"),
+                UiText.DynamicString("FreeDict API")
+            )
+            val tabIds = listOf("installed", "available")
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 0.5.dp)
+            LiberTabBar(
+                tabs = tabTitles,
+                selectedTabIndex = tabIds.indexOf(activeTab).coerceAtLeast(0),
+                onTabSelected = { index -> activeTab = tabIds[index] },
+                modifier = Modifier.padding(top = 8.dp)
+            )
 
             // SEARCH BAR (only in available tab)
             if (activeTab == "available") {
@@ -213,7 +185,12 @@ fun DictionaryManagementScreen(
                     } else {
                         items(dictionaries, key = { it.id }) { dictionary ->
                             DictionaryCard(
-                                title = dictionary.localAlias ?: (getLanguageName(dictionary.sourceLanguageTag) + " to " + (dictionary.targetLanguageTag?.let { getLanguageName(it) } ?: "Self")),
+                                title = dictionary.localAlias
+                                    ?: (getLanguageName(dictionary.sourceLanguageTag) + " to " + (dictionary.targetLanguageTag?.let {
+                                        getLanguageName(
+                                            it
+                                        )
+                                    } ?: "Self")),
                                 subtitle = dictionary.id,
                                 version = dictionary.version,
                                 headwords = null, // Installed dictionaries don't easily show headwords count here
@@ -225,7 +202,9 @@ fun DictionaryManagementScreen(
                                             modifier = Modifier
                                                 .size(36.dp)
                                                 .background(
-                                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                                    MaterialTheme.colorScheme.surfaceVariant.copy(
+                                                        alpha = 0.5f
+                                                    ),
                                                     RoundedCornerShape(8.dp)
                                                 )
                                         ) {
@@ -242,7 +221,9 @@ fun DictionaryManagementScreen(
                                             modifier = Modifier
                                                 .size(36.dp)
                                                 .background(
-                                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                                    MaterialTheme.colorScheme.surfaceVariant.copy(
+                                                        alpha = 0.5f
+                                                    ),
                                                     RoundedCornerShape(8.dp)
                                                 )
                                         ) {
@@ -259,8 +240,15 @@ fun DictionaryManagementScreen(
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Switch(
                                             checked = dictionary.isEnabled,
-                                            onCheckedChange = { viewModel.setDictionaryEnabled(dictionary.id, it) },
-                                            modifier = Modifier.size(32.dp).padding(end = 8.dp)
+                                            onCheckedChange = {
+                                                viewModel.setDictionaryEnabled(
+                                                    dictionary.id,
+                                                    it
+                                                )
+                                            },
+                                            modifier = Modifier
+                                                .size(32.dp)
+                                                .padding(end = 8.dp)
                                         )
                                         Text(
                                             text = if (dictionary.isEnabled) "Enabled" else "Disabled",
@@ -276,8 +264,14 @@ fun DictionaryManagementScreen(
                     // AVAILABLE TAB
                     when (catalogState) {
                         is UiState.Loading -> {
-                            item { Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
+                            item {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentAlignment = Alignment.Center
+                                ) { CircularProgressIndicator() }
+                            }
                         }
+
                         is UiState.Error -> {
                             item {
                                 Text(
@@ -287,12 +281,20 @@ fun DictionaryManagementScreen(
                                 )
                             }
                         }
+
                         is UiState.Success -> {
-                            val catalog = (catalogState as UiState.Success<List<FreeDictCatalogItem>>).data
+                            val catalog =
+                                (catalogState as UiState.Success<List<FreeDictCatalogItem>>).data
                             val filtered = catalog.filter {
                                 it.code.contains(searchQuery, ignoreCase = true) ||
-                                        getLanguageName(it.sourceLanguageTag).contains(searchQuery, ignoreCase = true) ||
-                                        getLanguageName(it.targetLanguageTag).contains(searchQuery, ignoreCase = true)
+                                        getLanguageName(it.sourceLanguageTag).contains(
+                                            searchQuery,
+                                            ignoreCase = true
+                                        ) ||
+                                        getLanguageName(it.targetLanguageTag).contains(
+                                            searchQuery,
+                                            ignoreCase = true
+                                        )
                             }
                             if (filtered.isEmpty()) {
                                 item {
@@ -300,16 +302,21 @@ fun DictionaryManagementScreen(
                                         text = "No dictionaries found for \"$searchQuery\"",
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp)
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 32.dp)
                                     )
                                 }
                             } else {
                                 items(filtered, key = { it.code }) { item ->
                                     val isDownloading = downloadingCodes.contains(item.code)
-                                    val isInstalled = dictionaries.any { it.id == "freedict-${item.code}" }
-                                    
+                                    val isInstalled =
+                                        dictionaries.any { it.id == "freedict-${item.code}" }
+
                                     DictionaryCard(
-                                        title = getLanguageName(item.sourceLanguageTag) + " to " + getLanguageName(item.targetLanguageTag),
+                                        title = getLanguageName(item.sourceLanguageTag) + " to " + getLanguageName(
+                                            item.targetLanguageTag
+                                        ),
                                         subtitle = item.code,
                                         version = item.version,
                                         headwords = item.headwords,
@@ -330,13 +337,27 @@ fun DictionaryManagementScreen(
                                                     modifier = Modifier.height(36.dp)
                                                 ) {
                                                     if (isDownloading) {
-                                                        CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                                                        CircularProgressIndicator(
+                                                            modifier = Modifier.size(
+                                                                14.dp
+                                                            ), strokeWidth = 2.dp
+                                                        )
                                                         Spacer(Modifier.width(8.dp))
-                                                        Text("...", style = MaterialTheme.typography.labelSmall)
+                                                        Text(
+                                                            "...",
+                                                            style = MaterialTheme.typography.labelSmall
+                                                        )
                                                     } else {
-                                                        Icon(PhosphorIcons.Regular.DownloadSimple, null, modifier = Modifier.size(14.dp))
+                                                        Icon(
+                                                            PhosphorIcons.Regular.DownloadSimple,
+                                                            null,
+                                                            modifier = Modifier.size(14.dp)
+                                                        )
                                                         Spacer(Modifier.width(6.dp))
-                                                        Text("Download", style = MaterialTheme.typography.labelSmall)
+                                                        Text(
+                                                            "Download",
+                                                            style = MaterialTheme.typography.labelSmall
+                                                        )
                                                     }
                                                 }
                                             }
@@ -388,7 +409,10 @@ private fun DictionaryCard(
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
         shape = RoundedCornerShape(16.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+        ),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -446,7 +470,7 @@ private fun DictionaryCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                
+
                 if (footer != null) {
                     footer()
                 } else {
