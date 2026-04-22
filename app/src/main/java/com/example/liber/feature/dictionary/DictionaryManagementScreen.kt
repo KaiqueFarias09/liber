@@ -1,6 +1,10 @@
 package com.example.liber.feature.dictionary
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +20,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,14 +39,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.documentfile.provider.DocumentFile
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.ArrowLeft
 import com.adamglin.phosphoricons.regular.Book
+import com.adamglin.phosphoricons.regular.CaretDown
 import com.adamglin.phosphoricons.regular.CheckCircle
 import com.adamglin.phosphoricons.regular.DownloadSimple
 import com.adamglin.phosphoricons.regular.FileArrowUp
@@ -377,8 +386,8 @@ fun DictionaryManagementScreen(
     if (showCreateDialog) {
         CreateDictionaryDialog(
             onDismiss = { showCreateDialog = false },
-            onConfirm = { name, source, target, type ->
-                viewModel.createDictionary(name, source, target, type)
+            onConfirm = { name, source, target, type, uri ->
+                viewModel.createDictionary(name, source, target, type, uri)
                 showCreateDialog = false
             },
         )
@@ -509,25 +518,105 @@ private fun DictionaryCard(
 @Composable
 private fun CreateDictionaryDialog(
     onDismiss: () -> Unit,
-    onConfirm: (name: String, source: String, target: String?, type: String) -> Unit,
+    onConfirm: (name: String, source: String, target: String?, type: String, uri: Uri?) -> Unit,
 ) {
     var name by remember { mutableStateOf("") }
     var sourceTag by remember { mutableStateOf("en") }
     var targetTag by remember { mutableStateOf("") }
     var type by remember { mutableStateOf("monolingual") }
+    var selectedUri by remember { mutableStateOf<Uri?>(null) }
+    var selectedFileName by remember { mutableStateOf<String?>(null) }
+    var fileError by remember { mutableStateOf<String?>(null) }
+
+    val context = LocalContext.current
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            val fileName = DocumentFile.fromSingleUri(context, uri)?.name ?: "file"
+            val extension = fileName.lowercase()
+            val supportedExtensions =
+                listOf(".tar.xz", ".tar.gz", ".zip", ".tar", ".dz", ".ifo", ".idx", ".dict")
+
+            if (supportedExtensions.any { ext -> extension.endsWith(ext) }) {
+                selectedUri = uri
+                selectedFileName = fileName
+                fileError = null
+            } else {
+                selectedUri = null
+                selectedFileName = null
+                fileError = context.getString(R.string.settings_dictionary_error_unsupported_file)
+            }
+        }
+    }
+
+    var typeMenuExpanded by remember { mutableStateOf(false) }
 
     LiberDialog(
         onDismissRequest = onDismiss,
         title = UiText.StringResource(R.string.settings_dictionary_create_title),
         dismissLabel = UiText.StringResource(R.string.action_cancel),
         confirmLabel = UiText.StringResource(R.string.action_save),
-        confirmEnabled = name.trim().isNotEmpty() && sourceTag.trim().isNotEmpty(),
+        confirmEnabled = name.trim().isNotEmpty() && sourceTag.trim()
+            .isNotEmpty() && selectedUri != null,
         onConfirm = {
-            onConfirm(name.trim(), sourceTag.trim(), targetTag.trim().ifEmpty { null }, type)
+            onConfirm(
+                name.trim(),
+                sourceTag.trim(),
+                targetTag.trim().ifEmpty { null },
+                type,
+                selectedUri
+            )
         },
         onDismiss = onDismiss,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            // File Picker Row
+            Surface(
+                onClick = { launcher.launch("*/*") },
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = PhosphorIcons.Regular.FileArrowUp,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = stringResource(R.string.settings_dictionary_field_file),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (fileError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = selectedFileName
+                                ?: stringResource(R.string.settings_dictionary_field_file_select),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = when {
+                                fileError != null -> MaterialTheme.colorScheme.error
+                                selectedFileName != null -> MaterialTheme.colorScheme.onSurface
+                                else -> MaterialTheme.colorScheme.outline
+                            }
+                        )
+                        if (fileError != null) {
+                            Text(
+                                text = fileError!!,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
             LiberTextField(
                 value = name,
                 onValueChange = { name = it },
@@ -546,12 +635,47 @@ private fun CreateDictionaryDialog(
                 label = UiText.StringResource(R.string.settings_dictionary_field_target_language),
                 singleLine = true,
             )
-            LiberTextField(
-                value = type,
-                onValueChange = { type = it },
-                label = UiText.StringResource(R.string.settings_dictionary_field_type),
-                singleLine = true,
-            )
+
+            // Type Dropdown
+            Box {
+                LiberTextField(
+                    value = if (type == "monolingual") stringResource(R.string.settings_dictionary_type_monolingual) else stringResource(
+                        R.string.settings_dictionary_type_bilingual
+                    ),
+                    onValueChange = {},
+                    label = UiText.StringResource(R.string.settings_dictionary_field_type),
+                    readOnly = true,
+                    enabled = true,
+                    trailingIcon = {
+                        IconButton(onClick = { typeMenuExpanded = true }) {
+                            Icon(
+                                imageVector = PhosphorIcons.Regular.CaretDown,
+                                contentDescription = null
+                            )
+                        }
+                    },
+                    modifier = Modifier.clickable { typeMenuExpanded = true }
+                )
+                DropdownMenu(
+                    expanded = typeMenuExpanded,
+                    onDismissRequest = { typeMenuExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.settings_dictionary_type_monolingual)) },
+                        onClick = {
+                            type = "monolingual"
+                            typeMenuExpanded = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.settings_dictionary_type_bilingual)) },
+                        onClick = {
+                            type = "bilingual"
+                            typeMenuExpanded = false
+                        }
+                    )
+                }
+            }
         }
     }
 }

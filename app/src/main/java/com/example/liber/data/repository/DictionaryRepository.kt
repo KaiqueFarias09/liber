@@ -1,12 +1,13 @@
 package com.example.liber.data.repository
 
 import android.app.Application
+import android.net.Uri
 import com.example.liber.api.FreeDictApi
 import com.example.liber.data.local.DictionaryDao
 import com.example.liber.data.local.DictionaryEntryWithSenses
 import com.example.liber.data.model.Dictionary
-import com.example.liber.data.model.FreeDictCatalogItem
 import com.example.liber.data.model.DictionaryLookupHistory
+import com.example.liber.data.model.FreeDictCatalogItem
 import kotlinx.coroutines.flow.Flow
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -33,8 +34,32 @@ class DictionaryRepository(
         sourceLanguageTag: String,
         targetLanguageTag: String?,
         dictionaryType: String,
+        uri: Uri?,
     ) {
         val now = System.currentTimeMillis()
+        var localFilePath: String? = null
+        var fileSize: Long = 0
+
+        if (uri != null) {
+            val dictionariesDir = File(appContext.filesDir, "dictionaries")
+            if (!dictionariesDir.exists()) {
+                dictionariesDir.mkdirs()
+            }
+
+            val documentFile =
+                androidx.documentfile.provider.DocumentFile.fromSingleUri(appContext, uri)
+            val fileName = documentFile?.name ?: "manual_dict_${System.currentTimeMillis()}"
+            val targetFile = File(dictionariesDir, fileName)
+
+            appContext.contentResolver.openInputStream(uri)?.use { input ->
+                targetFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+            localFilePath = targetFile.absolutePath
+            fileSize = targetFile.length()
+        }
+
         dictionaryDao.upsertDictionary(
             Dictionary(
                 id = UUID.randomUUID().toString(),
@@ -44,8 +69,9 @@ class DictionaryRepository(
                 dictionaryType = dictionaryType,
                 packageFormat = "manual",
                 version = "local-1",
-                localFilePath = null,
+                localFilePath = localFilePath,
                 remoteUrl = null,
+                installSizeBytes = fileSize,
                 installedAt = now,
                 updatedAt = now,
             )

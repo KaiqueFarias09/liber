@@ -138,7 +138,12 @@
     <string name="settings_dictionary_rename_title">Rename dictionary</string>
     <string name="settings_dictionary_field_source_language">Source language tag</string>
     <string name="settings_dictionary_field_target_language">Target language tag (optional)</string>
-    <string name="settings_dictionary_field_type">Type (monolingual/bilingual)</string>
+    <string name="settings_dictionary_field_type">Type</string>
+    <string name="settings_dictionary_field_file">Dictionary file</string>
+    <string name="settings_dictionary_field_file_select">Select file…</string>
+    <string name="settings_dictionary_type_monolingual">Monolingual</string>
+    <string name="settings_dictionary_type_bilingual">Bilingual</string>
+    <string name="settings_dictionary_error_unsupported_file">Unsupported file format. Please select a StarDict archive (.tar.xz, .zip).</string>
     <string name="settings_dictionary_history_title">Lookup History</string>
     <string name="settings_dictionary_history_empty">No dictionary lookups yet.</string>
     <string name="settings_dictionary_history_clear">Clear history</string>

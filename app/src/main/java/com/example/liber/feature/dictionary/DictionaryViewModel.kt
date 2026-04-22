@@ -1,10 +1,11 @@
 package com.example.liber.feature.dictionary
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.liber.core.util.UiText
 import com.example.liber.core.util.UiState
+import com.example.liber.core.util.UiText
 import com.example.liber.data.local.DictionaryEntryWithSenses
 import com.example.liber.data.model.Dictionary
 import com.example.liber.data.model.DictionaryLookupHistory
@@ -27,7 +28,8 @@ class DictionaryViewModel @Inject constructor(
     private val dictionaryRepository: DictionaryRepository,
 ) : AndroidViewModel(application) {
 
-    private val _freeDictCatalogState = MutableStateFlow<UiState<List<FreeDictCatalogItem>>>(UiState.Loading)
+    private val _freeDictCatalogState =
+        MutableStateFlow<UiState<List<FreeDictCatalogItem>>>(UiState.Loading)
     val freeDictCatalogState: StateFlow<UiState<List<FreeDictCatalogItem>>> =
         _freeDictCatalogState.asStateFlow()
 
@@ -64,6 +66,7 @@ class DictionaryViewModel @Inject constructor(
         sourceLanguageTag: String,
         targetLanguageTag: String?,
         dictionaryType: String,
+        uri: Uri?,
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             val name = displayName.trim()
@@ -73,6 +76,7 @@ class DictionaryViewModel @Inject constructor(
                 sourceLanguageTag = sourceLanguageTag.trim().ifEmpty { "en" },
                 targetLanguageTag = targetLanguageTag?.trim()?.ifEmpty { null },
                 dictionaryType = dictionaryType,
+                uri = uri,
             )
         }
     }
