@@ -217,4 +217,10 @@
     <string name="home_label_finished">Finished</string>
     <string name="home_label_progress">%1$s \u2022 %2$d%%</string>
     <string name="home_label_finished_status">%1$s \u2022 Finished</string>
+    <string name="settings_section_general">General</string>
+    <string name="settings_section_about">About</string>
+    <string name="settings_label_about_liber">About Liber</string>
+    <string name="settings_label_version">v%1$s</string>
+    <string name="label_singular_folder">%1$d folder</string>
+    <string name="label_plural_folders">%1$d folders</string>
 </resources>
