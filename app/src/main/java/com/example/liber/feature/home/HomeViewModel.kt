@@ -3,9 +3,11 @@ package com.example.liber.feature.home
 import android.app.Application
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.liber.core.logging.AppLogger
+import com.example.liber.core.logging.BaseAndroidViewModel
 import com.example.liber.core.util.UiState
+import com.example.liber.core.util.rethrowIfCancellation
 import com.example.liber.data.local.ScanStateHolder
 import com.example.liber.data.model.Annotation
 import com.example.liber.data.model.Book
@@ -28,7 +30,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
@@ -39,7 +40,8 @@ class HomeViewModel @Inject constructor(
     private val scanSourceRepository: ScanSourceRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     val bookImporter: BookImporter,
-) : AndroidViewModel(application) {
+    private val appLogger: AppLogger,
+) : BaseAndroidViewModel(application, "HomeViewModel", appLogger) {
 
     private val sevenDaysMs = 7L * 24 * 60 * 60 * 1000
 
@@ -89,25 +91,37 @@ class HomeViewModel @Inject constructor(
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LibrarySortOption.RECENT)
 
     fun setBooksViewMode(mode: LibraryViewMode) {
-        viewModelScope.launch {
+        launchSafely(
+            actionName = "setBooksViewMode",
+            parameters = mapOf("mode" to mode.name),
+        ) {
             userPreferencesRepository.setBooksViewMode(mode)
         }
     }
 
     fun setBooksSortOption(option: LibrarySortOption) {
-        viewModelScope.launch {
+        launchSafely(
+            actionName = "setBooksSortOption",
+            parameters = mapOf("option" to option.name),
+        ) {
             userPreferencesRepository.setBooksSortOption(option)
         }
     }
 
     fun setAudiobooksViewMode(mode: LibraryViewMode) {
-        viewModelScope.launch {
+        launchSafely(
+            actionName = "setAudiobooksViewMode",
+            parameters = mapOf("mode" to mode.name),
+        ) {
             userPreferencesRepository.setAudiobooksViewMode(mode)
         }
     }
 
     fun setAudiobooksSortOption(option: LibrarySortOption) {
-        viewModelScope.launch {
+        launchSafely(
+            actionName = "setAudiobooksSortOption",
+            parameters = mapOf("option" to option.name),
+        ) {
             userPreferencesRepository.setAudiobooksSortOption(option)
         }
     }
@@ -133,37 +147,63 @@ class HomeViewModel @Inject constructor(
                 book.fileUri,
                 android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
             )
-        } catch (_: Exception) { /* permission already held or not applicable */
+        } catch (e: Exception) {
+            e.rethrowIfCancellation()
+            appLogger.warn(
+                "Failed to persist read permission for ${book.fileUri}",
+                tag = "HomeViewModel",
+                throwable = e,
+            )
         }
     }
 
     fun saveLocator(bookId: String, locatorJson: String, progress: Int) {
-        viewModelScope.launch(Dispatchers.IO) {
+        launchSafely(
+            actionName = "saveLocator",
+            dispatcher = Dispatchers.IO,
+            parameters = mapOf("bookId" to bookId, "progress" to progress),
+        ) {
             bookRepository.updateLastLocator(bookId, locatorJson, progress)
         }
     }
 
     fun toggleWantToRead(bookId: String, currentValue: Boolean) {
-        viewModelScope.launch(Dispatchers.IO) {
+        launchSafely(
+            actionName = "toggleWantToRead",
+            dispatcher = Dispatchers.IO,
+            parameters = mapOf("bookId" to bookId, "currentValue" to currentValue),
+        ) {
             bookRepository.updateWantToRead(bookId, !currentValue)
         }
     }
 
     fun toggleFinished(bookId: String, isFinished: Boolean) {
-        viewModelScope.launch(Dispatchers.IO) {
+        launchSafely(
+            actionName = "toggleFinished",
+            dispatcher = Dispatchers.IO,
+            parameters = mapOf("bookId" to bookId, "isFinished" to isFinished),
+        ) {
             val progress = if (isFinished) 0 else 100
             bookRepository.updateLastLocator(bookId, null, progress)
         }
     }
 
     fun markAsFinished(bookId: String) {
-        viewModelScope.launch(Dispatchers.IO) {
+        launchSafely(
+            actionName = "markAsFinished",
+            dispatcher = Dispatchers.IO,
+            parameters = mapOf("bookId" to bookId),
+        ) {
             bookRepository.updateLastLocator(bookId, null, 100)
         }
     }
 
     fun updateMetadata(bookId: String, title: String, author: String?, narrator: String?) {
-        viewModelScope.launch(Dispatchers.IO) {
+        launchSafely(
+            actionName = "updateMetadata",
+            dispatcher = Dispatchers.IO,
+            parameters = mapOf("bookId" to bookId, "title" to title),
+        ) {
             bookRepository.updateMetadata(bookId, title, author, narrator)
         }
     }
@@ -175,19 +215,31 @@ class HomeViewModel @Inject constructor(
         coverPath: String?,
         narrator: String?
     ) {
-        viewModelScope.launch(Dispatchers.IO) {
+        launchSafely(
+            actionName = "updateFullMetadata",
+            dispatcher = Dispatchers.IO,
+            parameters = mapOf("bookId" to bookId, "title" to title, "hasCoverPath" to (coverPath != null)),
+        ) {
             bookRepository.updateFullMetadata(bookId, title, author, coverPath, narrator)
         }
     }
 
     fun updateCoverPath(bookId: String, coverPath: String?) {
-        viewModelScope.launch(Dispatchers.IO) {
+        launchSafely(
+            actionName = "updateCoverPath",
+            dispatcher = Dispatchers.IO,
+            parameters = mapOf("bookId" to bookId, "hasCoverPath" to (coverPath != null)),
+        ) {
             bookRepository.updateCoverPath(bookId, coverPath)
         }
     }
 
     fun deleteBook(bookId: String) {
-        viewModelScope.launch(Dispatchers.IO) {
+        launchSafely(
+            actionName = "deleteBook",
+            dispatcher = Dispatchers.IO,
+            parameters = mapOf("bookId" to bookId),
+        ) {
             bookRepository.deleteBook(bookId)
         }
     }
@@ -196,64 +248,119 @@ class HomeViewModel @Inject constructor(
         bookRepository.getAnnotationsForBook(bookId)
 
     fun saveAnnotation(annotation: Annotation) {
-        viewModelScope.launch(Dispatchers.IO) { bookRepository.insertAnnotation(annotation) }
+        launchSafely(
+            actionName = "saveAnnotation",
+            dispatcher = Dispatchers.IO,
+            parameters = mapOf("bookId" to annotation.bookId),
+        ) { bookRepository.insertAnnotation(annotation) }
     }
 
     fun deleteAnnotation(annotationId: Long) {
-        viewModelScope.launch(Dispatchers.IO) { bookRepository.deleteAnnotation(annotationId) }
+        launchSafely(
+            actionName = "deleteAnnotation",
+            dispatcher = Dispatchers.IO,
+            parameters = mapOf("annotationId" to annotationId),
+        ) { bookRepository.deleteAnnotation(annotationId) }
     }
 
     fun getBookmarksForBook(bookId: String): Flow<List<Bookmark>> =
         bookRepository.getBookmarksForBook(bookId)
 
     fun saveBookmark(bookmark: Bookmark) {
-        viewModelScope.launch(Dispatchers.IO) { bookRepository.insertBookmark(bookmark) }
+        launchSafely(
+            actionName = "saveBookmark",
+            dispatcher = Dispatchers.IO,
+            parameters = mapOf("bookId" to bookmark.bookId),
+        ) { bookRepository.insertBookmark(bookmark) }
     }
 
     fun deleteBookmark(bookmarkId: Long) {
-        viewModelScope.launch(Dispatchers.IO) { bookRepository.deleteBookmark(bookmarkId) }
+        launchSafely(
+            actionName = "deleteBookmark",
+            dispatcher = Dispatchers.IO,
+            parameters = mapOf("bookmarkId" to bookmarkId),
+        ) { bookRepository.deleteBookmark(bookmarkId) }
     }
 
     fun loadBooksFromUris(uris: List<Uri>) {
-        viewModelScope.launch {
+        launchSafely(
+            actionName = "loadBooksFromUris",
+            parameters = mapOf("count" to uris.size),
+        ) {
             _isLoading.value = true
-            withContext(Dispatchers.IO) {
-                uris.forEach { uri ->
-                    importBook(uri)
+            try {
+                withContext(Dispatchers.IO) {
+                    uris.forEach { uri ->
+                        importBook(uri)
+                    }
                 }
+            } catch (e: Exception) {
+                e.rethrowIfCancellation()
+                logger.recordError(e, "loadBooksFromUris", "Failed to import book batch")
+            } finally {
+                _isLoading.value = false
             }
-            _isLoading.value = false
         }
     }
 
     fun importAndOpenBook(uri: Uri, liberAppViewModel: LiberAppViewModel) {
-        viewModelScope.launch {
+        launchSafely(
+            actionName = "importAndOpenBook",
+            parameters = mapOf("uri" to uri),
+        ) {
             _isLoading.value = true
-            val book = withContext(Dispatchers.IO) { importBook(uri) }
-            if (book != null) {
-                openBook(book)
-                liberAppViewModel.openEpub(book)
+            try {
+                val book = withContext(Dispatchers.IO) { importBook(uri) }
+                if (book != null) {
+                    openBook(book)
+                    liberAppViewModel.openEpub(book)
+                }
+            } catch (e: Exception) {
+                e.rethrowIfCancellation()
+                logger.recordError(e, "importAndOpenBook", "Failed to import and open book")
+            } finally {
+                _isLoading.value = false
             }
-            _isLoading.value = false
         }
     }
 
     private suspend fun importBook(uri: Uri): Book? {
         tryTakePersistablePermission(uri)
-        val file = DocumentFile.fromSingleUri(getApplication(), uri) ?: return null
-        val book = bookImporter.parseBook(file) ?: return null
-        val existingBook = book.contentId
-            ?.let { bookRepository.getBookByContentId(it) }
-            ?: bookRepository.getBookByFileUri(uri.toString())
+        return runCatching {
+            val file = DocumentFile.fromSingleUri(getApplication(), uri) ?: return null
+            val book = bookImporter.parseBook(file) ?: return null
+            val existingBook = book.contentId
+                ?.let { bookRepository.getBookByContentId(it) }
+                ?: bookRepository.getBookByFileUri(uri.toString())
 
-        if (existingBook == null) {
-            bookRepository.insertBook(book)
+            if (existingBook == null) {
+                bookRepository.insertBook(book)
+            }
+            book
+        }.onFailure { throwable ->
+            throwable.rethrowIfCancellation()
+            logger.recordError(throwable, "importBook", "Failed to import book uri=$uri")
+        }.getOrNull()
+    }
+
+    private fun tryTakePersistablePermission(uri: Uri) {
+        try {
+            getApplication<Application>().contentResolver.takePersistableUriPermission(
+                uri,
+                android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+        } catch (e: Exception) {
+            e.rethrowIfCancellation()
+            logger.recordError(e, "tryTakePersistablePermission", "Unable to persist read permission for uri=$uri")
         }
-        return book
     }
 
     fun addScanSource(treeUri: Uri, folderName: String) {
-        viewModelScope.launch(Dispatchers.IO) {
+        launchSafely(
+            actionName = "addScanSource",
+            dispatcher = Dispatchers.IO,
+            parameters = mapOf("treeUri" to treeUri, "folderName" to folderName),
+        ) {
             scanSourceRepository.upsert(
                 ScanSource(
                     treeUri = treeUri.toString(),
@@ -264,7 +371,11 @@ class HomeViewModel @Inject constructor(
     }
 
     fun removeScanSource(treeUri: String) {
-        viewModelScope.launch(Dispatchers.IO) {
+        launchSafely(
+            actionName = "removeScanSource",
+            dispatcher = Dispatchers.IO,
+            parameters = mapOf("treeUri" to treeUri),
+        ) {
             scanSourceRepository.delete(treeUri)
         }
     }
@@ -274,15 +385,4 @@ class HomeViewModel @Inject constructor(
     }
 
     // ── Private helpers ──────────────────────────────────────────────────────
-
-    private fun tryTakePersistablePermission(uri: Uri) {
-        try {
-            getApplication<Application>().contentResolver.takePersistableUriPermission(
-                uri,
-                android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
-            )
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
 }

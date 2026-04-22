@@ -1,12 +1,13 @@
 package com.example.liber.feature.dictionary
 
 import android.app.Application
-import android.util.Log
 import android.net.Uri
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.liber.core.logging.AppLogger
+import com.example.liber.core.logging.BaseAndroidViewModel
 import com.example.liber.core.util.UiState
 import com.example.liber.core.util.UiText
+import com.example.liber.core.util.rethrowIfCancellation
 import com.example.liber.data.local.DictionaryEntryWithSenses
 import com.example.liber.data.model.Dictionary
 import com.example.liber.data.model.DictionaryLookupHistory
@@ -20,14 +21,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class DictionaryViewModel @Inject constructor(
     application: Application,
     private val dictionaryRepository: DictionaryRepository,
-) : AndroidViewModel(application) {
+    private val appLogger: AppLogger,
+) : BaseAndroidViewModel(application, "DictionaryViewModel", appLogger) {
 
     private val _freeDictCatalogState =
         MutableStateFlow<UiState<List<FreeDictCatalogItem>>>(UiState.Loading)
@@ -69,39 +70,66 @@ class DictionaryViewModel @Inject constructor(
         dictionaryType: String,
         uri: Uri?,
     ) {
-        viewModelScope.launch(Dispatchers.IO) {
+        launchSafely(
+            actionName = "createDictionary",
+            dispatcher = Dispatchers.IO,
+            parameters = mapOf(
+                "displayName" to displayName.trim(),
+                "sourceLanguageTag" to sourceLanguageTag,
+                "targetLanguageTag" to targetLanguageTag,
+                "dictionaryType" to dictionaryType,
+                "hasUri" to (uri != null),
+            ),
+        ) {
             val name = displayName.trim()
-            if (name.isBlank()) return@launch
-            dictionaryRepository.createManualDictionary(
-                displayName = name,
-                sourceLanguageTag = sourceLanguageTag.trim().ifEmpty { "en" },
-                targetLanguageTag = targetLanguageTag?.trim()?.ifEmpty { null },
-                dictionaryType = dictionaryType,
-                uri = uri,
-            )
+            if (name.isBlank()) return@launchSafely
+            runCatching {
+                dictionaryRepository.createManualDictionary(
+                    displayName = name,
+                    sourceLanguageTag = sourceLanguageTag.trim().ifEmpty { "en" },
+                    targetLanguageTag = targetLanguageTag?.trim()?.ifEmpty { null },
+                    dictionaryType = dictionaryType,
+                    uri = uri,
+                )
+            }.onFailure { throwable ->
+                throwable.rethrowIfCancellation()
+                logger.recordError(throwable, "createDictionary", "Failed to create dictionary")
+            }
         }
     }
 
     fun renameDictionary(id: String, alias: String?) {
-        viewModelScope.launch(Dispatchers.IO) {
+        launchSafely(
+            actionName = "renameDictionary",
+            dispatcher = Dispatchers.IO,
+            parameters = mapOf("id" to id, "hasAlias" to !alias.isNullOrBlank()),
+        ) {
             dictionaryRepository.renameDictionary(id, alias)
         }
     }
 
     fun setDictionaryEnabled(id: String, enabled: Boolean) {
-        viewModelScope.launch(Dispatchers.IO) {
+        launchSafely(
+            actionName = "setDictionaryEnabled",
+            dispatcher = Dispatchers.IO,
+            parameters = mapOf("id" to id, "enabled" to enabled),
+        ) {
             dictionaryRepository.setDictionaryEnabled(id, enabled)
         }
     }
 
     fun moveDictionaryPriority(id: String, moveUp: Boolean) {
-        viewModelScope.launch(Dispatchers.IO) {
+        launchSafely(
+            actionName = "moveDictionaryPriority",
+            dispatcher = Dispatchers.IO,
+            parameters = mapOf("id" to id, "moveUp" to moveUp),
+        ) {
             val current = dictionaries.value
             val index = current.indexOfFirst { it.id == id }
-            if (index < 0) return@launch
+            if (index < 0) return@launchSafely
 
             val targetIndex = if (moveUp) index - 1 else index + 1
-            if (targetIndex !in current.indices) return@launch
+            if (targetIndex !in current.indices) return@launchSafely
 
             val source = current[index]
             val target = current[targetIndex]
@@ -111,24 +139,41 @@ class DictionaryViewModel @Inject constructor(
     }
 
     fun deleteDictionary(id: String) {
-        viewModelScope.launch(Dispatchers.IO) {
+        launchSafely(
+            actionName = "deleteDictionary",
+            dispatcher = Dispatchers.IO,
+            parameters = mapOf("id" to id),
+        ) {
             dictionaryRepository.deleteDictionary(id)
         }
     }
 
     fun clearLookupHistory() {
-        viewModelScope.launch(Dispatchers.IO) {
+        launchSafely(
+            actionName = "clearLookupHistory",
+            dispatcher = Dispatchers.IO,
+        ) {
             dictionaryRepository.clearLookupHistory()
         }
     }
 
     fun refreshFreeDictCatalog() {
         _freeDictCatalogState.value = UiState.Loading
-        viewModelScope.launch(Dispatchers.IO) {
+        launchSafely(
+            actionName = "refreshFreeDictCatalog",
+            dispatcher = Dispatchers.IO,
+            onError = { throwable ->
+                _freeDictCatalogState.value = UiState.Error(
+                    UiText.DynamicString(throwable.message ?: "Failed to load FreeDict catalog")
+                )
+            },
+        ) {
             try {
                 val catalog = dictionaryRepository.fetchFreeDictCatalog()
                 _freeDictCatalogState.value = UiState.Success(catalog)
             } catch (e: Exception) {
+                e.rethrowIfCancellation()
+                logger.recordError(e, "refreshFreeDictCatalog", "Failed to refresh FreeDict catalog")
                 _freeDictCatalogState.value = UiState.Error(
                     UiText.DynamicString(e.message ?: "Failed to load FreeDict catalog")
                 )
@@ -140,9 +185,16 @@ class DictionaryViewModel @Inject constructor(
         if (_downloadingCodes.value.contains(item.code)) return
 
         _downloadingCodes.value = _downloadingCodes.value + item.code
-        viewModelScope.launch(Dispatchers.IO) {
+        launchSafely(
+            actionName = "downloadFreeDict",
+            dispatcher = Dispatchers.IO,
+            parameters = mapOf("code" to item.code, "version" to item.version),
+        ) {
             try {
                 dictionaryRepository.downloadAndInstallFreeDict(item)
+            } catch (e: Exception) {
+                e.rethrowIfCancellation()
+                logger.recordError(e, "downloadFreeDict", "Failed to download FreeDict ${item.code}")
             } finally {
                 _downloadingCodes.value = _downloadingCodes.value - item.code
             }
@@ -151,7 +203,7 @@ class DictionaryViewModel @Inject constructor(
 
     fun lookupWord(query: String, languageTag: String, sourceBookId: String?) {
         val trimmed = query.trim()
-        Log.d("DictionaryViewModel", "lookupWord: '$trimmed' ($languageTag)")
+        logger.log("lookupWord: \"$trimmed\" ($languageTag)")
         if (trimmed.isBlank()) {
             _activeLookupQuery.value = null
             _lookupState.value = UiState.Success(emptyList())
@@ -160,10 +212,23 @@ class DictionaryViewModel @Inject constructor(
 
         _activeLookupQuery.value = trimmed
         _lookupState.value = UiState.Loading
-        viewModelScope.launch(Dispatchers.IO) {
+        launchSafely(
+            actionName = "lookupWord",
+            dispatcher = Dispatchers.IO,
+            parameters = mapOf(
+                "query" to trimmed,
+                "languageTag" to languageTag,
+                "sourceBookId" to sourceBookId,
+            ),
+            onError = { throwable ->
+                _lookupState.value = UiState.Error(
+                    UiText.DynamicString(throwable.message ?: "Dictionary lookup failed")
+                )
+            },
+        ) {
             try {
                 val results = dictionaryRepository.searchEntries(trimmed, languageTag)
-                Log.d("DictionaryViewModel", "lookupWord: found ${results.size} results")
+                logger.log("lookupWord: found ${results.size} results")
                 _lookupState.value = UiState.Success(results)
 
                 val first = results.firstOrNull()
@@ -174,7 +239,8 @@ class DictionaryViewModel @Inject constructor(
                     sourceBookId = sourceBookId,
                 )
             } catch (e: Exception) {
-                Log.e("DictionaryViewModel", "lookupWord error", e)
+                e.rethrowIfCancellation()
+                logger.recordError(e, "lookupWord", "lookupWord failed")
                 _lookupState.value = UiState.Error(
                     UiText.DynamicString(
                         e.message ?: "Dictionary lookup failed"
@@ -190,7 +256,11 @@ class DictionaryViewModel @Inject constructor(
     }
 
     fun deleteLookupHistory(id: Long) {
-        viewModelScope.launch(Dispatchers.IO) {
+        launchSafely(
+            actionName = "deleteLookupHistory",
+            dispatcher = Dispatchers.IO,
+            parameters = mapOf("id" to id),
+        ) {
             dictionaryRepository.deleteLookupHistory(id)
         }
     }

@@ -1,7 +1,8 @@
 package com.example.liber.feature.insights
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.liber.core.logging.AppLogger
+import com.example.liber.core.logging.BaseViewModel
 import com.example.liber.core.util.UiState
 import com.example.liber.data.model.Book
 import com.example.liber.data.model.ReadingSession
@@ -47,7 +48,8 @@ class ReadingInsightsViewModel @Inject constructor(
     bookRepository: BookRepository,
     readingInsightsRepository: ReadingInsightsRepository,
     userPreferencesRepository: UserPreferencesRepository,
-) : ViewModel() {
+    appLogger: AppLogger,
+) : BaseViewModel("ReadingInsightsViewModel", appLogger) {
 
     private val zoneId = ZoneId.systemDefault()
     private val sessionLookbackThreshold = System.currentTimeMillis() - SESSION_LOOKBACK_MILLIS

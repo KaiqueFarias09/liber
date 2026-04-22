@@ -1,8 +1,9 @@
 package com.example.liber.feature.collections
 
 import android.app.Application
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.liber.core.logging.AppLogger
+import com.example.liber.core.logging.BaseAndroidViewModel
 import com.example.liber.core.util.UiState
 import com.example.liber.data.local.CollectionWithBooksRelation
 import com.example.liber.data.model.Book
@@ -28,7 +29,8 @@ data class CollectionUiState(
 class CollectionsViewModel @Inject constructor(
     application: Application,
     private val collectionRepository: CollectionRepository,
-) : AndroidViewModel(application) {
+    appLogger: AppLogger,
+) : BaseAndroidViewModel(application, "CollectionsViewModel", appLogger) {
 
     val collectionsState: StateFlow<UiState<List<CollectionUiState>>> = collectionRepository
         .getAllCollectionsWithBooks()
@@ -44,31 +46,51 @@ class CollectionsViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun createCollection(name: String) {
-        viewModelScope.launch(Dispatchers.IO) {
+        launchSafely(
+            actionName = "createCollection",
+            dispatcher = Dispatchers.IO,
+            parameters = mapOf("name" to name.trim()),
+        ) {
             collectionRepository.insertCollection(Collection(name = name.trim()))
         }
     }
 
     fun renameCollection(id: Long, name: String) {
-        viewModelScope.launch(Dispatchers.IO) {
+        launchSafely(
+            actionName = "renameCollection",
+            dispatcher = Dispatchers.IO,
+            parameters = mapOf("id" to id, "name" to name.trim()),
+        ) {
             collectionRepository.renameCollection(id, name.trim())
         }
     }
 
     fun deleteCollection(id: Long) {
-        viewModelScope.launch(Dispatchers.IO) {
+        launchSafely(
+            actionName = "deleteCollection",
+            dispatcher = Dispatchers.IO,
+            parameters = mapOf("id" to id),
+        ) {
             collectionRepository.deleteCollection(id)
         }
     }
 
     fun addBookToCollection(collectionId: Long, bookId: String) {
-        viewModelScope.launch(Dispatchers.IO) {
+        launchSafely(
+            actionName = "addBookToCollection",
+            dispatcher = Dispatchers.IO,
+            parameters = mapOf("collectionId" to collectionId, "bookId" to bookId),
+        ) {
             collectionRepository.addBookToCollection(BookCollection(collectionId, bookId))
         }
     }
 
     fun removeBookFromCollection(collectionId: Long, bookId: String) {
-        viewModelScope.launch(Dispatchers.IO) {
+        launchSafely(
+            actionName = "removeBookFromCollection",
+            dispatcher = Dispatchers.IO,
+            parameters = mapOf("collectionId" to collectionId, "bookId" to bookId),
+        ) {
             collectionRepository.removeBookFromCollection(collectionId, bookId)
         }
     }
@@ -79,4 +101,3 @@ class CollectionsViewModel @Inject constructor(
         books = books,
     )
 }
-

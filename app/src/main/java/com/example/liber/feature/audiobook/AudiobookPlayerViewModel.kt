@@ -13,8 +13,10 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import com.example.liber.core.logging.AppLogger
 import com.example.liber.core.util.UiState
 import com.example.liber.core.util.UiText
+import com.example.liber.core.util.rethrowIfCancellation
 import com.example.liber.data.model.Book
 import com.example.liber.data.model.ReadingSessionSource
 import com.example.liber.data.repository.BookRepository
@@ -40,6 +42,7 @@ class AudiobookPlayerViewModel @Inject constructor(
     application: Application,
     private val bookRepository: BookRepository,
     private val readingSessionTracker: ReadingSessionTracker,
+    private val appLogger: AppLogger,
 ) : AndroidViewModel(application) {
 
     data class TrackInfo(
@@ -78,7 +81,8 @@ class AudiobookPlayerViewModel @Inject constructor(
                 )
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            e.rethrowIfCancellation()
+            appLogger.warn("Failed to parse cached track list", tag = "AudiobookPlayerViewModel", throwable = e)
         }
         return list
     }
@@ -222,74 +226,85 @@ class AudiobookPlayerViewModel @Inject constructor(
             }
             retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLong() ?: 0L
         } catch (e: Exception) {
+            e.rethrowIfCancellation()
+            appLogger.warn("Failed to read track duration for $uri", tag = "AudiobookPlayerViewModel", throwable = e)
             0L
         } finally {
             try {
                 retriever.release()
             } catch (e: Exception) {
+                appLogger.warn("Failed to release MediaMetadataRetriever", tag = "AudiobookPlayerViewModel", throwable = e)
             }
         }
     }
 
     private fun loadTracks(book: Book) {
         viewModelScope.launch(Dispatchers.IO) {
-            val cachedTracks = book.tracksJson?.toTrackInfoList()
-            if (!cachedTracks.isNullOrEmpty()) {
-                _tracks.value = cachedTracks
-                withContext(Dispatchers.Main) {
-                    prepareTracks(cachedTracks, book)
-                }
-                return@launch
-            }
-
-            val uri = book.fileUri
-            val trackList = if (uri.toString().contains("tree")) {
-                val folder = DocumentFile.fromTreeUri(getApplication(), uri) ?: return@launch
-                folder.listFiles()
-                    .filter {
-                        it.isFile && com.example.liber.data.model.AudioFormats.isSupportedFile(
-                            it.name
-                        )
+            try {
+                val cachedTracks = book.tracksJson?.toTrackInfoList()
+                if (!cachedTracks.isNullOrEmpty()) {
+                    _tracks.value = cachedTracks
+                    withContext(Dispatchers.Main) {
+                        prepareTracks(cachedTracks, book)
+                        _uiState.value = UiState.Success(Unit)
                     }
-                    .sortedBy { it.name }
-                    .map {
-                        val duration = getTrackDuration(it.uri)
+                    return@launch
+                }
+
+                val uri = book.fileUri
+                val trackList = if (uri.toString().contains("tree")) {
+                    val folder = DocumentFile.fromTreeUri(getApplication(), uri) ?: return@launch
+                    folder.listFiles()
+                        .filter {
+                            it.isFile && com.example.liber.data.model.AudioFormats.isSupportedFile(
+                                it.name
+                            )
+                        }
+                        .sortedBy { it.name }
+                        .map {
+                            val duration = getTrackDuration(it.uri)
+                            TrackInfo(
+                                it.name?.substringBeforeLast('.') ?: it.name ?: "Track",
+                                it.uri,
+                                it.type
+                                    ?: com.example.liber.data.model.AudioFormats.getMimeType(it.name),
+                                durationMs = duration
+                            )
+                        }
+                } else {
+                    val file = DocumentFile.fromSingleUri(getApplication(), uri) ?: return@launch
+                    val duration = getTrackDuration(file.uri)
+                    listOf(
                         TrackInfo(
-                            it.name?.substringBeforeLast('.') ?: it.name ?: "Track",
-                            it.uri,
-                            it.type
-                                ?: com.example.liber.data.model.AudioFormats.getMimeType(it.name),
+                            file.name?.substringBeforeLast('.') ?: "Track",
+                            file.uri,
+                            file.type
+                                ?: com.example.liber.data.model.AudioFormats.getMimeType(file.name),
                             durationMs = duration
                         )
-                    }
-            } else {
-                val file = DocumentFile.fromSingleUri(getApplication(), uri) ?: return@launch
-                val duration = getTrackDuration(file.uri)
-                listOf(
-                    TrackInfo(
-                        file.name?.substringBeforeLast('.') ?: "Track",
-                        file.uri,
-                        file.type
-                            ?: com.example.liber.data.model.AudioFormats.getMimeType(file.name),
-                        durationMs = duration
                     )
-                )
-            }
+                }
 
-            _tracks.value = trackList
-            if (trackList.isNotEmpty()) {
-                val totalDuration = trackList.sumOf { it.durationMs }
-                bookRepository.updateTracks(book.id, trackList.toJson())
-                if (totalDuration > 0) {
-                    bookRepository.updateDuration(book.id, totalDuration)
+                _tracks.value = trackList
+                if (trackList.isNotEmpty()) {
+                    val totalDuration = trackList.sumOf { it.durationMs }
+                    bookRepository.updateTracks(book.id, trackList.toJson())
+                    if (totalDuration > 0) {
+                        bookRepository.updateDuration(book.id, totalDuration)
+                    }
+                    withContext(Dispatchers.Main) {
+                        prepareTracks(trackList, book)
+                        _uiState.value = UiState.Success(Unit)
+                    }
+                } else {
+                    _uiState.value =
+                        UiState.Error(UiText.StringResource(com.example.liber.R.string.error_unknown))
                 }
-                withContext(Dispatchers.Main) {
-                    prepareTracks(trackList, book)
-                    _uiState.value = UiState.Success(Unit)
-                }
-            } else {
+            } catch (e: Exception) {
+                e.rethrowIfCancellation()
+                appLogger.error("Failed to load audiobook tracks", tag = "AudiobookPlayerViewModel", throwable = e)
                 _uiState.value =
-                    UiState.Error(UiText.StringResource(com.example.liber.R.string.error_unknown))
+                    UiState.Error(UiText.DynamicString(e.message ?: "Failed to load audiobook tracks"))
             }
         }
     }
@@ -326,7 +341,8 @@ class AudiobookPlayerViewModel @Inject constructor(
                     _positionMs.value = posMs
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                e.rethrowIfCancellation()
+                appLogger.warn("Failed to restore audiobook progress", tag = "AudiobookPlayerViewModel", throwable = e)
             }
         }
 
@@ -465,25 +481,30 @@ class AudiobookPlayerViewModel @Inject constructor(
         if (tracks.isEmpty()) return
 
         viewModelScope.launch(Dispatchers.IO) {
-            val totalDuration = tracks.sumOf { it.durationMs }
-            val currentPos = tracks.take(trackIdx).sumOf { it.durationMs } + pos
+            try {
+                val totalDuration = tracks.sumOf { it.durationMs }
+                val currentPos = tracks.take(trackIdx).sumOf { it.durationMs } + pos
 
-            val progress = if (totalDuration > 0) {
-                ((currentPos.toDouble() / totalDuration.toDouble()) * 100).toInt().coerceIn(0, 100)
-            } else {
-                val currentTrackDur = tracks.getOrNull(trackIdx)?.durationMs ?: 0L
-                if (currentTrackDur > 0) {
-                    ((pos.toDouble() / currentTrackDur.toDouble()) * 100).toInt().coerceIn(0, 100)
-                } else 0
+                val progress = if (totalDuration > 0) {
+                    ((currentPos.toDouble() / totalDuration.toDouble()) * 100).toInt().coerceIn(0, 100)
+                } else {
+                    val currentTrackDur = tracks.getOrNull(trackIdx)?.durationMs ?: 0L
+                    if (currentTrackDur > 0) {
+                        ((pos.toDouble() / currentTrackDur.toDouble()) * 100).toInt().coerceIn(0, 100)
+                    } else 0
+                }
+
+                val locator = JSONObject().apply {
+                    put("trackIndex", trackIdx)
+                    put("positionMs", pos)
+                }.toString()
+
+                bookRepository.updateLastLocatorQuietly(bookId, locator, progress)
+                bookRepository.updateLastOpenedAtQuietly(bookId, System.currentTimeMillis())
+            } catch (e: Exception) {
+                e.rethrowIfCancellation()
+                appLogger.warn("Failed to persist audiobook progress", tag = "AudiobookPlayerViewModel", throwable = e)
             }
-
-            val locator = JSONObject().apply {
-                put("trackIndex", trackIdx)
-                put("positionMs", pos)
-            }.toString()
-
-            bookRepository.updateLastLocatorQuietly(bookId, locator, progress)
-            bookRepository.updateLastOpenedAtQuietly(bookId, System.currentTimeMillis())
         }
     }
 

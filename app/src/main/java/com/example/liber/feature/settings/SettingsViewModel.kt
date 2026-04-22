@@ -3,8 +3,9 @@ package com.example.liber.feature.settings
 import android.app.Application
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.liber.core.logging.AppLogger
+import com.example.liber.core.logging.BaseAndroidViewModel
 import com.example.liber.data.repository.ThemeMode
 import com.example.liber.data.repository.UserPreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,7 +21,8 @@ import javax.inject.Inject
 class SettingsViewModel @Inject constructor(
     application: Application,
     private val repository: UserPreferencesRepository,
-) : AndroidViewModel(application) {
+    appLogger: AppLogger,
+) : BaseAndroidViewModel(application, "SettingsViewModel", appLogger) {
 
     val supportedLanguages = listOf(
         LanguageOptions("en", "English"),
@@ -51,7 +53,10 @@ class SettingsViewModel @Inject constructor(
         )
 
     fun setThemeMode(mode: ThemeMode) {
-        viewModelScope.launch {
+        launchSafely(
+            actionName = "setThemeMode",
+            parameters = mapOf("mode" to mode.name),
+        ) {
             repository.setThemeMode(mode)
         }
     }

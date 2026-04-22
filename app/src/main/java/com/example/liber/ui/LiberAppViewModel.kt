@@ -1,8 +1,8 @@
 package com.example.liber.ui
 
 import android.app.Application
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.viewModelScope
+import com.example.liber.core.logging.AppLogger
+import com.example.liber.core.logging.BaseAndroidViewModel
 import com.example.liber.core.navigation.AppTab
 import com.example.liber.data.model.Book
 import com.example.liber.data.model.ReadingSessionSource
@@ -17,8 +17,9 @@ import javax.inject.Inject
 class LiberAppViewModel @Inject constructor(
     application: Application,
     private val readingSessionTracker: ReadingSessionTracker,
+    appLogger: AppLogger,
 ) :
-    AndroidViewModel(application) {
+    BaseAndroidViewModel(application, "LiberAppViewModel", appLogger) {
 
     private val _activeTab = MutableStateFlow(AppTab.HOME)
     val activeTab: StateFlow<AppTab> = _activeTab
@@ -99,7 +100,10 @@ class LiberAppViewModel @Inject constructor(
     }
 
     fun startReaderSession(bookId: String) {
-        viewModelScope.launch {
+        launchSafely(
+            actionName = "startReaderSession",
+            parameters = mapOf("bookId" to bookId),
+        ) {
             readingSessionTracker.start(
                 channel = READER_SESSION_CHANNEL,
                 bookId = bookId,
@@ -109,7 +113,7 @@ class LiberAppViewModel @Inject constructor(
     }
 
     fun stopReaderSession() {
-        viewModelScope.launch {
+        launchSafely("stopReaderSession") {
             readingSessionTracker.stop(READER_SESSION_CHANNEL)
         }
     }
