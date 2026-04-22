@@ -51,6 +51,22 @@ Liber is a single-module Android application (`:app`) built entirely with **Kotl
     - Repositories (`BookRepository`, etc.) are thin wrappers injected via Hilt. Do not place heavy business logic in Repositories; keep them focused on data orchestration.
         
 - **Datastore:** User preferences (themes, reader settings) are migrated to AndroidX Datastore Preferences (`UserPreferencesRepository`).
+
+### Logging & Error-Handling Architecture
+
+- **No telemetry / no Firebase:** Logging in Liber is strictly local and debug-oriented. Do not add Firebase Crashlytics, analytics-backed logging, remote telemetry, or any similar service.
+
+- **Single logging sink:** `core/logging/AndroidAppLogger.kt` is the only place that should call `android.util.Log` directly. Everywhere else should depend on `AppLogger` or one of the higher-level wrappers built on top of it.
+
+- **Repositories must use the repository logging base:** Repository classes should extend `core/logging/BaseRepository.kt` whenever practical. Use `executeOperation(...)`, `executeQuery(...)`, and `observeOperation(...)` so repository actions log start/success/failure consistently and remain cancellation-safe.
+
+- **ViewModels should use the ViewModel logging base:** Hilt-managed Android ViewModels should prefer `core/logging/BaseAndroidViewModel.kt`. Plain ViewModels should prefer `core/logging/BaseViewModel.kt`. Use `launchSafely(...)` for coroutine actions instead of ad hoc `viewModelScope.launch` when the action should be logged and error-handled in a standard way.
+
+- **Use structured messages, not raw `Log.e(...)`:** If you find direct `Log.d/e/w/i` calls in app code, replace them with `AppLogger`, `RepositoryLogger`, or `ViewModelLogger` usage. The goal is one logging pattern across the codebase.
+
+- **Do not swallow cancellation:** When handling exceptions in repositories, ViewModels, importers, or utility code, always preserve coroutine cancellation semantics. Use `core/util/ErrorHandling.kt` (`rethrowIfCancellation()`) before treating a throwable as a normal failure.
+
+- **Prefer UI-state degradation over crashes:** In presentation code, failures should usually become `UiState.Error`, a safe no-op, or a logged fallback path. Avoid `printStackTrace()` and avoid broad catch blocks that hide failure without logging.
     
 
 ---
@@ -75,10 +91,16 @@ When conceptualizing or adding a new feature, follow this strict directory/packa
 - Create a `YourFeatureViewModel` annotated with `@HiltViewModel`.
     
 - Inject required Repositories via constructor.
+
+- If it inherits from `AndroidViewModel`, prefer extending `BaseAndroidViewModel` and inject `AppLogger`.
+
+- If it is a plain `ViewModel`, prefer extending `BaseViewModel` and inject `AppLogger`.
     
 - Expose a single source of truth for the UI using `MutableStateFlow` or `SharingStarted.WhileSubscribed`.
     
 - **Pattern:** Wrap asynchronous data loads in a `UiState` sealed class (`UiState.Loading`, `UiState.Success`, `UiState.Error`). Example seen in `LibraryScreen.kt`.
+
+- **Pattern:** Use `launchSafely(...)` for user actions and async tasks that mutate state or call repositories. This is the standard way to get consistent logs and cancellation-safe error handling in the presentation layer.
     
 
 ### Step 3: UI Layout (`feature/your_feature/`)
@@ -124,6 +146,18 @@ when (booksState) {
 - **Icons:** Use `PhosphorIcons`. Example: `imageVector = PhosphorIcons.Regular.BookOpen`.
     
 - **Components:** Re-use established design system components located in `core/designsystem/` (e.g., `LiberHeader`, `LiberTabBar`, `LiberButton`, `BookGrid`, `EmptyState`).
+
+### Logging Rules
+
+- Do not introduce new raw `android.util.Log` usage outside `AndroidAppLogger.kt`.
+
+- If code is DI-managed, inject `AppLogger` instead of constructing ad hoc logging behavior.
+
+- If code is not DI-managed but still needs logging (for example a custom `ViewModelProvider.Factory`, singleton object, or composable helper), use `AndroidAppLogger(applicationContext)` locally and keep the call site aligned with the same `AppLogger` interface.
+
+- Prefer repository- and ViewModel-level logging helpers over one-off string logging. This keeps messages grouped by owner (`BookRepository`, `HomeViewModel`, etc.) and makes failures easier to trace.
+
+- Keep logs actionable. Include identifiers and simple parameters when useful, but do not log sensitive content unnecessarily.
     
 
 ---
