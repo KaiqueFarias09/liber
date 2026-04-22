@@ -1,6 +1,6 @@
 package com.example.liber.data.repository
 
-import android.util.Log
+import com.example.liber.core.logging.AppLogger
 import com.example.liber.data.local.DictionaryDao
 import com.example.liber.data.model.DictionaryEntry
 import com.example.liber.data.model.DictionarySense
@@ -18,7 +18,8 @@ import javax.inject.Singleton
 
 @Singleton
 class StarDictIndexer @Inject constructor(
-    private val dictionaryDao: DictionaryDao
+    private val dictionaryDao: DictionaryDao,
+    private val appLogger: AppLogger,
 ) {
     private companion object {
         const val TAG = "StarDictIndexer"
@@ -26,7 +27,10 @@ class StarDictIndexer @Inject constructor(
     }
 
     suspend fun index(dictionaryId: String, archiveFile: File, languageTag: String) {
-        Log.d(TAG, "Starting indexing for $dictionaryId from ${archiveFile.absolutePath}")
+        appLogger.debug(
+            "Starting indexing for $dictionaryId from ${archiveFile.absolutePath}",
+            tag = TAG,
+        )
         
         var ifoData: String? = null
         var idxData: ByteArray? = null
@@ -52,20 +56,23 @@ class StarDictIndexer @Inject constructor(
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error extracting dictionary archive", e)
+            appLogger.error("Error extracting dictionary archive", tag = TAG, throwable = e)
             return
         }
 
         if (idxData == null || dictData == null) {
-            Log.e(TAG, "Missing required files in archive (idx: ${idxData != null}, dict: ${dictData != null})")
+            appLogger.error(
+                "Missing required files in archive (idx: ${idxData != null}, dict: ${dictData != null})",
+                tag = TAG,
+            )
             return
         }
 
         val offsetBits = if (ifoData?.contains("idxoffsetbits=64") == true) 64 else 32
-        Log.d(TAG, "Extraction complete. Parsing index (offsetBits=$offsetBits)...")
+        appLogger.debug("Extraction complete. Parsing index (offsetBits=$offsetBits)...", tag = TAG)
 
         parseAndStore(dictionaryId, languageTag, idxData!!, dictData!!, offsetBits)
-        Log.d(TAG, "Indexing finished for $dictionaryId")
+        appLogger.debug("Indexing finished for $dictionaryId", tag = TAG)
     }
 
     private fun readEntry(tais: TarArchiveInputStream): String {

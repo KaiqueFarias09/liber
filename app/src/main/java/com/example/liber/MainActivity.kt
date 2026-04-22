@@ -15,6 +15,7 @@ import androidx.lifecycle.lifecycleScope
 import com.example.liber.core.designsystem.LiberTheme
 import com.example.liber.core.intent.AppIntentHandler
 import com.example.liber.core.intent.IncomingIntentAction
+import com.example.liber.core.logging.AppLogger
 import com.example.liber.feature.home.HomeViewModel
 import com.example.liber.feature.settings.SettingsViewModel
 import com.example.liber.ui.LiberApp
@@ -28,6 +29,9 @@ class MainActivity : AppCompatActivity() {
 
     @Inject
     lateinit var appIntentHandler: AppIntentHandler
+
+    @Inject
+    lateinit var appLogger: AppLogger
 
     private val homeViewModel: HomeViewModel by viewModels()
     private val liberAppViewModel: LiberAppViewModel by viewModels()
@@ -83,7 +87,11 @@ class MainActivity : AppCompatActivity() {
                 }
             }.onFailure { exception ->
                 // Catch SecurityException or IllegalArgumentException from malicious/bad intents
-                exception.printStackTrace()
+                appLogger.error(
+                    "Failed to handle incoming intent action=${intent.action}",
+                    tag = "MainActivity",
+                    throwable = exception,
+                )
             }
         }
     }

@@ -5,12 +5,12 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import android.provider.OpenableColumns
-import android.util.Log
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.graphics.createBitmap
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.liber.core.logging.AppLogger
 import com.example.liber.data.model.Annotation
 import com.example.liber.data.model.AnnotationType
 import com.example.liber.data.repository.UserPreferencesRepository
@@ -60,6 +60,7 @@ class ReaderViewModel(
     val bookTitle: String,
     val bookId: String,
     private val userPreferencesRepository: UserPreferencesRepository,
+    private val appLogger: AppLogger,
 ) : AndroidViewModel(application) {
 
     // ── Native document view ─────────────────────────────────────────────────
@@ -294,7 +295,7 @@ class ReaderViewModel(
         savedWordStartPos = ""
         savedWordEndPos = ""
         savedWordText = ""
-        Log.d(TAG, "startTextSelection($x, $y)")
+        appLogger.debug("startTextSelection($x, $y)", tag = TAG)
         startSelectionJob = viewModelScope.launch(Dispatchers.IO) {
             val sel = Selection().apply {
                 startX = x; startY = y; endX = x; endY = y
@@ -303,9 +304,9 @@ class ReaderViewModel(
             savedWordStartPos = sel.startPos
             savedWordEndPos = sel.endPos
             savedWordText = sel.text
-            Log.d(
-                TAG,
-                "startTextSelection job done: text='${sel.text}' startPos='${sel.startPos}' endPos='${sel.endPos}'"
+            appLogger.debug(
+                "startTextSelection job done: text='${sel.text}' startPos='${sel.startPos}' endPos='${sel.endPos}'",
+                tag = TAG,
             )
             renderPage()
         }
@@ -321,16 +322,16 @@ class ReaderViewModel(
      * text, opens the selection menu; otherwise clears the selection.
      */
     fun finalizeTextSelection(endX: Int, endY: Int) {
-        Log.d(
-            TAG,
-            "finalizeTextSelection($endX, $endY) called, startX=$selectionStartX startY=$selectionStartY"
+        appLogger.debug(
+            "finalizeTextSelection($endX, $endY) called, startX=$selectionStartX startY=$selectionStartY",
+            tag = TAG,
         )
         viewModelScope.launch(Dispatchers.IO) {
             startSelectionJob?.join()
 
-            Log.d(
-                TAG,
-                "finalizeTextSelection after join: savedWordText='$savedWordText' savedStart='$savedWordStartPos' savedEnd='$savedWordEndPos'"
+            appLogger.debug(
+                "finalizeTextSelection after join: savedWordText='$savedWordText' savedStart='$savedWordStartPos' savedEnd='$savedWordEndPos'",
+                tag = TAG,
             )
 
             val isWordTap = endX == selectionStartX && endY == selectionStartY
@@ -346,7 +347,7 @@ class ReaderViewModel(
                 text = savedWordText
                 xpointer = savedWordStartPos
                 endXpointer = savedWordEndPos
-                Log.d(TAG, "finalizeTextSelection: word-tap path, text='$text'")
+                appLogger.debug("finalizeTextSelection: word-tap path, text='$text'", tag = TAG)
             } else {
                 val sel = Selection().apply {
                     startX = selectionStartX; startY = selectionStartY
@@ -356,9 +357,9 @@ class ReaderViewModel(
                 text = sel.text.takeIf { it.isNotBlank() } ?: savedWordText
                 xpointer = sel.startPos.takeIf { it.isNotBlank() } ?: savedWordStartPos
                 endXpointer = sel.endPos.takeIf { it.isNotBlank() } ?: savedWordEndPos
-                Log.d(
-                    TAG,
-                    "finalizeTextSelection: drag path, selText='${sel.text}' finalText='$text'"
+                appLogger.debug(
+                    "finalizeTextSelection: drag path, selText='${sel.text}' finalText='$text'",
+                    tag = TAG,
                 )
             }
 
@@ -369,14 +370,14 @@ class ReaderViewModel(
                 _pendingXPointer.value = xpointer.takeIf { it.isNotBlank() }
                 _pendingEndXPointer.value = endXpointer.takeIf { it.isNotBlank() }
                 updateHandleAnchors(xpointer, endXpointer, endX.toFloat(), endY.toFloat())
-                Log.d(
-                    TAG,
-                    "finalizeTextSelection: setting showSelectionMenu=true, startAnchor=${_selectionStartAnchor.value} endAnchor=${_selectionEndAnchor.value}"
+                appLogger.debug(
+                    "finalizeTextSelection: setting showSelectionMenu=true, startAnchor=${_selectionStartAnchor.value} endAnchor=${_selectionEndAnchor.value}",
+                    tag = TAG,
                 )
                 _selectionActive.value = true
                 _showSelectionMenu.value = true
             } else {
-                Log.d(TAG, "finalizeTextSelection: text blank, clearing selection")
+                appLogger.debug("finalizeTextSelection: text blank, clearing selection", tag = TAG)
                 docView.clearSelection()
                 renderPage()
             }
@@ -438,9 +439,9 @@ class ReaderViewModel(
             docView.getXPointerRects(startPos, endPos)
         } else null
 
-        Log.d(
-            TAG,
-            "updateHandleAnchors: startPos='$startPos' endPos='$endPos' rects=${rects?.size} fallbackX=$fallbackX fallbackY=$fallbackY"
+        appLogger.debug(
+            "updateHandleAnchors: startPos='$startPos' endPos='$endPos' rects=${rects?.size} fallbackX=$fallbackX fallbackY=$fallbackY",
+            tag = TAG,
         )
 
         if (rects != null && rects.size >= 4) {
@@ -448,19 +449,19 @@ class ReaderViewModel(
             val last = rects.size - 4
             _selectionEndAnchor.value =
                 SelectionAnchor(rects[last + 2].toFloat(), rects[last + 3].toFloat())
-            Log.d(
-                TAG,
-                "updateHandleAnchors: from rects start=${_selectionStartAnchor.value} end=${_selectionEndAnchor.value}"
+            appLogger.debug(
+                "updateHandleAnchors: from rects start=${_selectionStartAnchor.value} end=${_selectionEndAnchor.value}",
+                tag = TAG,
             )
         } else if (fallbackX >= 0f) {
             _selectionStartAnchor.value = SelectionAnchor(fallbackX - 20f, fallbackY)
             _selectionEndAnchor.value = SelectionAnchor(fallbackX + 20f, fallbackY)
-            Log.d(
-                TAG,
-                "updateHandleAnchors: from fallback start=${_selectionStartAnchor.value} end=${_selectionEndAnchor.value}"
+            appLogger.debug(
+                "updateHandleAnchors: from fallback start=${_selectionStartAnchor.value} end=${_selectionEndAnchor.value}",
+                tag = TAG,
             )
         } else {
-            Log.d(TAG, "updateHandleAnchors: NO anchors set (no rects and no fallback)")
+            appLogger.debug("updateHandleAnchors: NO anchors set (no rects and no fallback)", tag = TAG)
         }
     }
 
@@ -1056,12 +1057,13 @@ class ReaderViewModel(
         private val bookTitle: String,
         private val bookId: String,
         private val userPreferencesRepository: UserPreferencesRepository,
+        private val appLogger: AppLogger,
     ) : ViewModelProvider.Factory {
         override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(ReaderViewModel::class.java)) {
                 @Suppress("UNCHECKED_CAST")
                 return ReaderViewModel(
-                    application, bookUri, bookTitle, bookId, userPreferencesRepository
+                    application, bookUri, bookTitle, bookId, userPreferencesRepository, appLogger
                 ) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class")

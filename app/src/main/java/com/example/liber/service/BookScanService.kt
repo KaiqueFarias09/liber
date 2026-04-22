@@ -12,6 +12,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import com.example.liber.R
+import com.example.liber.core.logging.AndroidAppLogger
 import com.example.liber.data.local.AppDatabase
 import com.example.liber.data.local.ScanStateHolder
 import com.example.liber.data.model.AudioFormats
@@ -74,9 +75,10 @@ class BookScanService : Service() {
 
     private suspend fun runScan(treeUri: Uri, folderName: String) {
         val db = AppDatabase.getDatabase(this)
-        val bookRepo = BookRepository(db.bookDao())
-        val sourceRepo = ScanSourceRepository(db.scanSourceDao())
-        val importer = BookImporter(application)
+        val appLogger = AndroidAppLogger(applicationContext)
+        val bookRepo = BookRepository(db.bookDao(), appLogger)
+        val sourceRepo = ScanSourceRepository(db.scanSourceDao(), appLogger)
+        val importer = BookImporter(application, appLogger)
 
         val folder = DocumentFile.fromTreeUri(this, treeUri)
         if (folder == null || !folder.canRead()) {

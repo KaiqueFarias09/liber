@@ -84,7 +84,10 @@ fun LiberApp(
     val dictionaryViewModel: DictionaryViewModel = hiltViewModel()
     val audiobookPlayerViewModel: AudiobookPlayerViewModel = hiltViewModel()
     val userPreferencesRepository = remember {
-        com.example.liber.data.repository.UserPreferencesRepository(context.applicationContext)
+        com.example.liber.data.repository.UserPreferencesRepository(
+            context.applicationContext,
+            com.example.liber.core.logging.AndroidAppLogger(context.applicationContext),
+        )
     }
 
     // ── Navigation ───────────────────────────────────────────────────────────

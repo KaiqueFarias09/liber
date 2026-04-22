@@ -6,7 +6,9 @@ import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
+import com.example.liber.core.logging.AppLogger
 import com.example.liber.core.util.FileSecurityUtils
+import com.example.liber.core.util.rethrowIfCancellation
 import com.example.liber.core.util.sanitizeForFileName
 import com.example.liber.data.model.AudioFormats
 import com.example.liber.data.model.Book
@@ -41,7 +43,10 @@ import java.security.MessageDigest
 import java.util.UUID
 
 @OptIn(ExperimentalReadiumApi::class, InternalReadiumApi::class)
-class BookImporter(private val application: Application) {
+class BookImporter(
+    private val application: Application,
+    private val appLogger: AppLogger,
+) {
 
     private val httpClient = DefaultHttpClient()
     private val assetRetriever = AssetRetriever(application.contentResolver, httpClient)
@@ -72,12 +77,17 @@ class BookImporter(private val application: Application) {
             }
 
             val epubFile =
-                FileSecurityUtils.copyToTempFileSafe(application, uri) ?: return@withContext null
+                FileSecurityUtils.copyToTempFileSafe(
+                    context = application,
+                    uri = uri,
+                    appLogger = appLogger,
+                ) ?: return@withContext null
             val asset =
                 assetRetriever.retrieve(epubFile.toUrl()).getOrNull() ?: return@withContext null
             publicationOpener.open(asset, allowUserInteraction = false).getOrNull()
         } catch (e: Exception) {
-            e.printStackTrace()
+            e.rethrowIfCancellation()
+            appLogger.error("Failed to open publication", tag = "BookImporter", throwable = e)
             null
         }
     }
@@ -173,7 +183,8 @@ class BookImporter(private val application: Application) {
                 val artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
                 Pair(album, artist)
             } catch (e: Exception) {
-                e.printStackTrace()
+                e.rethrowIfCancellation()
+                appLogger.warn("Failed to extract audio metadata", tag = "BookImporter", throwable = e)
                 Pair(null, null)
             } finally {
                 retriever.release()
@@ -251,7 +262,8 @@ class BookImporter(private val application: Application) {
                     BitmapFactory.decodeByteArray(art, 0, art.size) ?: return@withContext null
                 saveBitmapToCache(bitmap, cacheName)
             } catch (e: Exception) {
-                e.printStackTrace()
+                e.rethrowIfCancellation()
+                appLogger.warn("Failed to extract embedded cover", tag = "BookImporter", throwable = e)
                 null
             } finally {
                 retriever.release()
@@ -318,7 +330,11 @@ class BookImporter(private val application: Application) {
     }
 
     private suspend fun parseEpub(file: DocumentFile): Book? = try {
-        val epubFile = FileSecurityUtils.copyToTempFileSafe(application, file.uri) ?: return null
+        val epubFile = FileSecurityUtils.copyToTempFileSafe(
+            context = application,
+            uri = file.uri,
+            appLogger = appLogger,
+        ) ?: return null
         val asset = assetRetriever.retrieve(epubFile.toUrl()).getOrNull() ?: return null
         val publication = publicationOpener.open(asset, allowUserInteraction = false).getOrNull()
             ?: return null
@@ -336,7 +352,8 @@ class BookImporter(private val application: Application) {
             language = language,
         )
     } catch (e: Exception) {
-        e.printStackTrace()
+        e.rethrowIfCancellation()
+        appLogger.error("Failed to parse EPUB", tag = "BookImporter", throwable = e)
         null
     }
 
@@ -349,6 +366,8 @@ class BookImporter(private val application: Application) {
         }
         digest.digest().joinToString("") { "%02x".format(it) }
     } catch (e: Exception) {
+        e.rethrowIfCancellation()
+        appLogger.warn("Failed to compute file hash", tag = "BookImporter", throwable = e)
         null
     }
 
@@ -370,7 +389,8 @@ class BookImporter(private val application: Application) {
             FileOutputStream(coverFile).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
             Uri.fromFile(coverFile)
         } catch (e: Exception) {
-            e.printStackTrace()
+            e.rethrowIfCancellation()
+            appLogger.warn("Failed to save cover image to cache", tag = "BookImporter", throwable = e)
             null
         }
     }

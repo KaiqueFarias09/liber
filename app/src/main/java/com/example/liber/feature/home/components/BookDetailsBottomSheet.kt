@@ -67,6 +67,7 @@ import com.adamglin.phosphoricons.regular.Trash
 import com.example.liber.R
 import com.example.liber.api.ITunesSearchApi
 import com.example.liber.api.ITunesSearchResult
+import com.example.liber.core.logging.AndroidAppLogger
 import com.example.liber.core.designsystem.LiberButton
 import com.example.liber.core.designsystem.LiberModalBottomSheet
 import com.example.liber.core.designsystem.LiberSearchField
@@ -96,6 +97,8 @@ fun BookDetailsBottomSheet(
     onShare: (() -> Unit)? = null,
 ) {
     var currentSheet by remember { mutableStateOf(BookDetailSheet.MORE) }
+    val context = LocalContext.current
+    val appLogger = remember(context) { AndroidAppLogger(context.applicationContext) }
 
     LiberModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -138,7 +141,6 @@ fun BookDetailsBottomSheet(
                 )
 
                 BookDetailSheet.CHANGE_COVER -> {
-                    val context = LocalContext.current
                     var tempUri by remember { mutableStateOf<android.net.Uri?>(null) }
 
                     val cameraLauncher = rememberLauncherForActivityResult(
@@ -161,7 +163,11 @@ fun BookDetailsBottomSheet(
                             tempUri = uri
                             cameraLauncher.launch(uri)
                         } catch (e: Exception) {
-                            e.printStackTrace()
+                            appLogger.error(
+                                "Failed to launch camera for cover update",
+                                tag = "BookDetailsBottomSheet",
+                                throwable = e,
+                            )
                         }
                     }
 
@@ -195,6 +201,7 @@ fun BookDetailsBottomSheet(
 
                 BookDetailSheet.SEARCH_WEB -> SearchWebSheet(
                     initialQuery = book.title,
+                    appLogger = appLogger,
                     onCoverSelected = { highResUrl ->
                         homeViewModel.viewModelScope.launch {
                             val localUri = downloadAndSaveCover(
@@ -427,6 +434,7 @@ fun ChangeCoverSheet(
 @Composable
 fun SearchWebSheet(
     initialQuery: String,
+    appLogger: AndroidAppLogger,
     onCoverSelected: (String) -> Unit
 ) {
     var query by remember { mutableStateOf(initialQuery) }
@@ -453,7 +461,11 @@ fun SearchWebSheet(
                 val response = itunesApi.searchAudiobooks(query)
                 results = response.results
             } catch (e: Exception) {
-                e.printStackTrace()
+                appLogger.error(
+                    "Failed to search iTunes artwork",
+                    tag = "BookDetailsBottomSheet",
+                    throwable = e,
+                )
             } finally {
                 isSearching = false
             }
@@ -535,7 +547,11 @@ suspend fun downloadAndSaveCover(
             input.close()
             android.net.Uri.fromFile(file)
         } catch (e: Exception) {
-            e.printStackTrace()
+            AndroidAppLogger(context.applicationContext).error(
+                "Failed to download cover image",
+                tag = "BookDetailsBottomSheet",
+                throwable = e,
+            )
             null
         }
     }

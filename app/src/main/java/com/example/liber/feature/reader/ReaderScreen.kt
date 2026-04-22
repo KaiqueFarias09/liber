@@ -4,7 +4,6 @@ import android.app.Activity
 import android.app.Application
 import android.content.Intent
 import android.net.Uri
-import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
@@ -85,6 +84,7 @@ import com.adamglin.phosphoricons.regular.MagnifyingGlass
 import com.adamglin.phosphoricons.regular.NotePencil
 import com.adamglin.phosphoricons.regular.TextAa
 import com.example.liber.R
+import com.example.liber.core.logging.AndroidAppLogger
 import com.example.liber.core.util.UiText
 import com.example.liber.data.model.Annotation
 import com.example.liber.data.model.AnnotationType
@@ -130,6 +130,7 @@ fun ReaderScreen(
     onBack: () -> Unit,
 ) {
     val application = LocalContext.current.applicationContext as Application
+    val appLogger = remember(application) { AndroidAppLogger(application) }
     val viewModel: ReaderViewModel = viewModel(
         key = bookId,
         factory = ReaderViewModel.Factory(
@@ -137,7 +138,8 @@ fun ReaderScreen(
             bookUri,
             bookTitle,
             bookId,
-            userPreferencesRepository
+            userPreferencesRepository,
+            appLogger,
         )
     )
     val context = LocalContext.current
@@ -532,7 +534,10 @@ fun ReaderScreen(
                             onDefine = {
                                 val selected = pendingText?.trim().orEmpty()
                                 if (selected.isNotEmpty()) {
-                                    Log.d("ReaderScreen", "Dictionary lookup triggered for: '$selected' (Tag: $localeLanguageTag)")
+                                    appLogger.debug(
+                                        "Dictionary lookup triggered for: '$selected' (Tag: $localeLanguageTag)",
+                                        tag = "ReaderScreen",
+                                    )
                                     dictionaryViewModel.lookupWord(
                                         query = selected,
                                         languageTag = localeLanguageTag,

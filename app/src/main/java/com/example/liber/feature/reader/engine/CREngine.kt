@@ -2,6 +2,7 @@ package com.example.liber.feature.reader.engine
 
 import android.content.Context
 import android.os.Build
+import com.example.liber.core.logging.AndroidAppLogger
 import com.example.liber.feature.reader.engine.CREngine.init
 import com.example.liber.feature.reader.engine.CREngine.uninit
 import org.coolreader.crengine.Engine
@@ -27,6 +28,7 @@ object CREngine {
         if (initialized) return
         synchronized(this) {
             if (initialized) return
+            val appLogger = AndroidAppLogger(context.applicationContext)
 
             System.loadLibrary("cr3engine")
 
@@ -48,7 +50,7 @@ object CREngine {
             val sdkInt = Build.VERSION.SDK_INT
             val ok = Engine.init(fonts.toTypedArray(), sdkInt)
             if (!ok) {
-                android.util.Log.w("CREngine", "Engine.init returned false — no fonts registered")
+                appLogger.warn("Engine.init returned false - no fonts registered", tag = "CREngine")
             }
 
             // Set up a document cache (~128 MB) in the app's cache directory
