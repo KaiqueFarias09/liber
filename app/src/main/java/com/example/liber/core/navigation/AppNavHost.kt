@@ -15,6 +15,7 @@ import com.example.liber.feature.dictionary.DictionaryViewModel
 import com.example.liber.feature.home.HomeScreen
 import com.example.liber.feature.home.HomeViewModel
 import com.example.liber.feature.library.LibraryScreen
+import com.example.liber.feature.settings.ScanFoldersScreen
 import com.example.liber.feature.settings.SettingsScreen
 import com.example.liber.feature.settings.SettingsViewModel
 import com.example.liber.ui.LiberAppViewModel
@@ -24,6 +25,7 @@ object AppRoute {
     const val HOME = "home"
     const val LIBRARY = "library"
     const val SETTINGS = "settings"
+    const val SCAN_FOLDERS = "scan_folders"
     const val DICTIONARIES = "dictionaries"
 }
 
@@ -81,11 +83,28 @@ fun AppNavHost(
                 viewModel = settingsViewModel,
                 scanSources = scanSources,
                 onAddBooks = onAddBooks,
-                onAddScanFolder = onScanFolder,
+                onAddScanFolder = { navController.navigate(AppRoute.SCAN_FOLDERS) },
                 onRescanFolder = onRescanFolder,
                 onRemoveFolder = onRemoveScanFolder,
                 onOpenDictionaryManager = { navController.navigate(AppRoute.DICTIONARIES) },
                 modifier = modifier,
+            )
+        }
+
+        composable(AppRoute.SCAN_FOLDERS) {
+            val scanSources by homeViewModel.scanSources.collectAsState()
+            val scanState by homeViewModel.scanState.collectAsState()
+
+            ScanFoldersScreen(
+                scanSources = scanSources,
+                scanState = scanState,
+                onAddFolder = onScanFolder,
+                onRemoveFolder = onRemoveScanFolder,
+                onRescanAll = {
+                    scanSources.forEach { source -> onRescanFolder(source) }
+                },
+                onBack = { navController.popBackStack() },
+                modifier = modifier
             )
         }
 

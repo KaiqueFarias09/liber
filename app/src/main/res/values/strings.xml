@@ -223,4 +223,10 @@
     <string name="settings_label_version">v%1$s</string>
     <string name="label_singular_folder">%1$d folder</string>
     <string name="label_plural_folders">%1$d folders</string>
+    <string name="scan_folders_title">Scan Folders</string>
+    <string name="scan_folders_empty">No folders added yet.</string>
+    <string name="scan_folders_description">Select the directories where your books and audiobooks are stored. Liber will watch these folders for new content.</string>
+    <string name="scan_folders_add_action">Add another folder</string>
+    <string name="scan_folders_scan_now">Scan Now</string>
+    <string name="scan_folders_scanning">Scanning…</string>
 </resources>

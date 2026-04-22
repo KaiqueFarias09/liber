@@ -62,7 +62,7 @@ class BookScanService : Service() {
 
         serviceScope.launch {
             runScan(treeUri, folderName)
-            stopSelf()
+            stopSelf(startId)
         }
         return START_NOT_STICKY
     }
