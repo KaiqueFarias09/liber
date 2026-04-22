@@ -19,6 +19,7 @@ import java.util.UUID
 class DictionaryRepository(
     private val dictionaryDao: DictionaryDao,
     private val freeDictApi: FreeDictApi,
+    private val starDictIndexer: StarDictIndexer,
     application: Application,
 ) {
 
@@ -150,6 +151,14 @@ class DictionaryRepository(
             updatedAt = now,
         )
         dictionaryDao.upsertDictionary(dictionary)
+
+        // Trigger indexing
+        try {
+            starDictIndexer.index(id, targetFile, item.sourceLanguageTag)
+        } catch (e: Exception) {
+            Log.e("DictionaryRepository", "Failed to index dictionary: $id", e)
+        }
+
         return dictionary
     }
 

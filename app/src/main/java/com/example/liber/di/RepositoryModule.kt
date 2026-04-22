@@ -13,6 +13,7 @@ import com.example.liber.data.repository.CollectionRepository
 import com.example.liber.data.repository.DictionaryRepository
 import com.example.liber.data.repository.ReadingInsightsRepository
 import com.example.liber.data.repository.ScanSourceRepository
+import com.example.liber.data.repository.StarDictIndexer
 import com.example.liber.data.repository.UserPreferencesRepository
 import dagger.Module
 import dagger.Provides
@@ -64,9 +65,10 @@ object RepositoryModule {
     fun provideDictionaryRepository(
         dictionaryDao: DictionaryDao,
         freeDictApi: FreeDictApi,
+        starDictIndexer: StarDictIndexer,
         application: Application,
     ): DictionaryRepository =
-        DictionaryRepository(dictionaryDao, freeDictApi, application)
+        DictionaryRepository(dictionaryDao, freeDictApi, starDictIndexer, application)
 
     @Provides
     @Singleton

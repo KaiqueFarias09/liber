@@ -35,7 +35,7 @@ interface DictionaryDao {
     suspend fun setDictionaryPriority(id: String, priority: Int, updatedAt: Long)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsertEntries(entries: List<DictionaryEntry>)
+    suspend fun upsertEntries(entries: List<DictionaryEntry>): List<Long>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertSenses(senses: List<DictionarySense>)
