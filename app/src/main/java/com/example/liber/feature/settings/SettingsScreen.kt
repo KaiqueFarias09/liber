@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.CaretRight
+import com.adamglin.phosphoricons.regular.ChartBar
 import com.adamglin.phosphoricons.regular.Check
 import com.adamglin.phosphoricons.regular.FilePlus
 import com.adamglin.phosphoricons.regular.FolderOpen
@@ -59,6 +60,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel,
     modifier: Modifier = Modifier,
     scanSources: List<ScanSource> = emptyList(),
+    onOpenReadingInsights: () -> Unit = {},
     onAddBooks: () -> Unit = {},
     onAddScanFolder: () -> Unit = {},
     onRescanFolder: (ScanSource) -> Unit = {},
@@ -89,6 +91,12 @@ fun SettingsScreen(
 
             // GENERAL SECTION
             SettingsSection(title = UiText.StringResource(R.string.settings_section_general)) {
+                SettingsRow(
+                    icon = PhosphorIcons.Regular.ChartBar,
+                    label = stringResource(R.string.settings_reading_insights_title),
+                    onClick = onOpenReadingInsights,
+                    showDivider = true,
+                )
                 LanguageSetting(
                     currentLanguageTag = currentLanguage,
                     supportedLanguages = viewModel.supportedLanguages,

@@ -38,6 +38,7 @@ class UserPreferencesRepository(private val context: Context) {
         val BOOKS_SORT_OPTION = stringPreferencesKey("books_sort_option")
         val AUDIOBOOKS_VIEW_MODE = stringPreferencesKey("audiobooks_view_mode")
         val AUDIOBOOKS_SORT_OPTION = stringPreferencesKey("audiobooks_sort_option")
+        val READING_GOAL_MINUTES = intPreferencesKey("reading_goal_minutes")
         val DICTIONARY_HISTORY_ENABLED = booleanPreferencesKey("dictionary_history_enabled")
         val DICTIONARY_HISTORY_RETENTION_DAYS = intPreferencesKey("dictionary_history_retention_days")
     }
@@ -169,8 +170,15 @@ class UserPreferencesRepository(private val context: Context) {
     val dictionaryHistoryRetentionDays: Flow<Int> = context.dataStore.data
         .map { it[PreferencesKeys.DICTIONARY_HISTORY_RETENTION_DAYS] ?: 90 }
 
+    val readingGoalMinutes: Flow<Int> = context.dataStore.data
+        .map { it[PreferencesKeys.READING_GOAL_MINUTES] ?: 30 }
+
     suspend fun setAudiobooksSortOption(option: LibrarySortOption) {
         context.dataStore.edit { it[PreferencesKeys.AUDIOBOOKS_SORT_OPTION] = option.name }
+    }
+
+    suspend fun setReadingGoalMinutes(minutes: Int) {
+        context.dataStore.edit { it[PreferencesKeys.READING_GOAL_MINUTES] = minutes }
     }
 
     suspend fun setDictionaryHistoryEnabled(enabled: Boolean) {

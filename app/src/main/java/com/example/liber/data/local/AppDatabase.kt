@@ -16,6 +16,7 @@ import com.example.liber.data.model.Dictionary
 import com.example.liber.data.model.DictionaryEntry
 import com.example.liber.data.model.DictionaryLookupHistory
 import com.example.liber.data.model.DictionarySense
+import com.example.liber.data.model.ReadingSession
 import com.example.liber.data.model.ScanSource
 
 @Database(
@@ -30,8 +31,9 @@ import com.example.liber.data.model.ScanSource
         DictionaryEntry::class,
         DictionarySense::class,
         DictionaryLookupHistory::class,
+        ReadingSession::class,
     ],
-    version = 13,
+    version = 15,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)
@@ -40,6 +42,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun collectionDao(): CollectionDao
     abstract fun scanSourceDao(): ScanSourceDao
     abstract fun dictionaryDao(): DictionaryDao
+    abstract fun readingSessionDao(): ReadingSessionDao
 
     companion object {
         @Volatile
@@ -244,6 +247,33 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `reading_sessions` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `bookId` TEXT NOT NULL,
+                        `source` TEXT NOT NULL,
+                        `startedAt` INTEGER NOT NULL,
+                        `endedAt` INTEGER NOT NULL,
+                        `durationMillis` INTEGER NOT NULL,
+                        FOREIGN KEY(`bookId`) REFERENCES `books`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_reading_sessions_bookId` ON `reading_sessions` (`bookId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_reading_sessions_startedAt` ON `reading_sessions` (`startedAt`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_reading_sessions_endedAt` ON `reading_sessions` (`endedAt`)")
+            }
+        }
+
+        private val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE books ADD COLUMN language TEXT")
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -263,6 +293,8 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_10_11,
                         MIGRATION_11_12,
                         MIGRATION_12_13,
+                        MIGRATION_13_14,
+                        MIGRATION_14_15,
                     )
                     .build()
                 INSTANCE = instance

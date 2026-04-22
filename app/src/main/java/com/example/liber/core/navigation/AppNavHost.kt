@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -14,6 +15,8 @@ import com.example.liber.feature.dictionary.DictionaryManagementScreen
 import com.example.liber.feature.dictionary.DictionaryViewModel
 import com.example.liber.feature.home.HomeScreen
 import com.example.liber.feature.home.HomeViewModel
+import com.example.liber.feature.insights.ReadingInsightsScreen
+import com.example.liber.feature.insights.ReadingInsightsViewModel
 import com.example.liber.feature.library.LibraryScreen
 import com.example.liber.feature.settings.ScanFoldersScreen
 import com.example.liber.feature.settings.SettingsScreen
@@ -25,6 +28,7 @@ object AppRoute {
     const val HOME = "home"
     const val LIBRARY = "library"
     const val SETTINGS = "settings"
+    const val READING_INSIGHTS = "reading_insights"
     const val SCAN_FOLDERS = "scan_folders"
     const val DICTIONARIES = "dictionaries"
 }
@@ -82,11 +86,21 @@ fun AppNavHost(
             SettingsScreen(
                 viewModel = settingsViewModel,
                 scanSources = scanSources,
+                onOpenReadingInsights = { navController.navigate(AppRoute.READING_INSIGHTS) },
                 onAddBooks = onAddBooks,
                 onAddScanFolder = { navController.navigate(AppRoute.SCAN_FOLDERS) },
                 onRescanFolder = onRescanFolder,
                 onRemoveFolder = onRemoveScanFolder,
                 onOpenDictionaryManager = { navController.navigate(AppRoute.DICTIONARIES) },
+                modifier = modifier,
+            )
+        }
+
+        composable(AppRoute.READING_INSIGHTS) {
+            val readingInsightsViewModel: ReadingInsightsViewModel = hiltViewModel()
+            ReadingInsightsScreen(
+                viewModel = readingInsightsViewModel,
+                onBack = { navController.popBackStack() },
                 modifier = modifier,
             )
         }

@@ -2,15 +2,22 @@ package com.example.liber.ui
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.liber.core.navigation.AppTab
 import com.example.liber.data.model.Book
+import com.example.liber.data.model.ReadingSessionSource
+import com.example.liber.data.repository.ReadingSessionTracker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class LiberAppViewModel @Inject constructor(application: Application) :
+class LiberAppViewModel @Inject constructor(
+    application: Application,
+    private val readingSessionTracker: ReadingSessionTracker,
+) :
     AndroidViewModel(application) {
 
     private val _activeTab = MutableStateFlow(AppTab.HOME)
@@ -89,5 +96,25 @@ class LiberAppViewModel @Inject constructor(application: Application) :
         val duration = _activeBook.value?.durationMillis ?: 3600000L
         val seekAmount = (seconds * 1000f) / duration
         _playerProgress.value = (currentProgress + seekAmount).coerceIn(0f, 1f)
+    }
+
+    fun startReaderSession(bookId: String) {
+        viewModelScope.launch {
+            readingSessionTracker.start(
+                channel = READER_SESSION_CHANNEL,
+                bookId = bookId,
+                source = ReadingSessionSource.EPUB,
+            )
+        }
+    }
+
+    fun stopReaderSession() {
+        viewModelScope.launch {
+            readingSessionTracker.stop(READER_SESSION_CHANNEL)
+        }
+    }
+
+    private companion object {
+        const val READER_SESSION_CHANNEL = "reader"
     }
 }

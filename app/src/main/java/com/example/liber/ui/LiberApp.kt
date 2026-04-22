@@ -161,6 +161,15 @@ fun LiberApp(
         }
     }
 
+    LaunchedEffect(book?.id, isReaderOpen) {
+        val activeBook = book
+        if (activeBook != null && isReaderOpen && !activeBook.isAudiobook) {
+            liberAppViewModel.startReaderSession(activeBook.id)
+        } else {
+            liberAppViewModel.stopReaderSession()
+        }
+    }
+
     androidx.activity.compose.BackHandler(enabled = isReaderOpen || selectedCollectionId != null) {
         if (isReaderOpen) {
             liberAppViewModel.closeReader()
@@ -272,6 +281,7 @@ fun LiberApp(
                 bookUri = book.fileUri,
                 bookTitle = book.title,
                 bookId = book.id,
+                bookLanguage = book.language,
                 dictionaryViewModel = dictionaryViewModel,
                 userPreferencesRepository = userPreferencesRepository,
                 initialXPointer = book.lastLocator,

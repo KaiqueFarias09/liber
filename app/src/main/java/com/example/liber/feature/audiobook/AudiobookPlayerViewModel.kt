@@ -16,7 +16,9 @@ import androidx.media3.session.SessionToken
 import com.example.liber.core.util.UiState
 import com.example.liber.core.util.UiText
 import com.example.liber.data.model.Book
+import com.example.liber.data.model.ReadingSessionSource
 import com.example.liber.data.repository.BookRepository
+import com.example.liber.data.repository.ReadingSessionTracker
 import com.example.liber.feature.audiobook.service.PlaybackService
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
@@ -37,6 +39,7 @@ import javax.inject.Inject
 class AudiobookPlayerViewModel @Inject constructor(
     application: Application,
     private val bookRepository: BookRepository,
+    private val readingSessionTracker: ReadingSessionTracker,
 ) : AndroidViewModel(application) {
 
     data class TrackInfo(
@@ -128,6 +131,19 @@ class AudiobookPlayerViewModel @Inject constructor(
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                     _isPlaying.value = isPlaying
                     if (isPlaying) startPositionUpdates() else positionUpdateJob?.cancel()
+                    viewModelScope.launch {
+                        if (isPlaying) {
+                            currentBookId?.let { bookId ->
+                                readingSessionTracker.start(
+                                    channel = AUDIO_SESSION_CHANNEL,
+                                    bookId = bookId,
+                                    source = ReadingSessionSource.AUDIOBOOK,
+                                )
+                            }
+                        } else {
+                            readingSessionTracker.stop(AUDIO_SESSION_CHANNEL)
+                        }
+                    }
                 }
 
                 override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
@@ -163,6 +179,12 @@ class AudiobookPlayerViewModel @Inject constructor(
     fun loadBook(book: Book) {
         if (currentBookId == book.id) {
             return
+        }
+
+        if (currentBookId != null && _isPlaying.value) {
+            viewModelScope.launch {
+                readingSessionTracker.stop(AUDIO_SESSION_CHANNEL)
+            }
         }
 
         currentBookId = book.id
@@ -467,7 +489,14 @@ class AudiobookPlayerViewModel @Inject constructor(
 
     override fun onCleared() {
         positionUpdateJob?.cancel()
+        viewModelScope.launch {
+            readingSessionTracker.stop(AUDIO_SESSION_CHANNEL)
+        }
         controllerFuture?.let { MediaController.releaseFuture(it) }
         super.onCleared()
+    }
+
+    private companion object {
+        const val AUDIO_SESSION_CHANNEL = "audio"
     }
 }

@@ -5,11 +5,13 @@ import com.example.liber.api.FreeDictApi
 import com.example.liber.data.local.BookDao
 import com.example.liber.data.local.CollectionDao
 import com.example.liber.data.local.DictionaryDao
+import com.example.liber.data.local.ReadingSessionDao
 import com.example.liber.data.local.ScanSourceDao
 import com.example.liber.data.repository.BookImporter
 import com.example.liber.data.repository.BookRepository
 import com.example.liber.data.repository.CollectionRepository
 import com.example.liber.data.repository.DictionaryRepository
+import com.example.liber.data.repository.ReadingInsightsRepository
 import com.example.liber.data.repository.ScanSourceRepository
 import com.example.liber.data.repository.UserPreferencesRepository
 import dagger.Module
@@ -70,4 +72,10 @@ object RepositoryModule {
     @Singleton
     fun provideUserPreferencesRepository(application: Application): UserPreferencesRepository =
         UserPreferencesRepository(application)
+
+    @Provides
+    @Singleton
+    fun provideReadingInsightsRepository(
+        readingSessionDao: ReadingSessionDao,
+    ): ReadingInsightsRepository = ReadingInsightsRepository(readingSessionDao)
 }

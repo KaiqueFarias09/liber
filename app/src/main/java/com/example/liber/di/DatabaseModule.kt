@@ -5,6 +5,7 @@ import com.example.liber.data.local.AppDatabase
 import com.example.liber.data.local.BookDao
 import com.example.liber.data.local.CollectionDao
 import com.example.liber.data.local.DictionaryDao
+import com.example.liber.data.local.ReadingSessionDao
 import com.example.liber.data.local.ScanSourceDao
 import dagger.Module
 import dagger.Provides
@@ -33,4 +34,7 @@ object DatabaseModule {
 
     @Provides
     fun provideDictionaryDao(db: AppDatabase): DictionaryDao = db.dictionaryDao()
+
+    @Provides
+    fun provideReadingSessionDao(db: AppDatabase): ReadingSessionDao = db.readingSessionDao()
 }
