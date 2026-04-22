@@ -2,7 +2,8 @@ package com.example.liber.data.repository
 
 import android.app.Application
 import android.net.Uri
-import android.util.Log
+import com.example.liber.core.logging.AppLogger
+import com.example.liber.core.logging.BaseRepository
 import com.example.liber.api.FreeDictApi
 import com.example.liber.data.local.DictionaryDao
 import com.example.liber.data.local.DictionaryEntryWithSenses
@@ -21,15 +22,23 @@ class DictionaryRepository(
     private val freeDictApi: FreeDictApi,
     private val starDictIndexer: StarDictIndexer,
     application: Application,
-) {
+    appLogger: AppLogger,
+) : BaseRepository("DictionaryRepository", appLogger) {
 
     private val appContext = application.applicationContext
     private val httpClient = OkHttpClient()
 
-    fun getAllDictionaries(): Flow<List<Dictionary>> = dictionaryDao.getAllDictionaries()
+    fun getAllDictionaries(): Flow<List<Dictionary>> = observeOperation(
+        "getAllDictionaries",
+        upstream = dictionaryDao.getAllDictionaries(),
+    )
 
     fun getLookupHistory(limit: Int = 100): Flow<List<DictionaryLookupHistory>> =
-        dictionaryDao.getLookupHistory(limit)
+        observeOperation(
+            operationName = "getLookupHistory",
+            parameters = mapOf("limit" to limit),
+            upstream = dictionaryDao.getLookupHistory(limit),
+        )
 
     suspend fun createManualDictionary(
         displayName: String,
@@ -37,6 +46,15 @@ class DictionaryRepository(
         targetLanguageTag: String?,
         dictionaryType: String,
         uri: Uri?,
+    ) = executeOperation(
+        operationName = "createManualDictionary",
+        parameters = mapOf(
+            "displayName" to displayName,
+            "sourceLanguageTag" to sourceLanguageTag,
+            "targetLanguageTag" to targetLanguageTag,
+            "dictionaryType" to dictionaryType,
+            "hasUri" to (uri != null),
+        ),
     ) {
         val now = System.currentTimeMillis()
         var localFilePath: String? = null
@@ -80,8 +98,10 @@ class DictionaryRepository(
         )
     }
 
-    suspend fun fetchFreeDictCatalog(): List<FreeDictCatalogItem> {
-        return freeDictApi.getDatabase()
+    suspend fun fetchFreeDictCatalog(): List<FreeDictCatalogItem> = executeOperation(
+        operationName = "fetchFreeDictCatalog",
+    ) {
+        freeDictApi.getDatabase()
             .mapNotNull { dto ->
                 val name = dto.name ?: return@mapNotNull null
                 val stardict = dto.releases
@@ -105,7 +125,10 @@ class DictionaryRepository(
             .sortedWith(compareBy({ it.sourceLanguageTag }, { it.targetLanguageTag }))
     }
 
-    suspend fun downloadAndInstallFreeDict(item: FreeDictCatalogItem): Dictionary {
+    suspend fun downloadAndInstallFreeDict(item: FreeDictCatalogItem): Dictionary = executeOperation(
+        operationName = "downloadAndInstallFreeDict",
+        parameters = mapOf("code" to item.code, "version" to item.version),
+    ) {
         val dictionariesDir = File(appContext.filesDir, "dictionaries")
         if (!dictionariesDir.exists()) {
             dictionariesDir.mkdirs()
@@ -156,25 +179,41 @@ class DictionaryRepository(
         try {
             starDictIndexer.index(id, targetFile, item.sourceLanguageTag)
         } catch (e: Exception) {
-            Log.e("DictionaryRepository", "Failed to index dictionary: $id", e)
+            logger.recordError(
+                throwable = e,
+                operationName = "downloadAndInstallFreeDict",
+                message = "Failed to index dictionary: $id",
+            )
         }
 
         return dictionary
     }
 
-    suspend fun renameDictionary(id: String, localAlias: String?) {
+    suspend fun renameDictionary(id: String, localAlias: String?) = executeOperation(
+        operationName = "renameDictionary",
+        parameters = mapOf("id" to id, "hasLocalAlias" to !localAlias.isNullOrBlank()),
+    ) {
         dictionaryDao.setDictionaryAlias(id, localAlias?.trim()?.ifEmpty { null }, now())
     }
 
-    suspend fun setDictionaryEnabled(id: String, enabled: Boolean) {
+    suspend fun setDictionaryEnabled(id: String, enabled: Boolean) = executeOperation(
+        operationName = "setDictionaryEnabled",
+        parameters = mapOf("id" to id, "enabled" to enabled),
+    ) {
         dictionaryDao.setDictionaryEnabled(id, enabled, now())
     }
 
-    suspend fun setDictionaryPriority(id: String, priority: Int) {
+    suspend fun setDictionaryPriority(id: String, priority: Int) = executeOperation(
+        operationName = "setDictionaryPriority",
+        parameters = mapOf("id" to id, "priority" to priority),
+    ) {
         dictionaryDao.setDictionaryPriority(id, priority, now())
     }
 
-    suspend fun deleteDictionary(id: String) {
+    suspend fun deleteDictionary(id: String) = executeOperation(
+        operationName = "deleteDictionary",
+        parameters = mapOf("id" to id),
+    ) {
         dictionaryDao.deleteDictionary(id)
     }
 
@@ -182,16 +221,21 @@ class DictionaryRepository(
         query: String,
         languageTag: String,
         limit: Int = 30,
-    ): List<DictionaryEntryWithSenses> {
+    ): List<DictionaryEntryWithSenses> = executeOperation(
+        operationName = "searchEntries",
+        parameters = mapOf("query" to query.trim(), "languageTag" to languageTag, "limit" to limit),
+    ) {
         val trimmed = query.trim()
         val normalizedTag = normalizeLanguageTag(languageTag)
-        Log.d("DictionaryRepository", "Searching for '$trimmed' with languageTag '$languageTag' (normalized: '$normalizedTag')")
+        logger.log(
+            "Searching for \"$trimmed\" with languageTag=\"$languageTag\" normalized=\"$normalizedTag\""
+        )
         if (trimmed.isBlank()) return emptyList()
 
         val normalizedPrefix = normalize(trimmed) + "%"
         val rawPrefix = trimmed + "%"
         val entries = dictionaryDao.searchEntries(normalizedTag, normalizedPrefix, rawPrefix, limit)
-        Log.d("DictionaryRepository", "Found ${entries.size} entries in database")
+        logger.log("Found ${entries.size} entries in database")
         if (entries.isEmpty()) return emptyList()
 
         return dictionaryDao.getEntriesWithSenses(entries.map { it.id })
@@ -234,6 +278,14 @@ class DictionaryRepository(
         entryId: Long?,
         dictionaryId: String?,
         sourceBookId: String?,
+    ) = executeOperation(
+        operationName = "addLookupHistory",
+        parameters = mapOf(
+            "query" to query,
+            "entryId" to entryId,
+            "dictionaryId" to dictionaryId,
+            "sourceBookId" to sourceBookId,
+        ),
     ) {
         dictionaryDao.insertLookupHistory(
             DictionaryLookupHistory(
@@ -245,11 +297,14 @@ class DictionaryRepository(
         )
     }
 
-    suspend fun deleteLookupHistory(id: Long) {
+    suspend fun deleteLookupHistory(id: Long) = executeOperation(
+        operationName = "deleteLookupHistory",
+        parameters = mapOf("id" to id),
+    ) {
         dictionaryDao.deleteLookupHistory(id)
     }
 
-    suspend fun clearLookupHistory() {
+    suspend fun clearLookupHistory() = executeOperation("clearLookupHistory") {
         dictionaryDao.clearLookupHistory()
     }
 

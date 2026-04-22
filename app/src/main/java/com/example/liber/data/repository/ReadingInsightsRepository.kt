@@ -1,15 +1,20 @@
 package com.example.liber.data.repository
 
+import com.example.liber.core.logging.AppLogger
+import com.example.liber.core.logging.BaseRepository
 import com.example.liber.data.local.ReadingSessionDao
 import com.example.liber.data.model.ReadingSession
 import kotlinx.coroutines.flow.Flow
 
 class ReadingInsightsRepository(
     private val readingSessionDao: ReadingSessionDao,
-) {
-    fun getSessionsSince(threshold: Long): Flow<List<ReadingSession>> {
-        return readingSessionDao.getSessionsSince(threshold)
-    }
+    appLogger: AppLogger,
+) : BaseRepository("ReadingInsightsRepository", appLogger) {
+    fun getSessionsSince(threshold: Long): Flow<List<ReadingSession>> = observeOperation(
+        operationName = "getSessionsSince",
+        parameters = mapOf("threshold" to threshold),
+        upstream = readingSessionDao.getSessionsSince(threshold),
+    )
 
     suspend fun recordSession(
         bookId: String,
@@ -17,6 +22,15 @@ class ReadingInsightsRepository(
         startedAt: Long,
         endedAt: Long,
         durationMillis: Long,
+    ) = executeOperation(
+        operationName = "recordSession",
+        parameters = mapOf(
+            "bookId" to bookId,
+            "source" to source,
+            "startedAt" to startedAt,
+            "endedAt" to endedAt,
+            "durationMillis" to durationMillis,
+        ),
     ) {
         readingSessionDao.insertSession(
             ReadingSession(

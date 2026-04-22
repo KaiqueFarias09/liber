@@ -2,6 +2,7 @@ package com.example.liber.di
 
 import android.app.Application
 import com.example.liber.api.FreeDictApi
+import com.example.liber.core.logging.AppLogger
 import com.example.liber.data.local.BookDao
 import com.example.liber.data.local.CollectionDao
 import com.example.liber.data.local.DictionaryDao
@@ -42,23 +43,31 @@ object RepositoryModule {
 
     @Provides
     @Singleton
-    fun provideBookRepository(bookDao: BookDao): BookRepository =
-        BookRepository(bookDao)
+    fun provideBookRepository(
+        bookDao: BookDao,
+        appLogger: AppLogger,
+    ): BookRepository = BookRepository(bookDao, appLogger)
 
     @Provides
     @Singleton
-    fun provideCollectionRepository(collectionDao: CollectionDao): CollectionRepository =
-        CollectionRepository(collectionDao)
+    fun provideCollectionRepository(
+        collectionDao: CollectionDao,
+        appLogger: AppLogger,
+    ): CollectionRepository = CollectionRepository(collectionDao, appLogger)
 
     @Provides
     @Singleton
-    fun provideScanSourceRepository(scanSourceDao: ScanSourceDao): ScanSourceRepository =
-        ScanSourceRepository(scanSourceDao)
+    fun provideScanSourceRepository(
+        scanSourceDao: ScanSourceDao,
+        appLogger: AppLogger,
+    ): ScanSourceRepository = ScanSourceRepository(scanSourceDao, appLogger)
 
     @Provides
     @Singleton
-    fun provideBookImporter(application: Application): BookImporter =
-        BookImporter(application)
+    fun provideBookImporter(
+        application: Application,
+        appLogger: AppLogger,
+    ): BookImporter = BookImporter(application, appLogger)
 
     @Provides
     @Singleton
@@ -67,17 +76,21 @@ object RepositoryModule {
         freeDictApi: FreeDictApi,
         starDictIndexer: StarDictIndexer,
         application: Application,
+        appLogger: AppLogger,
     ): DictionaryRepository =
-        DictionaryRepository(dictionaryDao, freeDictApi, starDictIndexer, application)
+        DictionaryRepository(dictionaryDao, freeDictApi, starDictIndexer, application, appLogger)
 
     @Provides
     @Singleton
-    fun provideUserPreferencesRepository(application: Application): UserPreferencesRepository =
-        UserPreferencesRepository(application)
+    fun provideUserPreferencesRepository(
+        application: Application,
+        appLogger: AppLogger,
+    ): UserPreferencesRepository = UserPreferencesRepository(application, appLogger)
 
     @Provides
     @Singleton
     fun provideReadingInsightsRepository(
         readingSessionDao: ReadingSessionDao,
-    ): ReadingInsightsRepository = ReadingInsightsRepository(readingSessionDao)
+        appLogger: AppLogger,
+    ): ReadingInsightsRepository = ReadingInsightsRepository(readingSessionDao, appLogger)
 }

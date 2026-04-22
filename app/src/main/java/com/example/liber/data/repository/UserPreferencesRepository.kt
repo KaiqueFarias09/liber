@@ -9,6 +9,8 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.example.liber.core.logging.AppLogger
+import com.example.liber.core.logging.BaseRepository
 import com.example.liber.feature.library.LibrarySortOption
 import com.example.liber.feature.library.LibraryViewMode
 import kotlinx.coroutines.flow.Flow
@@ -20,7 +22,10 @@ enum class ThemeMode {
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "user_preferences")
 
-class UserPreferencesRepository(private val context: Context) {
+class UserPreferencesRepository(
+    private val context: Context,
+    appLogger: AppLogger,
+) : BaseRepository("UserPreferencesRepository", appLogger) {
 
     private object PreferencesKeys {
         val THEME_MODE = stringPreferencesKey("theme_mode")
@@ -49,7 +54,10 @@ class UserPreferencesRepository(private val context: Context) {
             ThemeMode.valueOf(themeName)
         }
 
-    suspend fun setThemeMode(themeMode: ThemeMode) {
+    suspend fun setThemeMode(themeMode: ThemeMode) = executeOperation(
+        operationName = "setThemeMode",
+        parameters = mapOf("themeMode" to themeMode.name),
+    ) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.THEME_MODE] = themeMode.name
         }
@@ -58,70 +66,100 @@ class UserPreferencesRepository(private val context: Context) {
     val readerTheme: Flow<String> = context.dataStore.data
         .map { it[PreferencesKeys.READER_THEME] ?: "original" }
 
-    suspend fun setReaderTheme(id: String) {
+    suspend fun setReaderTheme(id: String) = executeOperation(
+        operationName = "setReaderTheme",
+        parameters = mapOf("id" to id),
+    ) {
         context.dataStore.edit { it[PreferencesKeys.READER_THEME] = id }
     }
 
     val fontSize: Flow<Float> = context.dataStore.data
         .map { it[PreferencesKeys.FONT_SIZE] ?: 1.0f }
 
-    suspend fun setFontSize(size: Float) {
+    suspend fun setFontSize(size: Float) = executeOperation(
+        operationName = "setFontSize",
+        parameters = mapOf("size" to size),
+    ) {
         context.dataStore.edit { it[PreferencesKeys.FONT_SIZE] = size }
     }
 
     val pageScroll: Flow<Boolean> = context.dataStore.data
         .map { it[PreferencesKeys.PAGE_SCROLL] ?: false }
 
-    suspend fun setPageScroll(enabled: Boolean) {
+    suspend fun setPageScroll(enabled: Boolean) = executeOperation(
+        operationName = "setPageScroll",
+        parameters = mapOf("enabled" to enabled),
+    ) {
         context.dataStore.edit { it[PreferencesKeys.PAGE_SCROLL] = enabled }
     }
 
     val customizeLayout: Flow<Boolean> = context.dataStore.data
         .map { it[PreferencesKeys.CUSTOMIZE_LAYOUT] ?: false }
 
-    suspend fun setCustomizeLayout(enabled: Boolean) {
+    suspend fun setCustomizeLayout(enabled: Boolean) = executeOperation(
+        operationName = "setCustomizeLayout",
+        parameters = mapOf("enabled" to enabled),
+    ) {
         context.dataStore.edit { it[PreferencesKeys.CUSTOMIZE_LAYOUT] = enabled }
     }
 
     val lineSpacing: Flow<Float> = context.dataStore.data
         .map { it[PreferencesKeys.LINE_SPACING] ?: 1.4f }
 
-    suspend fun setLineSpacing(value: Float) {
+    suspend fun setLineSpacing(value: Float) = executeOperation(
+        operationName = "setLineSpacing",
+        parameters = mapOf("value" to value),
+    ) {
         context.dataStore.edit { it[PreferencesKeys.LINE_SPACING] = value }
     }
 
     val charSpacing: Flow<Float> = context.dataStore.data
         .map { it[PreferencesKeys.CHAR_SPACING] ?: 0.0f }
 
-    suspend fun setCharSpacing(value: Float) {
+    suspend fun setCharSpacing(value: Float) = executeOperation(
+        operationName = "setCharSpacing",
+        parameters = mapOf("value" to value),
+    ) {
         context.dataStore.edit { it[PreferencesKeys.CHAR_SPACING] = value }
     }
 
     val wordSpacing: Flow<Float> = context.dataStore.data
         .map { it[PreferencesKeys.WORD_SPACING] ?: 0.0f }
 
-    suspend fun setWordSpacing(value: Float) {
+    suspend fun setWordSpacing(value: Float) = executeOperation(
+        operationName = "setWordSpacing",
+        parameters = mapOf("value" to value),
+    ) {
         context.dataStore.edit { it[PreferencesKeys.WORD_SPACING] = value }
     }
 
     val margins: Flow<Float> = context.dataStore.data
         .map { it[PreferencesKeys.MARGINS] ?: 24.0f }
 
-    suspend fun setMargins(value: Float) {
+    suspend fun setMargins(value: Float) = executeOperation(
+        operationName = "setMargins",
+        parameters = mapOf("value" to value),
+    ) {
         context.dataStore.edit { it[PreferencesKeys.MARGINS] = value }
     }
 
     val columnCount: Flow<String> = context.dataStore.data
         .map { it[PreferencesKeys.COLUMN_COUNT] ?: "auto" }
 
-    suspend fun setColumnCount(value: String) {
+    suspend fun setColumnCount(value: String) = executeOperation(
+        operationName = "setColumnCount",
+        parameters = mapOf("value" to value),
+    ) {
         context.dataStore.edit { it[PreferencesKeys.COLUMN_COUNT] = value }
     }
 
     val justifyText: Flow<Boolean> = context.dataStore.data
         .map { it[PreferencesKeys.JUSTIFY_TEXT] ?: false }
 
-    suspend fun setJustifyText(value: Boolean) {
+    suspend fun setJustifyText(value: Boolean) = executeOperation(
+        operationName = "setJustifyText",
+        parameters = mapOf("value" to value),
+    ) {
         context.dataStore.edit { it[PreferencesKeys.JUSTIFY_TEXT] = value }
     }
 
@@ -131,7 +169,10 @@ class UserPreferencesRepository(private val context: Context) {
             LibraryViewMode.valueOf(name)
         }
 
-    suspend fun setBooksViewMode(mode: LibraryViewMode) {
+    suspend fun setBooksViewMode(mode: LibraryViewMode) = executeOperation(
+        operationName = "setBooksViewMode",
+        parameters = mapOf("mode" to mode.name),
+    ) {
         context.dataStore.edit { it[PreferencesKeys.BOOKS_VIEW_MODE] = mode.name }
     }
 
@@ -142,7 +183,10 @@ class UserPreferencesRepository(private val context: Context) {
             LibrarySortOption.valueOf(name)
         }
 
-    suspend fun setBooksSortOption(option: LibrarySortOption) {
+    suspend fun setBooksSortOption(option: LibrarySortOption) = executeOperation(
+        operationName = "setBooksSortOption",
+        parameters = mapOf("option" to option.name),
+    ) {
         context.dataStore.edit { it[PreferencesKeys.BOOKS_SORT_OPTION] = option.name }
     }
 
@@ -153,7 +197,10 @@ class UserPreferencesRepository(private val context: Context) {
             LibraryViewMode.valueOf(name)
         }
 
-    suspend fun setAudiobooksViewMode(mode: LibraryViewMode) {
+    suspend fun setAudiobooksViewMode(mode: LibraryViewMode) = executeOperation(
+        operationName = "setAudiobooksViewMode",
+        parameters = mapOf("mode" to mode.name),
+    ) {
         context.dataStore.edit { it[PreferencesKeys.AUDIOBOOKS_VIEW_MODE] = mode.name }
     }
 
@@ -173,23 +220,35 @@ class UserPreferencesRepository(private val context: Context) {
     val readingGoalMinutes: Flow<Int> = context.dataStore.data
         .map { it[PreferencesKeys.READING_GOAL_MINUTES] ?: 30 }
 
-    suspend fun setAudiobooksSortOption(option: LibrarySortOption) {
+    suspend fun setAudiobooksSortOption(option: LibrarySortOption) = executeOperation(
+        operationName = "setAudiobooksSortOption",
+        parameters = mapOf("option" to option.name),
+    ) {
         context.dataStore.edit { it[PreferencesKeys.AUDIOBOOKS_SORT_OPTION] = option.name }
     }
 
-    suspend fun setReadingGoalMinutes(minutes: Int) {
+    suspend fun setReadingGoalMinutes(minutes: Int) = executeOperation(
+        operationName = "setReadingGoalMinutes",
+        parameters = mapOf("minutes" to minutes),
+    ) {
         context.dataStore.edit { it[PreferencesKeys.READING_GOAL_MINUTES] = minutes }
     }
 
-    suspend fun setDictionaryHistoryEnabled(enabled: Boolean) {
+    suspend fun setDictionaryHistoryEnabled(enabled: Boolean) = executeOperation(
+        operationName = "setDictionaryHistoryEnabled",
+        parameters = mapOf("enabled" to enabled),
+    ) {
         context.dataStore.edit { it[PreferencesKeys.DICTIONARY_HISTORY_ENABLED] = enabled }
     }
 
-    suspend fun setDictionaryHistoryRetentionDays(days: Int) {
+    suspend fun setDictionaryHistoryRetentionDays(days: Int) = executeOperation(
+        operationName = "setDictionaryHistoryRetentionDays",
+        parameters = mapOf("days" to days),
+    ) {
         context.dataStore.edit { it[PreferencesKeys.DICTIONARY_HISTORY_RETENTION_DAYS] = days }
     }
 
-    suspend fun resetReaderSettings() {
+    suspend fun resetReaderSettings() = executeOperation("resetReaderSettings") {
         context.dataStore.edit { preferences ->
             preferences.remove(PreferencesKeys.READER_THEME)
             preferences.remove(PreferencesKeys.FONT_SIZE)
