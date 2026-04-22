@@ -1,6 +1,7 @@
 package com.example.liber.feature.dictionary
 
 import android.app.Application
+import android.util.Log
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -150,6 +151,7 @@ class DictionaryViewModel @Inject constructor(
 
     fun lookupWord(query: String, languageTag: String, sourceBookId: String?) {
         val trimmed = query.trim()
+        Log.d("DictionaryViewModel", "lookupWord: '$trimmed' ($languageTag)")
         if (trimmed.isBlank()) {
             _activeLookupQuery.value = null
             _lookupState.value = UiState.Success(emptyList())
@@ -161,6 +163,7 @@ class DictionaryViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val results = dictionaryRepository.searchEntries(trimmed, languageTag)
+                Log.d("DictionaryViewModel", "lookupWord: found ${results.size} results")
                 _lookupState.value = UiState.Success(results)
 
                 val first = results.firstOrNull()
@@ -171,6 +174,7 @@ class DictionaryViewModel @Inject constructor(
                     sourceBookId = sourceBookId,
                 )
             } catch (e: Exception) {
+                Log.e("DictionaryViewModel", "lookupWord error", e)
                 _lookupState.value = UiState.Error(
                     UiText.DynamicString(
                         e.message ?: "Dictionary lookup failed"

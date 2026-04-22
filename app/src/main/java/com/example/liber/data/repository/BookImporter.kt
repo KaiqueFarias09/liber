@@ -324,6 +324,7 @@ class BookImporter(private val application: Application) {
             ?: return null
         val title = publication.metadata.title ?: "Unknown Title"
         val author = publication.metadata.authors.firstOrNull()?.name
+        val language = publication.metadata.languages.firstOrNull()
         val coverUri = extractCover(publication, file.name ?: "cover")
         Book(
             id = UUID.randomUUID().toString(),
@@ -332,6 +333,7 @@ class BookImporter(private val application: Application) {
             coverUri = coverUri,
             fileUri = file.uri,
             contentId = publication.metadata.identifier ?: computeFileHash(file.uri),
+            language = language,
         )
     } catch (e: Exception) {
         e.printStackTrace()

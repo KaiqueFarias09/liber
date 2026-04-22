@@ -259,11 +259,6 @@ fun DictionaryManagementScreen(
                                                 .size(32.dp)
                                                 .padding(end = 8.dp)
                                         )
-                                        Text(
-                                            text = if (dictionary.isEnabled) "Enabled" else "Disabled",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
                                     }
                                 }
                             )

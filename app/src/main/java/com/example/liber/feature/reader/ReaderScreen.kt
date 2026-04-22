@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.Application
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
@@ -112,6 +113,7 @@ fun ReaderScreen(
     bookUri: Uri,
     bookTitle: String,
     bookId: String,
+    bookLanguage: String?,
     dictionaryViewModel: DictionaryViewModel,
     userPreferencesRepository: UserPreferencesRepository,
     initialXPointer: String?,
@@ -139,9 +141,13 @@ fun ReaderScreen(
         )
     )
     val context = LocalContext.current
-    val localeLanguageTag = remember {
-        runCatching { context.resources.configuration.locales[0].toLanguageTag() }
-            .getOrDefault("en")
+    val localeLanguageTag = remember(bookLanguage) {
+        if (!bookLanguage.isNullOrBlank()) {
+            bookLanguage
+        } else {
+            runCatching { context.resources.configuration.locales[0].toLanguageTag() }
+                .getOrDefault("en")
+        }
     }
     val density = LocalDensity.current
 
@@ -526,6 +532,7 @@ fun ReaderScreen(
                             onDefine = {
                                 val selected = pendingText?.trim().orEmpty()
                                 if (selected.isNotEmpty()) {
+                                    Log.d("ReaderScreen", "Dictionary lookup triggered for: '$selected' (Tag: $localeLanguageTag)")
                                     dictionaryViewModel.lookupWord(
                                         query = selected,
                                         languageTag = localeLanguageTag,

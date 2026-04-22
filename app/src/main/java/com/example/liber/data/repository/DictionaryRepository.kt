@@ -2,6 +2,7 @@ package com.example.liber.data.repository
 
 import android.app.Application
 import android.net.Uri
+import android.util.Log
 import com.example.liber.api.FreeDictApi
 import com.example.liber.data.local.DictionaryDao
 import com.example.liber.data.local.DictionaryEntryWithSenses
@@ -174,14 +175,49 @@ class DictionaryRepository(
         limit: Int = 30,
     ): List<DictionaryEntryWithSenses> {
         val trimmed = query.trim()
+        val normalizedTag = normalizeLanguageTag(languageTag)
+        Log.d("DictionaryRepository", "Searching for '$trimmed' with languageTag '$languageTag' (normalized: '$normalizedTag')")
         if (trimmed.isBlank()) return emptyList()
 
         val normalizedPrefix = normalize(trimmed) + "%"
         val rawPrefix = trimmed + "%"
-        val entries = dictionaryDao.searchEntries(languageTag, normalizedPrefix, rawPrefix, limit)
+        val entries = dictionaryDao.searchEntries(normalizedTag, normalizedPrefix, rawPrefix, limit)
+        Log.d("DictionaryRepository", "Found ${entries.size} entries in database")
         if (entries.isEmpty()) return emptyList()
 
         return dictionaryDao.getEntriesWithSenses(entries.map { it.id })
+    }
+
+    private fun normalizeLanguageTag(tag: String): String {
+        val iso2 = tag.split("-").first().lowercase(Locale.ROOT)
+        // Basic mapping for common languages to ISO 639-2/T (used by FreeDict)
+        return when (iso2) {
+            "en" -> "eng"
+            "pt" -> "por"
+            "fr" -> "fra"
+            "de" -> "deu"
+            "es" -> "spa"
+            "it" -> "ita"
+            "ru" -> "rus"
+            "nl" -> "nld"
+            "sv" -> "swe"
+            "fi" -> "fin"
+            "da" -> "dan"
+            "no" -> "nor"
+            "ja" -> "jpn"
+            "zh" -> "zho"
+            "ko" -> "kor"
+            "ar" -> "ara"
+            "hi" -> "hin"
+            else -> {
+                // Try using Java Locale to get ISO3 if not in map
+                try {
+                    Locale.Builder().setLanguage(iso2).build().isO3Language.lowercase(Locale.ROOT)
+                } catch (_: Exception) {
+                    iso2
+                }
+            }
+        }
     }
 
     suspend fun addLookupHistory(
