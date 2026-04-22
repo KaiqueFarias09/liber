@@ -2,6 +2,7 @@
 # Gradle & Build Directories
 # -----------------------------
 .gradle/
+.gradle-local/
 /build/
 /*/build/
 app/release/
