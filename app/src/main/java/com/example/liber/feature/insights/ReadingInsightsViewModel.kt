@@ -33,6 +33,7 @@ data class ReadingInsightsUiModel(
     val averageSessionMinutes: Int,
     val profileTitle: String,
     val profileSubtitle: String,
+    val readingNow: List<Book>,
     val finishedThisYear: List<Book>,
     val finishedThisYearCount: Int,
 )
@@ -125,6 +126,12 @@ class ReadingInsightsViewModel @Inject constructor(
 
         val (profileTitle, profileSubtitle) = buildReaderProfile(recentSessions)
 
+        val readingNow = books
+            .filter { book ->
+                book.readingProgress in 1..99
+            }
+            .sortedByDescending { it.lastOpenedAt ?: 0L }
+
         val finishedThisYear = books
             .filter { book ->
                 book.readingProgress >= 100 &&
@@ -142,6 +149,7 @@ class ReadingInsightsViewModel @Inject constructor(
             averageSessionMinutes = averageSessionMinutes,
             profileTitle = profileTitle,
             profileSubtitle = profileSubtitle,
+            readingNow = readingNow,
             finishedThisYear = finishedThisYear,
             finishedThisYearCount = finishedThisYear.size,
         )

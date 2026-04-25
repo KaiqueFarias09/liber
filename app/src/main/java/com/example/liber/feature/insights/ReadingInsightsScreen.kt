@@ -34,8 +34,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.adamglin.PhosphorIcons
@@ -54,6 +54,7 @@ import com.example.liber.core.designsystem.Gambetta
 import com.example.liber.core.designsystem.LiberScreen
 import com.example.liber.core.util.UiState
 import com.example.liber.core.util.UiText
+import com.example.liber.data.model.Book
 import java.time.Year
 
 @Composable
@@ -132,11 +133,7 @@ private fun ReadingInsightsContent(
 
         Text(
             text = stringResource(R.string.settings_reading_insights_habits),
-            style = MaterialTheme.typography.titleLarge.copy(
-                fontFamily = Gambetta,
-                fontWeight = FontWeight.Normal,
-            ),
-            color = MaterialTheme.colorScheme.onBackground,
+            style = MaterialTheme.typography.titleLarge.copy(fontFamily = Gambetta),
         )
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -173,12 +170,18 @@ private fun ReadingInsightsContent(
             )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        if (uiModel.readingNow.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(24.dp))
+            ReadingNowSection(books = uiModel.readingNow)
+        }
 
-        FinishedBooksSection(
-            books = uiModel.finishedThisYear,
-            count = uiModel.finishedThisYearCount,
-        )
+        if (uiModel.finishedThisYear.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(24.dp))
+            FinishedBooksSection(
+                books = uiModel.finishedThisYear,
+                count = uiModel.finishedThisYearCount,
+            )
+        }
     }
 }
 
@@ -420,8 +423,63 @@ private fun InsightMiniCard(
 }
 
 @Composable
+private fun ReadingNowSection(
+    books: List<Book>,
+) {
+    Column {
+        Text(
+            text = stringResource(R.string.settings_reading_insights_reading_now),
+            style = MaterialTheme.typography.titleLarge.copy(fontFamily = Gambetta),
+        )
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            books.forEach { book ->
+                Column(
+                    modifier = Modifier.width(100.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Surface(
+                        tonalElevation = 2.dp,
+                    ) {
+                        BookCover(
+                            book = book,
+                            style = CoverStyle.SMALL,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(2f / 3f),
+                            fillBounds = true,
+                        )
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = book.title,
+                            style = MaterialTheme.typography.labelMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            text = "${book.readingProgress}%",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun FinishedBooksSection(
-    books: List<com.example.liber.data.model.Book>,
+    books: List<Book>,
     count: Int,
 ) {
     Column {
@@ -468,13 +526,12 @@ private fun FinishedBooksSection(
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            books.take(8).forEach { book ->
+            books.forEach { book ->
                 Column(
                     modifier = Modifier.width(90.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Surface(
-                        shape = RoundedCornerShape(10.dp),
                         tonalElevation = 2.dp,
                     ) {
                         BookCover(
@@ -489,27 +546,9 @@ private fun FinishedBooksSection(
                     Text(
                         text = book.title,
                         style = MaterialTheme.typography.labelMedium,
-                        maxLines = 2,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-            }
-
-            Surface(
-                modifier = Modifier
-                    .width(90.dp)
-                    .aspectRatio(2f / 3f),
-                shape = RoundedCornerShape(10.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = stringResource(R.string.settings_reading_insights_reading_now),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 12.dp),
                     )
                 }
             }
