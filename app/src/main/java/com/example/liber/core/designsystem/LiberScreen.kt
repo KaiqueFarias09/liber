@@ -15,12 +15,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.adamglin.PhosphorIcons
+import com.adamglin.phosphoricons.Regular
+import com.adamglin.phosphoricons.regular.ArrowLeft
+import com.example.liber.R
 import com.example.liber.core.util.UiText
 
 /**
@@ -30,6 +37,7 @@ import com.example.liber.core.util.UiText
 fun LiberScreen(
     title: UiText?,
     modifier: Modifier = Modifier,
+    onBack: (() -> Unit)? = null,
     navigationIcon: (@Composable () -> Unit)? = null,
     headerActions: (@Composable RowScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
@@ -39,6 +47,7 @@ fun LiberScreen(
     ) {
         LiberHeader(
             title = title,
+            onBack = onBack,
             navigationIcon = navigationIcon,
             actions = headerActions
         )
@@ -53,6 +62,7 @@ fun LiberScreen(
 fun LiberScrollableScreen(
     title: UiText?,
     modifier: Modifier = Modifier,
+    onBack: (() -> Unit)? = null,
     navigationIcon: (@Composable () -> Unit)? = null,
     headerActions: (@Composable RowScope.() -> Unit)? = null,
     contentPadding: PaddingValues = PaddingValues(bottom = 24.dp),
@@ -65,6 +75,7 @@ fun LiberScrollableScreen(
         item {
             LiberHeader(
                 title = title,
+                onBack = onBack,
                 navigationIcon = navigationIcon,
                 actions = headerActions
             )
@@ -77,28 +88,40 @@ fun LiberScrollableScreen(
 fun LiberHeader(
     title: UiText?,
     modifier: Modifier = Modifier,
+    onBack: (() -> Unit)? = null,
     navigationIcon: (@Composable () -> Unit)? = null,
     actions: (@Composable RowScope.() -> Unit)? = null
 ) {
     // If absolutely nothing to show, just provide a standard top margin
-    if (title == null && actions == null && navigationIcon == null) {
+    if (title == null && actions == null && navigationIcon == null && onBack == null) {
         Spacer(modifier = modifier.height(24.dp))
         return
     }
+
+    val finalNavigationIcon: (@Composable () -> Unit)? = navigationIcon ?: if (onBack != null) {
+        {
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = PhosphorIcons.Regular.ArrowLeft,
+                    contentDescription = stringResource(R.string.audio_control_back),
+                )
+            }
+        }
+    } else null
 
     Row(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 64.dp) // Standard Material-ish header height
             .padding(
-                start = if (navigationIcon != null) 4.dp else 24.dp,
+                start = if (finalNavigationIcon != null) 4.dp else 24.dp,
                 end = if (actions != null) 12.dp else 24.dp,
                 top = 8.dp
             ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (navigationIcon != null) {
-            navigationIcon()
+        if (finalNavigationIcon != null) {
+            finalNavigationIcon()
             // Minimal spacer because IconButton already has internal padding
             Spacer(modifier = Modifier.width(4.dp))
         }
@@ -110,7 +133,7 @@ fun LiberHeader(
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier
                     .weight(1f)
-                    .padding(start = if (navigationIcon == null) 0.dp else 4.dp)
+                    .padding(start = if (finalNavigationIcon == null) 0.dp else 4.dp)
             )
         } else {
             // Keep a spacer if we have actions but no title

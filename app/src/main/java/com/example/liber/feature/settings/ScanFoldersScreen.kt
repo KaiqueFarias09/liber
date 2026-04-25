@@ -42,7 +42,6 @@ import androidx.compose.ui.unit.sp
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.ArrowsClockwise
-import com.adamglin.phosphoricons.regular.CaretLeft
 import com.adamglin.phosphoricons.regular.Folder
 import com.adamglin.phosphoricons.regular.Plus
 import com.adamglin.phosphoricons.regular.Trash
@@ -66,15 +65,7 @@ fun ScanFoldersScreen(
 
     LiberScreen(
         title = UiText.StringResource(R.string.scan_folders_title),
-        navigationIcon = {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = PhosphorIcons.Regular.CaretLeft,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        },
+        onBack = onBack,
         modifier = modifier,
     ) {
         Column(

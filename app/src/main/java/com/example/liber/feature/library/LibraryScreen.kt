@@ -10,8 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -31,6 +29,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.example.liber.R
+import com.example.liber.core.designsystem.AppErrorState
 import com.example.liber.core.designsystem.BookGrid
 import com.example.liber.core.designsystem.EmptyState
 import com.example.liber.core.designsystem.LiberHeader
@@ -188,7 +187,10 @@ fun LibraryScreen(
                     2 -> {
                         when (collectionsState) {
                             is UiState.Loading -> LoadingState()
-                            is UiState.Error -> ErrorState(collectionsState.message)
+                            is UiState.Error -> AppErrorState(
+                                title = collectionsState.title,
+                                message = collectionsState.message,
+                            )
                             is UiState.Success -> {
                                 CollectionsListScreen(
                                     collections = collectionsState.data,
@@ -243,7 +245,10 @@ private fun LibraryBooksTab(
 ) {
     when (booksState) {
         is UiState.Loading -> LoadingState()
-        is UiState.Error -> ErrorState(booksState.message)
+        is UiState.Error -> AppErrorState(
+            title = booksState.title,
+            message = booksState.message,
+        )
         is UiState.Success -> {
             val books = booksState.data.filter { it.isAudiobook == isAudiobook }
             if (books.isEmpty()) {
@@ -309,13 +314,6 @@ private fun LibraryBooksTab(
 private fun LoadingState() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         CircularProgressIndicator()
-    }
-}
-
-@Composable
-private fun ErrorState(message: UiText) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text = message.asString(), color = MaterialTheme.colorScheme.error)
     }
 }
 

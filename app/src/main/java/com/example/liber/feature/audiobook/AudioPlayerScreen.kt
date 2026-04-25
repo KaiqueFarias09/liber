@@ -62,7 +62,7 @@ import com.adamglin.phosphoricons.fill.Pause
 import com.adamglin.phosphoricons.fill.Play
 import com.adamglin.phosphoricons.regular.ArrowClockwise
 import com.adamglin.phosphoricons.regular.ArrowCounterClockwise
-import com.adamglin.phosphoricons.regular.CaretDown
+import com.adamglin.phosphoricons.regular.ArrowLeft
 import com.adamglin.phosphoricons.regular.Clock
 import com.adamglin.phosphoricons.regular.DotsThree
 import com.adamglin.phosphoricons.regular.List
@@ -185,7 +185,7 @@ fun AudioPlayerScreen(
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                     ) {
                         Icon(
-                            imageVector = PhosphorIcons.Regular.CaretDown,
+                            imageVector = PhosphorIcons.Regular.ArrowLeft,
                             contentDescription = stringResource(R.string.audio_control_back)
                         )
                     }

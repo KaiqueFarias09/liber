@@ -22,12 +22,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
-import com.adamglin.phosphoricons.regular.ArrowLeft
 import com.adamglin.phosphoricons.regular.DotsThreeVertical
 import com.adamglin.phosphoricons.regular.PencilSimple
 import com.adamglin.phosphoricons.regular.Plus
 import com.adamglin.phosphoricons.regular.Trash
 import com.example.liber.R
+import com.example.liber.core.designsystem.AppErrorState
 import com.example.liber.core.designsystem.BookGrid
 import com.example.liber.core.designsystem.EmptyState
 import com.example.liber.core.designsystem.LiberContextMenuDivider
@@ -118,13 +118,10 @@ fun CollectionDetailScreen(
             }
         }
         is UiState.Error -> {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    text = collectionState.message.asString(),
-                    style = MaterialTheme.typography.bodyLarge,
-                    textAlign = TextAlign.Center
-                )
-            }
+            AppErrorState(
+                title = collectionState.title,
+                message = collectionState.message,
+            )
         }
         is UiState.Success -> {
             val collection = collectionState.data
@@ -180,15 +177,7 @@ private fun CollectionDetailContent(
 
     LiberScreen(
         title = UiText.DynamicString(collection.name),
-        navigationIcon = {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = PhosphorIcons.Regular.ArrowLeft,
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onBackground,
-                )
-            }
-        },
+        onBack = onBack,
         headerActions = {
             Box {
                 IconButton(onClick = { showMenu = true }) {

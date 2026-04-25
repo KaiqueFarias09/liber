@@ -47,7 +47,6 @@ import androidx.compose.ui.unit.sp
 import androidx.documentfile.provider.DocumentFile
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
-import com.adamglin.phosphoricons.regular.ArrowLeft
 import com.adamglin.phosphoricons.regular.Book
 import com.adamglin.phosphoricons.regular.CaretDown
 import com.adamglin.phosphoricons.regular.CheckCircle
@@ -56,6 +55,7 @@ import com.adamglin.phosphoricons.regular.FileArrowUp
 import com.adamglin.phosphoricons.regular.PencilSimple
 import com.adamglin.phosphoricons.regular.Trash
 import com.example.liber.R
+import com.example.liber.core.designsystem.AppErrorState
 import com.example.liber.core.designsystem.LiberDialog
 import com.example.liber.core.designsystem.LiberScreen
 import com.example.liber.core.designsystem.LiberSearchField
@@ -109,14 +109,7 @@ fun DictionaryManagementScreen(
     LiberScreen(
         title = UiText.StringResource(R.string.settings_dictionary_title),
         modifier = modifier,
-        navigationIcon = {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = PhosphorIcons.Regular.ArrowLeft,
-                    contentDescription = stringResource(R.string.audio_control_back),
-                )
-            }
-        },
+        onBack = onBack,
         headerActions = {
             IconButton(onClick = { showCreateDialog = true }) {
                 Icon(
@@ -278,10 +271,12 @@ fun DictionaryManagementScreen(
 
                         is UiState.Error -> {
                             item {
-                                Text(
-                                    text = (catalogState as UiState.Error).message.asString(),
-                                    color = MaterialTheme.colorScheme.error,
-                                    style = MaterialTheme.typography.bodyMedium,
+                                val errorState = catalogState as UiState.Error
+                                AppErrorState(
+                                    title = errorState.title,
+                                    message = errorState.message,
+                                    onRetry = viewModel::refreshFreeDictCatalog,
+                                    fillMaxSize = false,
                                 )
                             }
                         }

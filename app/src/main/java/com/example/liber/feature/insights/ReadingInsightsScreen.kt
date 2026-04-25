@@ -40,7 +40,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
-import com.adamglin.phosphoricons.regular.ArrowLeft
 import com.adamglin.phosphoricons.regular.BookBookmark
 import com.adamglin.phosphoricons.regular.ChartBar
 import com.adamglin.phosphoricons.regular.Clock
@@ -49,6 +48,7 @@ import com.adamglin.phosphoricons.regular.MoonStars
 import com.adamglin.phosphoricons.regular.SunHorizon
 import com.adamglin.phosphoricons.regular.Target
 import com.example.liber.R
+import com.example.liber.core.designsystem.AppErrorState
 import com.example.liber.core.designsystem.BookCover
 import com.example.liber.core.designsystem.CoverStyle
 import com.example.liber.core.designsystem.Gambetta
@@ -68,14 +68,7 @@ fun ReadingInsightsScreen(
     LiberScreen(
         title = UiText.StringResource(R.string.settings_reading_insights_title),
         modifier = modifier,
-        navigationIcon = {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = PhosphorIcons.Regular.ArrowLeft,
-                    contentDescription = stringResource(R.string.audio_control_back),
-                )
-            }
-        },
+        onBack = onBack,
     ) {
         when (val state = insightsState) {
             is UiState.Loading -> {
@@ -88,19 +81,10 @@ fun ReadingInsightsScreen(
             }
 
             is UiState.Error -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = state.message.asString(),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                    )
-                }
+                AppErrorState(
+                    title = state.title,
+                    message = state.message,
+                )
             }
 
             is UiState.Success -> {
