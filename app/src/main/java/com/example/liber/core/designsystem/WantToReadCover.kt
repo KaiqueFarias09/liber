@@ -2,7 +2,6 @@ package com.example.liber.core.designsystem
 
 import android.net.Uri
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -24,7 +23,6 @@ fun WantToReadCover(
         isPlaying = false,
         modifier = modifier
             .width(if (book.isAudiobook) 200.dp else 144.dp)
-            .height(210.dp)
             .clickable(onClick = onClick)
     )
 }

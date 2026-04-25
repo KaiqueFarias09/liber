@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -84,7 +85,7 @@ fun AudiobookGrid(
 
     val contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp)
 
-    Box(modifier = modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         AnimatedContent(
             targetState = viewMode,
             transitionSpec = { fadeIn() togetherWith fadeOut() },
@@ -93,13 +94,17 @@ fun AudiobookGrid(
         ) { mode ->
             if (mode == LibraryViewMode.GRID) {
                 LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
+                    columns = when {
+                        maxWidth < 400.dp -> GridCells.Fixed(2)
+                        maxWidth < 600.dp -> GridCells.Fixed(3)
+                        else -> GridCells.Adaptive(160.dp)
+                    },
                     contentPadding = contentPadding,
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    item(span = { GridItemSpan(2) }) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
                         AudiobooksToolbar(
                             audiobookCount = audiobooks.size,
                             sortOption = sortOption,

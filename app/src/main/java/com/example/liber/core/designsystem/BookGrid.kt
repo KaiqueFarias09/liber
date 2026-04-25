@@ -95,8 +95,10 @@ fun BookGrid(
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val columns = when {
-            maxWidth < 600.dp -> 2
-            maxWidth < 1100.dp -> 5
+            maxWidth < 360.dp -> 2
+            maxWidth < 480.dp -> 3
+            maxWidth < 720.dp -> 4
+            maxWidth < 1080.dp -> 6
             else -> 8
         }
 

@@ -101,7 +101,7 @@ fun BookCover(
                 if (fillBounds) {
                     Modifier.fillMaxSize()
                 } else {
-                    Modifier.fillMaxWidth().aspectRatio(2f / 3f)
+                    Modifier.fillMaxWidth()
                 }
             )
             .background(MaterialTheme.colorScheme.surfaceVariant)
@@ -110,7 +110,7 @@ fun BookCover(
             AsyncImage(
                 model = coverUri,
                 contentDescription = title,
-                modifier = Modifier.fillMaxSize(),
+                modifier = if (fillBounds) Modifier.fillMaxSize() else Modifier.fillMaxWidth(),
                 contentScale = if (fillBounds) ContentScale.Crop else ContentScale.FillWidth,
             )
         } else {
@@ -130,7 +130,7 @@ fun BookCover(
 
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .then(if (fillBounds) Modifier.fillMaxSize() else Modifier.fillMaxWidth().aspectRatio(2f / 3f))
                     .background(bgColor)
                     .padding(if (style == CoverStyle.SMALL) 8.dp else 16.dp),
                 contentAlignment = Alignment.Center

@@ -102,6 +102,7 @@ fun HomeScreen(
                     contentPadding = PaddingValues(horizontal = 24.dp),
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.padding(bottom = 8.dp),
+                    verticalAlignment = Alignment.Bottom
                 ) {
                     items(wantToReadBooks, key = { it.id }) { book ->
                         WantToReadCover(book = book, onClick = { onBookClick(book) })
