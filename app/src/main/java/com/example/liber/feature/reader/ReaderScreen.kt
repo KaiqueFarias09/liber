@@ -215,15 +215,6 @@ fun ReaderScreen(
         viewModel.openBook(context, initialXPointer)
     }
 
-    // Re-apply engine settings whenever preferences change
-    LaunchedEffect(
-        themeId, fontSize, pageScroll, customizeLayout,
-        lineSpacing, characterSpacing, wordSpacing, margins, columnCount, justifyText
-    ) {
-        viewModel.applyCurrentSettings()
-        viewModel.redraw()
-    }
-
     // Push annotation highlights to the engine whenever the list changes
     LaunchedEffect(annotations) {
         viewModel.applyHighlights(annotations)

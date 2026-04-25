@@ -24,11 +24,15 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.coolreader.crengine.DocView
 import org.coolreader.crengine.PositionProperties
 import org.coolreader.crengine.Selection
 import org.coolreader.crengine.TOCItem
+import java.util.Locale
 import java.util.Properties
 
 private const val TAG = "LiberSelection"
@@ -62,6 +66,10 @@ class ReaderViewModel(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val appLogger: AppLogger,
 ) : AndroidViewModel(application) {
+
+    private companion object {
+        val nativeEngineMutex = Mutex()
+    }
 
     // ── Native document view ─────────────────────────────────────────────────
 
@@ -205,8 +213,10 @@ class ReaderViewModel(
         _searchQuery.value = query
         _isSearching.value = true
         viewModelScope.launch(Dispatchers.IO) {
-            docView.findText(query, origin = 1, reverse = 0, caseInsensitive = 1)
-            renderPage()
+            nativeEngineMutex.withLock {
+                docView.findText(query, origin = 1, reverse = 0, caseInsensitive = 1)
+                renderPageLocked()
+            }
             _isSearching.value = false
         }
     }
@@ -216,8 +226,10 @@ class ReaderViewModel(
         _searchQuery.value = query
         _isSearching.value = true
         viewModelScope.launch(Dispatchers.IO) {
-            docView.findText(query, origin = 1, reverse = 1, caseInsensitive = 1)
-            renderPage()
+            nativeEngineMutex.withLock {
+                docView.findText(query, origin = 1, reverse = 1, caseInsensitive = 1)
+                renderPageLocked()
+            }
             _isSearching.value = false
         }
     }
@@ -225,8 +237,10 @@ class ReaderViewModel(
     fun clearSearch() {
         _searchQuery.value = ""
         viewModelScope.launch(Dispatchers.IO) {
-            docView.clearSelection()
-            renderPage()
+            nativeEngineMutex.withLock {
+                docView.clearSelection()
+                renderPageLocked()
+            }
         }
     }
 
@@ -300,15 +314,17 @@ class ReaderViewModel(
             val sel = Selection().apply {
                 startX = x; startY = y; endX = x; endY = y
             }
-            docView.updateSelection(sel)
-            savedWordStartPos = sel.startPos
-            savedWordEndPos = sel.endPos
-            savedWordText = sel.text
+            nativeEngineMutex.withLock {
+                docView.updateSelection(sel)
+                savedWordStartPos = sel.startPos
+                savedWordEndPos = sel.endPos
+                savedWordText = sel.text
+                renderPageLocked()
+            }
             appLogger.debug(
                 "startTextSelection job done: text='${sel.text}' startPos='${sel.startPos}' endPos='${sel.endPos}'",
                 tag = TAG,
             )
-            renderPage()
         }
     }
 
@@ -353,7 +369,9 @@ class ReaderViewModel(
                     startX = selectionStartX; startY = selectionStartY
                     this.endX = endX; this.endY = endY
                 }
-                docView.updateSelection(sel)
+                nativeEngineMutex.withLock {
+                    docView.updateSelection(sel)
+                }
                 text = sel.text.takeIf { it.isNotBlank() } ?: savedWordText
                 xpointer = sel.startPos.takeIf { it.isNotBlank() } ?: savedWordStartPos
                 endXpointer = sel.endPos.takeIf { it.isNotBlank() } ?: savedWordEndPos
@@ -369,7 +387,9 @@ class ReaderViewModel(
                 _pendingSelectedText.value = text
                 _pendingXPointer.value = xpointer.takeIf { it.isNotBlank() }
                 _pendingEndXPointer.value = endXpointer.takeIf { it.isNotBlank() }
-                updateHandleAnchors(xpointer, endXpointer, endX.toFloat(), endY.toFloat())
+                nativeEngineMutex.withLock {
+                    updateHandleAnchorsLocked(xpointer, endXpointer, endX.toFloat(), endY.toFloat())
+                }
                 appLogger.debug(
                     "finalizeTextSelection: setting showSelectionMenu=true, startAnchor=${_selectionStartAnchor.value} endAnchor=${_selectionEndAnchor.value}",
                     tag = TAG,
@@ -378,8 +398,10 @@ class ReaderViewModel(
                 _showSelectionMenu.value = true
             } else {
                 appLogger.debug("finalizeTextSelection: text blank, clearing selection", tag = TAG)
-                docView.clearSelection()
-                renderPage()
+                nativeEngineMutex.withLock {
+                    docView.clearSelection()
+                    renderPageLocked()
+                }
             }
         }
     }
@@ -390,8 +412,10 @@ class ReaderViewModel(
         _selectionStartAnchor.value = null
         _selectionEndAnchor.value = null
         viewModelScope.launch(Dispatchers.IO) {
-            docView.clearSelection()
-            renderPage()
+            nativeEngineMutex.withLock {
+                docView.clearSelection()
+                renderPageLocked()
+            }
         }
     }
 
@@ -404,8 +428,10 @@ class ReaderViewModel(
         _pendingXPointer.value = null
         _pendingEndXPointer.value = null
         viewModelScope.launch(Dispatchers.IO) {
-            docView.clearSelection()
-            renderPage()
+            nativeEngineMutex.withLock {
+                docView.clearSelection()
+                renderPageLocked()
+            }
         }
     }
 
@@ -429,7 +455,7 @@ class ReaderViewModel(
         endHandleChannel.trySend(Pair(x, y))
     }
 
-    private fun updateHandleAnchors(
+    private fun updateHandleAnchorsLocked(
         startPos: String,
         endPos: String,
         fallbackX: Float = -1f,
@@ -468,7 +494,9 @@ class ReaderViewModel(
     fun finalizeHandleDrag() {
         val xp = _pendingXPointer.value ?: return
         val endXp = _pendingEndXPointer.value ?: return
-        viewModelScope.launch(Dispatchers.IO) { updateHandleAnchors(xp, endXp) }
+        viewModelScope.launch(Dispatchers.IO) {
+            nativeEngineMutex.withLock { updateHandleAnchorsLocked(xp, endXp) }
+        }
     }
 
     // Coalesces rapid scroll deltas so only one render fires per batch of touch events.
@@ -540,8 +568,10 @@ class ReaderViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             _settingsTrigger.debounce(300L).collect {
                 if (documentLoaded) {
-                    applyCurrentSettings()
-                    renderPage()
+                    nativeEngineMutex.withLock {
+                        applyCurrentSettingsLocked()
+                        renderPageLocked()
+                    }
                 }
             }
         }
@@ -553,8 +583,10 @@ class ReaderViewModel(
             for (delta in scrollChannel) {
                 var total = delta
                 while (true) total += scrollChannel.tryReceive().getOrNull() ?: break
-                docView.doCommand(ReaderCommand.DCMD_SCROLL_BY, total)
-                renderPage()
+                nativeEngineMutex.withLock {
+                    docView.doCommand(ReaderCommand.DCMD_SCROLL_BY, total)
+                    renderPageLocked()
+                }
             }
         }
 
@@ -565,8 +597,10 @@ class ReaderViewModel(
                     startX = selectionStartX; startY = selectionStartY
                     this.endX = endX; this.endY = endY
                 }
-                docView.updateSelection(sel)
-                renderPage()
+                nativeEngineMutex.withLock {
+                    docView.updateSelection(sel)
+                    renderPageLocked()
+                }
             }
         }
 
@@ -578,22 +612,24 @@ class ReaderViewModel(
                 val sel = Selection().apply {
                     startX = x; startY = y; endX = selectionEndX; endY = selectionEndY
                 }
-                docView.updateSelection(sel)
-                if (!sel.text.isNullOrBlank()) {
-                    selectionStartX = x
-                    selectionStartY = y
-                    _pendingSelectedText.value = sel.text
-                    _pendingXPointer.value = sel.startPos.takeIf { it.isNotBlank() }
-                    _pendingEndXPointer.value = sel.endPos.takeIf { it.isNotBlank() }
-                } else {
-                    // Engine found no text at this position (e.g. inter-line gap); keep previous selection.
-                    val restore = Selection().apply {
-                        startX = prevStartX; startY = prevStartY
-                        endX = selectionEndX; endY = selectionEndY
+                nativeEngineMutex.withLock {
+                    docView.updateSelection(sel)
+                    if (!sel.text.isNullOrBlank()) {
+                        selectionStartX = x
+                        selectionStartY = y
+                        _pendingSelectedText.value = sel.text
+                        _pendingXPointer.value = sel.startPos.takeIf { it.isNotBlank() }
+                        _pendingEndXPointer.value = sel.endPos.takeIf { it.isNotBlank() }
+                    } else {
+                        // Engine found no text at this position (e.g. inter-line gap); keep previous selection.
+                        val restore = Selection().apply {
+                            startX = prevStartX; startY = prevStartY
+                            endX = selectionEndX; endY = selectionEndY
+                        }
+                        docView.updateSelection(restore)
                     }
-                    docView.updateSelection(restore)
+                    renderPageLocked()
                 }
-                renderPage()
             }
         }
 
@@ -605,22 +641,24 @@ class ReaderViewModel(
                 val sel = Selection().apply {
                     startX = selectionStartX; startY = selectionStartY; endX = x; endY = y
                 }
-                docView.updateSelection(sel)
-                if (!sel.text.isNullOrBlank()) {
-                    selectionEndX = x
-                    selectionEndY = y
-                    _pendingSelectedText.value = sel.text
-                    _pendingXPointer.value = sel.startPos.takeIf { it.isNotBlank() }
-                    _pendingEndXPointer.value = sel.endPos.takeIf { it.isNotBlank() }
-                } else {
-                    // Engine found no text at this position (e.g. inter-line gap); keep previous selection.
-                    val restore = Selection().apply {
-                        startX = selectionStartX; startY = selectionStartY
-                        endX = prevEndX; endY = prevEndY
+                nativeEngineMutex.withLock {
+                    docView.updateSelection(sel)
+                    if (!sel.text.isNullOrBlank()) {
+                        selectionEndX = x
+                        selectionEndY = y
+                        _pendingSelectedText.value = sel.text
+                        _pendingXPointer.value = sel.startPos.takeIf { it.isNotBlank() }
+                        _pendingEndXPointer.value = sel.endPos.takeIf { it.isNotBlank() }
+                    } else {
+                        // Engine found no text at this position (e.g. inter-line gap); keep previous selection.
+                        val restore = Selection().apply {
+                            startX = selectionStartX; startY = selectionStartY
+                            endX = prevEndX; endY = prevEndY
+                        }
+                        docView.updateSelection(restore)
                     }
-                    docView.updateSelection(restore)
+                    renderPageLocked()
                 }
-                renderPage()
             }
         }
     }
@@ -634,15 +672,20 @@ class ReaderViewModel(
     fun openBook(context: Context, initialXPointer: String?) {
         viewModelScope.launch(Dispatchers.IO) {
             val (data, contentPath) = readUriToBytes(context, bookUri) ?: return@launch
-            val ok = docView.loadDocumentFromBuffer(data, contentPath)
-            if (!ok) return@launch
+            var loaded = false
+            nativeEngineMutex.withLock {
+                val ok = docView.loadDocumentFromBuffer(data, contentPath)
+                if (!ok) return@withLock
 
-            applyCurrentSettings()
-            documentLoaded = true
+                applyCurrentSettingsLocked()
+                documentLoaded = true
 
-            if (!initialXPointer.isNullOrBlank()) {
-                docView.goToPosition(initialXPointer, precise = false)
+                if (!initialXPointer.isNullOrBlank()) {
+                    docView.goToPosition(initialXPointer, precise = false)
+                }
+                loaded = true
             }
+            if (!loaded) return@launch
 
             loadTOC()
             applyHighlightsInternal(latestAnnotations)
@@ -656,8 +699,10 @@ class ReaderViewModel(
         viewWidth = width
         viewHeight = height
         viewModelScope.launch(Dispatchers.IO) {
-            docView.resize(width, height)
-            renderPage()
+            nativeEngineMutex.withLock {
+                docView.resize(width, height)
+                renderPageLocked()
+            }
         }
     }
 
@@ -674,8 +719,10 @@ class ReaderViewModel(
 
     fun goToXPointer(xpointer: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            docView.goToPosition(xpointer)
-            renderPage()
+            nativeEngineMutex.withLock {
+                docView.goToPosition(xpointer)
+                renderPageLocked()
+            }
         }
     }
 
@@ -684,14 +731,20 @@ class ReaderViewModel(
         if (props.fullHeight <= props.pageHeight) return
         val targetY = ((props.fullHeight - props.pageHeight) * fraction).toInt()
         viewModelScope.launch(Dispatchers.IO) {
-            docView.doCommand(ReaderCommand.DCMD_GO_POS, targetY)
-            renderPage()
+            nativeEngineMutex.withLock {
+                docView.doCommand(ReaderCommand.DCMD_GO_POS, targetY)
+                renderPageLocked()
+            }
         }
     }
 
     /** Returns an xpointer representing the current reading position. */
     fun currentXPointer(): String? =
-        docView.getCurrentPageBookmark()?.startPos
+        runBlocking(Dispatchers.IO) {
+            nativeEngineMutex.withLock {
+                docView.getCurrentPageBookmark()?.startPos
+            }
+        }
 
     /** Re-renders the current page without changing position. Call after settings change. */
     fun redraw() {
@@ -733,7 +786,7 @@ class ReaderViewModel(
 
     private fun snapMargin(px: Int) = MARGIN_OPTIONS.minByOrNull { kotlin.math.abs(it - px) } ?: px
 
-    fun applyCurrentSettings() {
+    private fun applyCurrentSettingsLocked() {
         val dm = getApplication<Application>().resources.displayMetrics
         // crengine.font.size takes screen pixels. Scale like Android sp → px:
         // 16sp base at scale 1.0 gives 48px at xxhdpi (density=3).
@@ -772,7 +825,7 @@ class ReaderViewModel(
             // crengine.style.max.added.letter.spacing.percent only works during justification;
             // styles.def.letter-spacing is a real CSS property that always takes effect.
             val letterSpacingEm = if (customize && _characterSpacing.value > 0)
-                "letter-spacing: ${"%.3f".format(_characterSpacing.value * 0.01)}em"
+                "letter-spacing: ${"%.3f".format(Locale.US, _characterSpacing.value * 0.01)}em"
             else
                 "letter-spacing: normal"
             setProperty("styles.def.letter-spacing", letterSpacingEm)
@@ -809,13 +862,15 @@ class ReaderViewModel(
     }
 
     private suspend fun applyHighlightsInternal(annotations: List<Annotation>) {
-        // Disable crengine's native 2-color rendering; we draw custom-colored overlays ourselves.
-        docView.hilightBookmarks(emptyArray())
-        renderPage()
-        updateHighlightRects(annotations)
+        nativeEngineMutex.withLock {
+            // Disable crengine's native 2-color rendering; we draw custom-colored overlays ourselves.
+            docView.hilightBookmarks(emptyArray())
+            renderPageLocked()
+            updateHighlightRectsLocked(annotations)
+        }
     }
 
-    private fun updateHighlightRects(annotations: List<Annotation> = latestAnnotations) {
+    private fun updateHighlightRectsLocked(annotations: List<Annotation> = latestAnnotations) {
         val rects = mutableListOf<HighlightRect>()
         for (ann in annotations) {
             if (ann.type != AnnotationType.HIGHLIGHT && ann.type != AnnotationType.NOTE) continue
@@ -842,8 +897,8 @@ class ReaderViewModel(
 
     // ── TOC ──────────────────────────────────────────────────────────────────
 
-    private fun loadTOC() {
-        val root = docView.getTOC()
+    private suspend fun loadTOC() {
+        val root = nativeEngineMutex.withLock { docView.getTOC() }
         _tocItems.value = root.flatten()
     }
 
@@ -930,17 +985,19 @@ class ReaderViewModel(
                     bufWidth = viewWidth
                     bufHeight = viewHeight
                 }
-                if (!docView.checkImage(x, y, imageInfo)) return@launch
-                // scaledWidth/scaledHeight are the outputs: the final decoded dimensions.
-                val w = imageInfo.scaledWidth
-                val h = imageInfo.scaledHeight
-                if (w <= 0 || h <= 0) return@launch
-                val bmp = createBitmap(w, h)
-                if (docView.drawImage(bmp, imageInfo)) {
-                    docView.closeImage()
-                    pendingImageBitmap.value = bmp
-                } else {
-                    docView.closeImage()
+                nativeEngineMutex.withLock {
+                    if (!docView.checkImage(x, y, imageInfo)) return@launch
+                    // scaledWidth/scaledHeight are the outputs: the final decoded dimensions.
+                    val w = imageInfo.scaledWidth
+                    val h = imageInfo.scaledHeight
+                    if (w <= 0 || h <= 0) return@launch
+                    val bmp = createBitmap(w, h)
+                    if (docView.drawImage(bmp, imageInfo)) {
+                        docView.closeImage()
+                        pendingImageBitmap.value = bmp
+                    } else {
+                        docView.closeImage()
+                    }
                 }
             } catch (_: Exception) {
             }
@@ -985,13 +1042,19 @@ class ReaderViewModel(
 
     private fun navigate(cmd: Int, param: Int = 0) {
         viewModelScope.launch(Dispatchers.IO) {
-            docView.doCommand(cmd, param)
-            renderPage()
+            nativeEngineMutex.withLock {
+                docView.doCommand(cmd, param)
+                renderPageLocked()
+            }
         }
     }
 
     private suspend fun renderPage() = withContext(Dispatchers.IO) {
-        if (viewWidth <= 0 || viewHeight <= 0) return@withContext
+        nativeEngineMutex.withLock { renderPageLocked() }
+    }
+
+    private fun renderPageLocked() {
+        if (viewWidth <= 0 || viewHeight <= 0) return
 
         val bmp = currentBitmap?.takeIf {
             it.width == viewWidth && it.height == viewHeight
@@ -1009,7 +1072,7 @@ class ReaderViewModel(
         // Recompute overlay rects for the new view position, but skip during
         // selection drag (renderPage is called per-frame then, so this would thrash).
         if (latestAnnotations.isNotEmpty() && !_selectionActive.value) {
-            updateHighlightRects()
+            updateHighlightRectsLocked()
         } else if (latestAnnotations.isEmpty()) {
             _highlightRects.value = emptyList()
         }
@@ -1044,7 +1107,11 @@ class ReaderViewModel(
         super.onCleared()
         scrollChannel.close()
         selectionDragChannel.close()
-        docView.destroy()
+        runBlocking(Dispatchers.IO) {
+            nativeEngineMutex.withLock {
+                docView.destroy()
+            }
+        }
         currentBitmap?.recycle()
         currentBitmap = null
     }
