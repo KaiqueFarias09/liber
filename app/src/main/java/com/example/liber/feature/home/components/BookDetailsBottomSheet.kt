@@ -92,7 +92,7 @@ fun BookDetailsBottomSheet(
     homeViewModel: HomeViewModel,
     onDismiss: () -> Unit,
     showDelete: Boolean = true,
-    showShare: Boolean = true,
+    showShare: Boolean = !book.isAudiobook,
     onDelete: (() -> Unit)? = null,
     onShare: (() -> Unit)? = null,
 ) {

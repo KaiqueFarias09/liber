@@ -34,11 +34,13 @@ fun BookActionMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
     ) {
-        LiberContextMenuItem(
-            label = UiText.StringResource(R.string.action_share),
-            icon = PhosphorIcons.Regular.ShareNetwork,
-            onClick = { onShare(); onDismiss() },
-        )
+        if (!book.isAudiobook) {
+            LiberContextMenuItem(
+                label = UiText.StringResource(R.string.action_share),
+                icon = PhosphorIcons.Regular.ShareNetwork,
+                onClick = { onShare(); onDismiss() },
+            )
+        }
         LiberContextMenuItem(
             label = if (book.wantToRead) UiText.StringResource(R.string.action_remove_want_to_read)
             else UiText.StringResource(R.string.action_add_want_to_read),
