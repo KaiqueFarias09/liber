@@ -101,8 +101,7 @@ fun BookCover(
                 if (fillBounds) {
                     Modifier.fillMaxSize()
                 } else {
-                    val base = Modifier.fillMaxWidth()
-                    if (coverUri == null) base.aspectRatio(2f / 3f) else base
+                    Modifier.fillMaxWidth().aspectRatio(2f / 3f)
                 }
             )
             .background(MaterialTheme.colorScheme.surfaceVariant)

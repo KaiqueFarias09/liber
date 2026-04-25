@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -68,6 +69,8 @@ import com.example.liber.R
 import com.example.liber.api.ITunesSearchApi
 import com.example.liber.api.ITunesSearchResult
 import com.example.liber.core.logging.AndroidAppLogger
+import com.example.liber.core.designsystem.BookCover
+import com.example.liber.core.designsystem.CoverStyle
 import com.example.liber.core.designsystem.LiberButton
 import com.example.liber.core.designsystem.LiberModalBottomSheet
 import com.example.liber.core.designsystem.LiberSearchField
@@ -253,13 +256,12 @@ fun MoreOptionsSheet(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            AsyncImage(
-                model = book.coverUri,
-                contentDescription = null,
+            BookCover(
+                book = book,
+                style = CoverStyle.SMALL,
                 modifier = Modifier
-                    .size(56.dp)
-                    .clip(RoundedCornerShape(8.dp)),
-                contentScale = ContentScale.Crop
+                    .width(44.dp)
+                    .clip(RoundedCornerShape(6.dp))
             )
             Column {
                 Text(
