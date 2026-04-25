@@ -3,6 +3,8 @@ package com.example.liber.feature.dictionary
 import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.viewModelScope
+import com.example.liber.core.error.toAppError
+import com.example.liber.core.error.toUiStateError
 import com.example.liber.core.logging.AppLogger
 import com.example.liber.core.logging.BaseAndroidViewModel
 import com.example.liber.core.util.UiState
@@ -163,9 +165,7 @@ class DictionaryViewModel @Inject constructor(
             actionName = "refreshFreeDictCatalog",
             dispatcher = Dispatchers.IO,
             onError = { throwable ->
-                _freeDictCatalogState.value = UiState.Error(
-                    UiText.DynamicString(throwable.message ?: "Failed to load FreeDict catalog")
-                )
+                _freeDictCatalogState.value = throwable.toAppError().toUiStateError()
             },
         ) {
             try {
@@ -174,9 +174,7 @@ class DictionaryViewModel @Inject constructor(
             } catch (e: Exception) {
                 e.rethrowIfCancellation()
                 logger.recordError(e, "refreshFreeDictCatalog", "Failed to refresh FreeDict catalog")
-                _freeDictCatalogState.value = UiState.Error(
-                    UiText.DynamicString(e.message ?: "Failed to load FreeDict catalog")
-                )
+                _freeDictCatalogState.value = e.toAppError().toUiStateError()
             }
         }
     }
@@ -221,9 +219,7 @@ class DictionaryViewModel @Inject constructor(
                 "sourceBookId" to sourceBookId,
             ),
             onError = { throwable ->
-                _lookupState.value = UiState.Error(
-                    UiText.DynamicString(throwable.message ?: "Dictionary lookup failed")
-                )
+                _lookupState.value = throwable.toAppError().toUiStateError()
             },
         ) {
             try {
@@ -241,11 +237,7 @@ class DictionaryViewModel @Inject constructor(
             } catch (e: Exception) {
                 e.rethrowIfCancellation()
                 logger.recordError(e, "lookupWord", "lookupWord failed")
-                _lookupState.value = UiState.Error(
-                    UiText.DynamicString(
-                        e.message ?: "Dictionary lookup failed"
-                    )
-                )
+                _lookupState.value = e.toAppError().toUiStateError()
             }
         }
     }
