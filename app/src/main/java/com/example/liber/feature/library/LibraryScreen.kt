@@ -22,8 +22,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -93,7 +95,17 @@ fun LibraryScreen(
     val scrolledPxState = remember { mutableFloatStateOf(0f) }
 
     val nestedScrollConnection = remember {
-        object : NestedScrollConnection {}
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                val delta = available.y
+                val maxScroll = headerHeightState.intValue.toFloat()
+                val prevScrolled = scrolledPxState.floatValue
+                val newScrolled = (prevScrolled - delta).coerceIn(0f, maxScroll)
+                scrolledPxState.floatValue = newScrolled
+                val consumed = prevScrolled - newScrolled
+                return Offset(0f, consumed)
+            }
+        }
     }
 
     Box(
