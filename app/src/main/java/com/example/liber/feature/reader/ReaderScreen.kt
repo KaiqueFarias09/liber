@@ -257,13 +257,41 @@ fun ReaderScreen(
         tocItems.lastOrNull { it.mPage <= page }?.mName
     }
 
-    // Bookmark detection: bookmarks store progress as a float string ("0.35")
-    val isCurrentPageBookmarked = remember(progress, bookmarks) {
-        bookmarks.any { bm ->
-            val bmProg = bm.locator.toFloatOrNull() ?: return@any false
-            abs(bmProg - progress) < 0.03f
+    // Bookmarks store progress as a float string ("0.35"). In continuous
+    // scroll, a jumped-to bookmark may be visible without matching the
+    // viewport's exact top progress, so match against the visible Y range.
+    val currentBookmark = remember(progress, positionProps, bookmarks) {
+        val props = positionProps
+        if (props != null && props.fullHeight > props.pageHeight) {
+            val maxScrollableY = props.fullHeight - props.pageHeight
+            val viewportStart = props.y
+            val viewportEnd = props.y + props.pageHeight
+            val tolerancePx = (props.pageHeight * 0.02f).toInt().coerceAtLeast(24)
+
+            bookmarks
+                .mapNotNull { bm ->
+                    val bookmarkProgress = bm.locator.toFloatOrNull() ?: return@mapNotNull null
+                    val bookmarkY = (bookmarkProgress * maxScrollableY).toInt()
+                    if (bookmarkY in (viewportStart - tolerancePx)..(viewportEnd + tolerancePx)) {
+                        bm to abs(bookmarkY - viewportStart)
+                    } else {
+                        null
+                    }
+                }
+                .minByOrNull { it.second }
+                ?.first
+        } else {
+            bookmarks
+                .mapNotNull { bm ->
+                    val bookmarkProgress = bm.locator.toFloatOrNull() ?: return@mapNotNull null
+                    bm to abs(bookmarkProgress - progress)
+                }
+                .filter { it.second < 0.03f }
+                .minByOrNull { it.second }
+                ?.first
         }
     }
+    val isCurrentPageBookmarked = currentBookmark != null
 
     // ── UI chrome colors ─────────────────────────────────────────────────────
     val chromeBg = theme.background
@@ -612,13 +640,7 @@ fun ReaderScreen(
                         IconButton(
                             onClick = {
                                 if (isCurrentPageBookmarked) {
-                                    val match = bookmarks.minByOrNull { bm ->
-                                        abs(
-                                            (bm.locator.toFloatOrNull()
-                                                ?: Float.MAX_VALUE) - progress
-                                        )
-                                    }
-                                    match?.let { onDeleteBookmark(it.id) }
+                                    currentBookmark?.let { onDeleteBookmark(it.id) }
                                 } else {
                                     onSaveBookmark(
                                         BookmarkModel(
