@@ -144,7 +144,7 @@ private fun SettingsSection(
                 fontFamily = Gambetta,
                 fontWeight = FontWeight.Normal
             ),
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
+            color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(bottom = 12.dp),
         )
         content()

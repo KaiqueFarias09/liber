@@ -2,15 +2,16 @@ package com.example.liber.feature.insights
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,7 +23,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -41,7 +41,6 @@ import androidx.compose.ui.unit.sp
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.BookBookmark
-import com.adamglin.phosphoricons.regular.ChartBar
 import com.adamglin.phosphoricons.regular.Clock
 import com.adamglin.phosphoricons.regular.Fire
 import com.adamglin.phosphoricons.regular.MoonStars
@@ -143,11 +142,15 @@ private fun ReadingInsightsContent(
         Spacer(modifier = Modifier.height(12.dp))
 
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Max),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             InsightMiniCard(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
                 icon = PhosphorIcons.Regular.Clock,
                 label = stringResource(R.string.settings_reading_insights_avg_session),
                 value = stringResource(
@@ -156,7 +159,9 @@ private fun ReadingInsightsContent(
                 ),
             )
             InsightMiniCard(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
                 icon = if (uiModel.profileTitle.contains("Morning")) {
                     PhosphorIcons.Regular.SunHorizon
                 } else {
@@ -190,22 +195,11 @@ private fun HeroReadingTime(
             .padding(top = 8.dp, bottom = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Icon(
-                imageVector = PhosphorIcons.Regular.ChartBar,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(18.dp),
-            )
-            Text(
-                text = stringResource(R.string.settings_reading_insights_weekly_label),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        Text(
+            text = stringResource(R.string.settings_reading_insights_weekly_label),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+        )
 
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -245,7 +239,8 @@ private fun GoalCard(
     currentMinutes: Int,
     goalMinutes: Int,
 ) {
-    val progress = if (goalMinutes == 0) 0f else (currentMinutes / goalMinutes.toFloat()).coerceIn(0f, 1f)
+    val progress =
+        if (goalMinutes == 0) 0f else (currentMinutes / goalMinutes.toFloat()).coerceIn(0f, 1f)
     val remainingMinutes = (goalMinutes - currentMinutes).coerceAtLeast(0)
 
     InsightCard {
@@ -261,7 +256,7 @@ private fun GoalCard(
                 Icon(
                     imageVector = PhosphorIcons.Regular.Target,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                     modifier = Modifier.size(16.dp),
                 )
                 Text(
@@ -277,7 +272,7 @@ private fun GoalCard(
                     goalMinutes,
                 ),
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
             )
         }
 
@@ -325,7 +320,7 @@ private fun StreakCard(
                     Icon(
                         imageVector = PhosphorIcons.Regular.Fire,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                         modifier = Modifier.size(18.dp),
                     )
                     Text(
@@ -397,7 +392,7 @@ private fun InsightMiniCard(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
+            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
             modifier = Modifier.size(18.dp),
         )
         Spacer(modifier = Modifier.height(16.dp))
