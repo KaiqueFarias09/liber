@@ -27,9 +27,6 @@ class LiberAppViewModel @Inject constructor(
     private val _activeBook = MutableStateFlow<Book?>(null)
     val activeBook: StateFlow<Book?> = _activeBook
 
-    private val _selectedCollectionId = MutableStateFlow<Long?>(null)
-    val selectedCollectionId: StateFlow<Long?> = _selectedCollectionId
-
     private val _libraryTabIndex = MutableStateFlow(0)
     val libraryTabIndex: StateFlow<Int> = _libraryTabIndex
 
@@ -38,10 +35,6 @@ class LiberAppViewModel @Inject constructor(
 
     fun setActiveTab(tab: AppTab) {
         _activeTab.value = tab
-    }
-
-    fun setSelectedCollectionId(id: Long?) {
-        _selectedCollectionId.value = id
     }
 
     fun setLibraryTabIndex(index: Int) {

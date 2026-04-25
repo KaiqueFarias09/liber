@@ -18,6 +18,12 @@ class CollectionRepository(
         upstream = collectionDao.getAllCollectionsWithBooks(),
     )
 
+    fun getCollectionWithBooks(id: Long): Flow<CollectionWithBooksRelation?> = observeOperation(
+        "getCollectionWithBooks",
+        parameters = mapOf("id" to id),
+        upstream = collectionDao.getCollectionWithBooks(id),
+    )
+
     suspend fun insertCollection(collection: Collection): Long = executeOperation(
         operationName = "insertCollection",
         parameters = mapOf("name" to collection.name),

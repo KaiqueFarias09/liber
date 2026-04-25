@@ -16,6 +16,10 @@ interface CollectionDao {
     @Query("SELECT * FROM collections ORDER BY createdAt DESC")
     fun getAllCollectionsWithBooks(): Flow<List<CollectionWithBooksRelation>>
 
+    @Transaction
+    @Query("SELECT * FROM collections WHERE id = :id")
+    fun getCollectionWithBooks(id: Long): Flow<CollectionWithBooksRelation?>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCollection(collection: Collection): Long
 

@@ -6,10 +6,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.example.liber.data.model.Book
 import com.example.liber.data.model.ScanSource
+import com.example.liber.feature.collections.CollectionDetailRoute
+import com.example.liber.feature.collections.CollectionDetailViewModel
 import com.example.liber.feature.collections.CollectionsViewModel
 import com.example.liber.feature.dictionary.DictionaryManagementScreen
 import com.example.liber.feature.dictionary.DictionaryViewModel
@@ -31,6 +35,9 @@ object AppRoute {
     const val READING_INSIGHTS = "reading_insights"
     const val SCAN_FOLDERS = "scan_folders"
     const val DICTIONARIES = "dictionaries"
+    const val COLLECTION_DETAIL = "collection_detail/{collectionId}"
+
+    fun collectionDetail(id: Long) = "collection_detail/$id"
 }
 
 /**
@@ -51,7 +58,6 @@ fun AppNavHost(
     onScanFolder: () -> Unit,
     onRescanFolder: (ScanSource) -> Unit,
     onRemoveScanFolder: (ScanSource) -> Unit,
-    selectedCollectionId: Long?,
     modifier: Modifier = Modifier,
 ) {
     NavHost(
@@ -75,8 +81,11 @@ fun AppNavHost(
                 onShareBook = onShareBook,
                 collectionsViewModel = collectionsViewModel,
                 liberAppViewModel = liberAppViewModel,
-                selectedCollectionId = selectedCollectionId,
-                onCollectionClick = { id -> liberAppViewModel.setSelectedCollectionId(id) },
+                onCollectionClick = { id ->
+                    if (id != null) {
+                        navController.navigate(AppRoute.collectionDetail(id))
+                    }
+                },
                 modifier = modifier,
             )
         }
@@ -127,6 +136,27 @@ fun AppNavHost(
                 viewModel = dictionaryViewModel,
                 onBack = { navController.popBackStack() },
                 modifier = modifier,
+            )
+        }
+
+        composable(
+            route = AppRoute.COLLECTION_DETAIL,
+            arguments = listOf(navArgument("collectionId") { type = NavType.LongType })
+        ) {
+            val detailViewModel: CollectionDetailViewModel = hiltViewModel()
+            val activeBook by liberAppViewModel.activeBook.collectAsState()
+            val isPlaying by liberAppViewModel.isPlaying.collectAsState()
+
+            CollectionDetailRoute(
+                viewModel = detailViewModel,
+                onBack = { navController.popBackStack() },
+                onOpenBook = onOpenBook,
+                onShareBook = onShareBook,
+                onToggleWantToRead = { book -> homeViewModel.toggleWantToRead(book.id, book.wantToRead) },
+                onToggleFinished = { book -> homeViewModel.toggleFinished(book.id, book.readingProgress == 100) },
+                homeViewModel = homeViewModel,
+                activeBookId = activeBook?.id,
+                isPlaying = isPlaying,
             )
         }
     }

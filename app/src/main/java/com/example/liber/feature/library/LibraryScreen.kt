@@ -11,7 +11,6 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -42,7 +41,6 @@ import com.example.liber.core.util.UiText
 import com.example.liber.data.model.Book
 import com.example.liber.data.model.ScanState
 import com.example.liber.feature.audiobook.components.AudiobookGrid
-import com.example.liber.feature.collections.CollectionDetailScreen
 import com.example.liber.feature.collections.CollectionUiState
 import com.example.liber.feature.collections.CollectionsListScreen
 import com.example.liber.feature.collections.CollectionsViewModel
@@ -66,10 +64,7 @@ fun LibraryScreen(
     onAddToCollection: (Book, Long) -> Unit = { _, _ -> },
     collectionsState: UiState<List<CollectionUiState>> = UiState.Loading,
     onCreateCollection: (String) -> Unit = {},
-    onRenameCollection: (Long, String) -> Unit = { _, _ -> },
-    onDeleteCollection: (Long) -> Unit = {},
-    onAddBookToCollection: (Long, String) -> Unit = { _, _ -> },
-    onRemoveBookFromCollection: (Long, String) -> Unit = { _, _ -> },
+    onCollectionClick: (Long?) -> Unit = {},
     booksViewMode: LibraryViewMode = LibraryViewMode.GRID,
     onBooksViewModeChange: (LibraryViewMode) -> Unit = {},
     booksSortOption: LibrarySortOption = LibrarySortOption.RECENT,
@@ -78,8 +73,6 @@ fun LibraryScreen(
     onAudiobooksViewModeChange: (LibraryViewMode) -> Unit = {},
     audiobooksSortOption: LibrarySortOption = LibrarySortOption.RECENT,
     onAudiobooksSortOptionChange: (LibrarySortOption) -> Unit = {},
-    selectedCollectionId: Long? = null,
-    onCollectionClick: (Long?) -> Unit = {},
     selectedTabIndex: Int = 0,
     onTabSelected: (Int) -> Unit = {},
     activeBookId: String? = null,
@@ -88,17 +81,12 @@ fun LibraryScreen(
     val pagerState = rememberPagerState(initialPage = selectedTabIndex) { 3 }
     val scope = rememberCoroutineScope()
 
-    val books = (booksState as? UiState.Success)?.data ?: emptyList()
     val collections = (collectionsState as? UiState.Success)?.data ?: emptyList()
-    val selectedCollection = collections.find { it.id == selectedCollectionId }
 
     val currentTabIndex = pagerState.currentPage
 
     LaunchedEffect(currentTabIndex) {
         onTabSelected(currentTabIndex)
-        if (currentTabIndex != 2) {
-            onCollectionClick(null)
-        }
     }
 
     val density = LocalDensity.current
@@ -106,8 +94,7 @@ fun LibraryScreen(
     val scrolledPxState = remember { mutableFloatStateOf(0f) }
 
     val nestedScrollConnection = remember {
-        object : NestedScrollConnection {
-        }
+        object : NestedScrollConnection {}
     }
 
     Box(
@@ -215,8 +202,7 @@ fun LibraryScreen(
             }
         }
 
-        // Header overlay — slides up and fades out as the user scrolls down.
-        // Uses graphicsLayer so the animation runs at draw time, not composition time.
+        // Header overlay
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -231,42 +217,6 @@ fun LibraryScreen(
             LiberHeader(
                 title = UiText.StringResource(R.string.tab_library)
             )
-        }
-
-        if (selectedCollectionId != null && selectedCollection != null) {
-            Surface(
-                modifier = Modifier.fillMaxSize(),
-                color = MaterialTheme.colorScheme.background
-            ) {
-                CollectionDetailScreen(
-                    collection = selectedCollection,
-                    allBooks = books,
-                    onBack = { onCollectionClick(null) },
-                    onRename = { onRenameCollection(selectedCollection.id, it) },
-                    onDelete = {
-                        onDeleteCollection(selectedCollection.id)
-                        onCollectionClick(null)
-                    },
-                    onAddBook = { onAddBookToCollection(selectedCollection.id, it) },
-                    onRemoveBook = {
-                        onRemoveBookFromCollection(
-                            selectedCollection.id,
-                            it
-                        )
-                    },
-                    onOpenBook = onBookClick,
-                    onShareBook = onShareBook,
-                    onToggleWantToRead = onToggleWantToRead,
-                    onToggleFinished = onToggleFinished,
-                    onShowDetails = onShowDetails,
-                    viewMode = booksViewMode,
-                    onViewModeChange = onBooksViewModeChange,
-                    sortOption = booksSortOption,
-                    onSortOptionChange = onBooksSortOptionChange,
-                    activeAudiobookId = activeBookId,
-                    isAudiobookPlaying = isPlaying,
-                )
-            }
         }
     }
 }
@@ -369,8 +319,6 @@ private fun ErrorState(message: UiText) {
     }
 }
 
-// ── Convenience overload that reads directly from the ViewModel ───────────────
-
 @Composable
 fun LibraryScreen(
     viewModel: HomeViewModel,
@@ -381,7 +329,6 @@ fun LibraryScreen(
     liberAppViewModel: com.example.liber.ui.LiberAppViewModel,
     onCollectionClick: (Long?) -> Unit,
     modifier: Modifier = Modifier,
-    selectedCollectionId: Long? = null,
 ) {
     val booksState by viewModel.booksState.collectAsState()
     val collectionsState by collectionsViewModel.collectionsState.collectAsState()
@@ -413,20 +360,7 @@ fun LibraryScreen(
         },
         collectionsState = collectionsState,
         onCreateCollection = { collectionsViewModel.createCollection(it) },
-        onRenameCollection = { id, name -> collectionsViewModel.renameCollection(id, name) },
-        onDeleteCollection = { id -> collectionsViewModel.deleteCollection(id) },
-        onAddBookToCollection = { id, bookId ->
-            collectionsViewModel.addBookToCollection(
-                id,
-                bookId
-            )
-        },
-        onRemoveBookFromCollection = { id, bookId ->
-            collectionsViewModel.removeBookFromCollection(
-                id,
-                bookId
-            )
-        },
+        onCollectionClick = onCollectionClick,
         booksViewMode = booksViewMode,
         onBooksViewModeChange = { viewModel.setBooksViewMode(it) },
         booksSortOption = booksSortOption,
@@ -438,8 +372,6 @@ fun LibraryScreen(
         modifier = modifier,
         scanState = scanState,
         onDismissScanBanner = { viewModel.dismissScanBanner() },
-        selectedCollectionId = selectedCollectionId,
-        onCollectionClick = onCollectionClick,
         selectedTabIndex = selectedTabIndex,
         onTabSelected = { liberAppViewModel.setLibraryTabIndex(it) },
         activeBookId = activeBook?.id,

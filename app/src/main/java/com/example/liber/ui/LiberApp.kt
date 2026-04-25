@@ -126,7 +126,6 @@ fun LiberApp(
     }
     val isPlayingGlobal by liberAppViewModel.isPlaying.collectAsState()
     val playWhenReadyGlobal by liberAppViewModel.playWhenReady.collectAsState()
-    val selectedCollectionId by liberAppViewModel.selectedCollectionId.collectAsState()
 
     // ── Audiobook player state sync ──────────────────────────────────────────
     val playerIsPlaying by audiobookPlayerViewModel.isPlaying.collectAsState()
@@ -158,7 +157,7 @@ fun LiberApp(
         }
     }
 
-    LaunchedEffect(playerPositionMs, playerDurationMs) {
+    LaunchedEffect(playerDurationMs, playerPositionMs) {
         if (playerDurationMs > 0) {
             liberAppViewModel.setPlayerProgress(playerPositionMs.toFloat() / playerDurationMs.toFloat())
         }
@@ -173,11 +172,9 @@ fun LiberApp(
         }
     }
 
-    androidx.activity.compose.BackHandler(enabled = isReaderOpen || selectedCollectionId != null) {
+    androidx.activity.compose.BackHandler(enabled = isReaderOpen) {
         if (isReaderOpen) {
             liberAppViewModel.closeReader()
-        } else {
-            liberAppViewModel.setSelectedCollectionId(null)
         }
     }
 
@@ -393,7 +390,6 @@ fun LiberApp(
                                         source.treeUri
                                     )
                                 },
-                                selectedCollectionId = selectedCollectionId,
                                 modifier = Modifier.fillMaxSize(),
                             )
                         }

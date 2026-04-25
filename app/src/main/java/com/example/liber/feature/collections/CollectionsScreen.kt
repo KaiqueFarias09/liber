@@ -15,18 +15,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -38,38 +34,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
-import com.adamglin.phosphoricons.regular.ArrowLeft
 import com.adamglin.phosphoricons.regular.CaretRight
-import com.adamglin.phosphoricons.regular.DotsThreeVertical
-import com.adamglin.phosphoricons.regular.PencilSimple
 import com.adamglin.phosphoricons.regular.Plus
-import com.adamglin.phosphoricons.regular.Trash
 import com.example.liber.R
 import com.example.liber.core.designsystem.BookCover
-import com.example.liber.core.designsystem.BookGrid
 import com.example.liber.core.designsystem.CoverStyle
 import com.example.liber.core.designsystem.EmptyState
-import com.example.liber.core.designsystem.LiberContextMenuDivider
-import com.example.liber.core.designsystem.LiberContextMenuItem
-import com.example.liber.core.designsystem.LiberDialog
-import com.example.liber.core.designsystem.LiberDropdownMenu
 import com.example.liber.core.designsystem.LiberFAB
-import com.example.liber.core.designsystem.LiberTextField
-import com.example.liber.core.util.InputValidator
 import com.example.liber.core.util.UiText
 import com.example.liber.data.model.Book
-import com.example.liber.feature.library.LibrarySortOption
-import com.example.liber.feature.library.LibraryViewMode
+import com.example.liber.feature.collections.components.CollectionNameDialog
 
 // ── List screen ───────────────────────────────────────────────────────────────
 
@@ -226,8 +206,6 @@ private fun CollectionShelfRow(
 
 // ── Stacked covers ────────────────────────────────────────────────────────────
 
-// redundant spineGradient removed as we now use BookCover style
-
 @Composable
 private fun StackedBookCovers(
     books: List<Book>,
@@ -280,301 +258,6 @@ private fun StackedBookCovers(
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            }
-        }
-    }
-}
-
-// ShelfCoverItem deleted in favor of BookCover
-
-// ── Detail screen ─────────────────────────────────────────────────────────────
-
-@Composable
-fun CollectionDetailScreen(
-    collection: CollectionUiState,
-    allBooks: List<Book>,
-    onBack: () -> Unit,
-    onRename: (String) -> Unit,
-    onDelete: () -> Unit,
-    onAddBook: (String) -> Unit,
-    onRemoveBook: (String) -> Unit,
-    onOpenBook: (Book) -> Unit,
-    onShareBook: (Book) -> Unit,
-    onToggleWantToRead: (Book) -> Unit,
-    onToggleFinished: (Book) -> Unit,
-    onShowDetails: (Book) -> Unit,
-    viewMode: LibraryViewMode = LibraryViewMode.GRID,
-    onViewModeChange: (LibraryViewMode) -> Unit = {},
-    sortOption: LibrarySortOption = LibrarySortOption.RECENT,
-    onSortOptionChange: (LibrarySortOption) -> Unit = {},
-    activeAudiobookId: String? = null,
-    isAudiobookPlaying: Boolean = false,
-) {
-    var showMenu by remember { mutableStateOf(false) }
-    var showRenameDialog by remember { mutableStateOf(false) }
-    var showDeleteDialog by remember { mutableStateOf(false) }
-    var showAddBooksSheet by remember { mutableStateOf(false) }
-
-    remember(collection.books) { collection.books.chunked(2) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize(),
-    ) {
-        // Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Row(
-                modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = PhosphorIcons.Regular.ArrowLeft,
-                        contentDescription = "Back",
-                        tint = MaterialTheme.colorScheme.onBackground,
-                    )
-                }
-                Text(
-                    text = collection.name,
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            Box {
-                IconButton(onClick = { showMenu = true }) {
-                    Icon(
-                        imageVector = PhosphorIcons.Regular.DotsThreeVertical,
-                        contentDescription = "More options",
-                        tint = MaterialTheme.colorScheme.onBackground,
-                    )
-                }
-                LiberDropdownMenu(
-                    expanded = showMenu,
-                    onDismissRequest = { showMenu = false },
-                ) {
-                    LiberContextMenuItem(
-                        label = UiText.StringResource(R.string.action_add_books),
-                        icon = PhosphorIcons.Regular.Plus,
-                        onClick = { showMenu = false; showAddBooksSheet = true },
-                    )
-                    LiberContextMenuItem(
-                        label = UiText.StringResource(R.string.action_rename),
-                        icon = PhosphorIcons.Regular.PencilSimple,
-                        onClick = { showMenu = false; showRenameDialog = true },
-                    )
-                    LiberContextMenuDivider()
-                    LiberContextMenuItem(
-                        label = UiText.StringResource(R.string.action_delete_collection),
-                        icon = PhosphorIcons.Regular.Trash,
-                        destructive = true,
-                        onClick = { showMenu = false; showDeleteDialog = true },
-                    )
-                }
-            }
-        }
-
-
-        // Book grid
-        if (collection.books.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                EmptyState(
-                    title = UiText.StringResource(R.string.empty_collection_detail_title),
-                    subtitle = UiText.StringResource(R.string.empty_collection_detail_subtitle),
-                    image = R.drawable.collections_empty,
-                    actionLabel = UiText.StringResource(R.string.empty_collection_detail_action),
-                    onAction = { showAddBooksSheet = true },
-                )
-            }
-        } else {
-            BookGrid(
-                books = collection.books,
-                onBookClick = onOpenBook,
-                onToggleWantToRead = onToggleWantToRead,
-                onToggleFinished = onToggleFinished,
-                onShowDetails = onShowDetails,
-                onDeleteBook = { onRemoveBook(it.id) },
-                onShareBook = onShareBook,
-                modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
-                deleteLabel = UiText.StringResource(R.string.action_remove_from_collection),
-                confirmDelete = false,
-                showAddToCollection = false,
-                viewMode = viewMode,
-                onViewModeChange = onViewModeChange,
-                sortOption = sortOption,
-                onSortOptionChange = onSortOptionChange,
-                activeAudiobookId = activeAudiobookId,
-                isAudiobookPlaying = isAudiobookPlaying,
-            )
-        }
-    }
-
-    if (showRenameDialog) {
-        CollectionNameDialog(
-            title = UiText.StringResource(R.string.dialog_title_rename_collection),
-            initialName = collection.name,
-            onConfirm = { name ->
-                onRename(name)
-                showRenameDialog = false
-            },
-            onDismiss = { showRenameDialog = false },
-        )
-    }
-
-    if (showDeleteDialog) {
-        DeleteCollectionDialog(
-            collectionName = collection.name,
-            onConfirm = {
-                showDeleteDialog = false
-                onDelete()
-            },
-            onDismiss = { showDeleteDialog = false },
-        )
-    }
-
-    if (showAddBooksSheet) {
-        AddBooksDialog(
-            allBooks = allBooks,
-            booksInCollection = collection.books,
-            onAddBook = onAddBook,
-            onDismiss = { showAddBooksSheet = false },
-        )
-    }
-}
-
-// ── Dialogs ───────────────────────────────────────────────────────────────────
-
-@Composable
-private fun CollectionNameDialog(
-    title: UiText,
-    initialName: String,
-    onConfirm: (String) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var name by remember { mutableStateOf(initialName) }
-    val focusRequester = remember { FocusRequester() }
-
-    LiberDialog(
-        onDismissRequest = onDismiss,
-        title = title,
-        confirmLabel = UiText.StringResource(R.string.action_save),
-        onConfirm = { if (name.isNotBlank()) onConfirm(name) },
-        confirmEnabled = name.isNotBlank(),
-        dismissLabel = UiText.StringResource(R.string.action_cancel),
-    ) {
-        LiberTextField(
-            value = name,
-            onValueChange = { name = InputValidator.validatedCollectionName(it) },
-            label = UiText.StringResource(R.string.field_label_name),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { if (name.isNotBlank()) onConfirm(name) }),
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(focusRequester)
-                .onGloballyPositioned { focusRequester.requestFocus() },
-        )
-    }
-}
-
-@Composable
-private fun DeleteCollectionDialog(
-    collectionName: String,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    LiberDialog(
-        onDismissRequest = onDismiss,
-        title = UiText.StringResource(R.string.dialog_title_delete_collection),
-        confirmLabel = UiText.StringResource(R.string.action_delete),
-        onConfirm = onConfirm,
-        dismissLabel = UiText.StringResource(R.string.action_cancel),
-    ) {
-        Text(
-            stringResource(R.string.dialog_message_delete_collection, collectionName),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@Composable
-private fun AddBooksDialog(
-    allBooks: List<Book>,
-    booksInCollection: List<Book>,
-    onAddBook: (String) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val collectionBookIds = remember(booksInCollection) { booksInCollection.map { it.id }.toSet() }
-    val availableBooks = remember(allBooks, collectionBookIds) {
-        allBooks.filter { it.id !in collectionBookIds }
-    }
-
-    LiberDialog(
-        onDismissRequest = onDismiss,
-        title = UiText.StringResource(R.string.dialog_title_add_books),
-        confirmLabel = null,
-        onConfirm = null,
-        dismissLabel = UiText.StringResource(R.string.action_done),
-    ) {
-        if (availableBooks.isEmpty()) {
-            Text(
-                stringResource(R.string.dialog_message_all_books_added),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        } else {
-            LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                items(availableBooks, key = { it.id }) { book ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                onAddBook(book.id)
-                                onDismiss()
-                            }
-                            .padding(vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        BookCover(
-                            book = book,
-                            style = CoverStyle.SMALL,
-                            isActive = false,
-                            isPlaying = false,
-                            modifier = Modifier
-                                .size(if (book.isAudiobook) 36.dp else 36.dp, 54.dp),
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = book.title,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                            book.author?.let {
-                                Text(
-                                    text = it,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                    }
-                }
             }
         }
     }
