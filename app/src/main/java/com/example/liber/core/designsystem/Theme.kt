@@ -30,23 +30,27 @@ private val LiberLightColorScheme = lightColorScheme(
     tertiaryContainer = Sage200,
     onTertiaryContainer = Sage800,
 
-    background = Neutral50,
+    // O fundo agora é o nosso papel principal (#FAF8F5)
+    background = Neutral100,
     onBackground = Neutral950,
 
+    // Superfícies recebem o mesmo tom para parecer um manuscrito único
     surface = Neutral100,
     onSurface = Neutral950,
-    surfaceVariant = Neutral150,
+    surfaceVariant = Neutral200, // #E8E4DC para dar contraste suave
     onSurfaceVariant = Neutral600,
     surfaceTint = Color.Transparent,
 
-    surfaceContainerLowest = Color.White,
+    // Mapeamento minucioso dos containers para manter a vibe Indie
+    surfaceContainerLowest = Neutral50,   // Adeus Color.White! Bem-vindo #FDFAF6
     surfaceContainerLow = Neutral100,
     surfaceContainer = Neutral150,
     surfaceContainerHigh = Neutral200,
     surfaceContainerHighest = Neutral300,
 
+    // Bordas finas em tom de bege/areia (#E5E0D8)
     outline = Neutral400,
-    outlineVariant = Neutral200,
+    outlineVariant = Neutral300,
 
     error = Error600,
     onError = Color.White,
@@ -105,6 +109,7 @@ private val LiberDarkColorScheme = darkColorScheme(
 
     scrim = Color.Black,
 )
+
 
 @Composable
 fun LiberTheme(

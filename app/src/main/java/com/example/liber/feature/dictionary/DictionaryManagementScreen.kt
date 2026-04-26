@@ -564,12 +564,13 @@ private fun DictionaryViewerScreen(
             if (showSmartInfo) {
                 // Info block for lemmatization
                 Surface(
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                    color = MaterialTheme.colorScheme.surfaceContainerLowest,
                     shape = RoundedCornerShape(16.dp),
                     border = androidx.compose.foundation.BorderStroke(
                         1.dp,
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
                     ),
+                    tonalElevation = 1.dp,
                     modifier = Modifier.padding(vertical = 16.dp)
                 ) {
                     Row(
@@ -741,7 +742,7 @@ private fun DictionaryEntryItem(
             LiberHtmlText(
                 html = sense.definition,
                 modifier = Modifier.padding(top = 2.dp),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
@@ -764,7 +765,7 @@ private fun DictionaryEntryItem(
                     fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                     modifier = Modifier
                         .background(
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            MaterialTheme.colorScheme.surfaceContainerHighest,
                             RoundedCornerShape(4.dp)
                         )
                         .padding(horizontal = 4.dp, vertical = 2.dp)
@@ -790,12 +791,13 @@ private fun DictionaryCard(
     footer: (@Composable () -> Unit)? = null
 ) {
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
         shape = RoundedCornerShape(16.dp),
         border = androidx.compose.foundation.BorderStroke(
             1.dp,
-            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
         ),
+        tonalElevation = 1.dp,
         modifier = Modifier
             .fillMaxWidth()
             .let { if (onClick != null) it.clickable { onClick() } else it }
@@ -989,8 +991,13 @@ private fun CreateDictionaryDialog(
             // File Picker Row
             Surface(
                 onClick = { launcher.launch("*/*") },
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                color = MaterialTheme.colorScheme.surfaceContainerLowest,
                 shape = RoundedCornerShape(12.dp),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                ),
+                tonalElevation = 1.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(

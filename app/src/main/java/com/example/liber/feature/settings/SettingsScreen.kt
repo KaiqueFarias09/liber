@@ -351,9 +351,11 @@ private fun LanguageBottomSheet(
                 val isSelected = language.tag == currentLanguageTag
                 Surface(
                     onClick = { onLanguageSelected(language.tag) },
-                    color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
-                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+                    color = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                    else MaterialTheme.colorScheme.surfaceContainerLowest,
                     shape = MaterialTheme.shapes.medium,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+                    tonalElevation = if (isSelected) 0.dp else 1.dp,
                 ) {
                     Row(
                         modifier = Modifier

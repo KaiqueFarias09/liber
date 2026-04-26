@@ -182,7 +182,8 @@ fun AudioPlayerScreen(
                             .padding(start = 8.dp)
                             .size(40.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), CircleShape)
                     ) {
                         Icon(
                             imageVector = PhosphorIcons.Regular.ArrowLeft,
@@ -197,7 +198,8 @@ fun AudioPlayerScreen(
                             .padding(end = 8.dp)
                             .size(40.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), CircleShape)
                     ) {
                         Icon(
                             imageVector = PhosphorIcons.Regular.DotsThree,
@@ -359,10 +361,10 @@ fun AudioPlayerScreen(
                         modifier = Modifier
                             .size(80.dp)
                             .clip(CircleShape)
-                            .background(if (playWhenReady) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.onSurface)
+                            .background(if (playWhenReady) MaterialTheme.colorScheme.surfaceContainerLowest else MaterialTheme.colorScheme.onSurface)
                             .border(
                                 1.dp,
-                                if (playWhenReady) MaterialTheme.colorScheme.outlineVariant else Color.Transparent,
+                                if (playWhenReady) MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f) else Color.Transparent,
                                 CircleShape
                             )
                     ) {
@@ -410,7 +412,8 @@ fun AudioPlayerScreen(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
-                            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                            .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
                             .clickable { activeSheet = AudioPlayerSheet.SPEED }
                             .padding(horizontal = 10.dp, vertical = 6.dp)
                     ) {
@@ -425,7 +428,8 @@ fun AudioPlayerScreen(
                     Row(
                         modifier = Modifier
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                            .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), CircleShape)
                             .clickable { activeSheet = AudioPlayerSheet.CHAPTERS }
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -560,7 +564,8 @@ fun SpeedSheet(currentSpeed: Float, onSpeedSelected: (Float) -> Unit) {
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow)
+                        .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLowest)
+                        .border(1.dp, if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
                         .clickable { onSpeedSelected(speed) }
                         .padding(vertical = 12.dp),
                     contentAlignment = Alignment.Center

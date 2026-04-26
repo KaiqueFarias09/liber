@@ -6,52 +6,52 @@ import androidx.compose.ui.graphics.Color
 val Rose50 = Color(0xFFFEF1F2)
 val Rose100 = Color(0xFFFCE4E6)
 val Rose200 = Color(0xFFFAD0D4)
-val Rose300 = Color(0xFFF7B8BD)   // light primaryContainer
-val Rose400 = Color(0xFFF29AA1)   // dark primary
-val Rose500 = Color(0xFFE87881)   // light primary
+val Rose300 = Color(0xFFF7B8BD)
+val Rose400 = Color(0xFFF29AA1)
+val Rose500 = Color(0xFFE87881)
 val Rose600 = Color(0xFFD4596A)
 val Rose700 = Color(0xFFB8394A)
-val Rose800 = Color(0xFF8F2535)   // dark primaryContainer
-val Rose900 = Color(0xFF5E1420)   // onPrimaryContainer light
+val Rose800 = Color(0xFF8F2535)
+val Rose900 = Color(0xFF5E1420)
 val Rose950 = Color(0xFF3B0A14)
 
-// ── Warm Mauve family (Secondary — secondary buttons) ────────────────────────
+// ── Warm Mauve family (Secondary) ────────────────────────────────────────────
 val Mauve50 = Color(0xFFF5F0F1)
 val Mauve100 = Color(0xFFEBE1E3)
-val Mauve300 = Color(0xFFC2ABB0)   // light secondaryContainer / dark secondary
-val Mauve500 = Color(0xFF8D6D74)   // light secondary
-val Mauve800 = Color(0xFF3E2C30)   // onSecondary light / dark onSecondary
-val Mauve850 = Color(0xFF2E2023)   // dark secondaryContainer
+val Mauve300 = Color(0xFFC2ABB0)
+val Mauve500 = Color(0xFF8D6D74)
+val Mauve800 = Color(0xFF3E2C30)
+val Mauve850 = Color(0xFF2E2023)
 
-// ── Dusty Sage family (Tertiary — muted/ghost buttons) ───────────────────────
+// ── Dusty Sage family (Tertiary) ─────────────────────────────────────────────
 val Sage100 = Color(0xFFDFEBE1)
-val Sage200 = Color(0xFFC3D9C7)   // light tertiaryContainer
-val Sage300 = Color(0xFFA3C4AA)   // dark tertiary
-val Sage500 = Color(0xFF5E9068)   // light tertiary
-val Sage800 = Color(0xFF243F2A)   // onTertiary light / dark onTertiary
-val Sage850 = Color(0xFF1A2E1F)   // dark tertiaryContainer
+val Sage200 = Color(0xFFC3D9C7)
+val Sage300 = Color(0xFFA3C4AA)
+val Sage500 = Color(0xFF5E9068)
+val Sage800 = Color(0xFF243F2A)
+val Sage850 = Color(0xFF1A2E1F)
 
-// ── Warm Neutral family ───────────────────────────────────────────────────────
-val Neutral50 = Color(0xFFF8F5F5)   // light background
-val Neutral100 = Color(0xFFF0ECED)   // light surface
-val Neutral150 = Color(0xFFE8E3E4)   // light surfaceVariant
-val Neutral200 = Color(0xFFD8D2D3)   // light outlineVariant
-val Neutral300 = Color(0xFFBCB5B6)   // dark onSurfaceVariant
-val Neutral400 = Color(0xFF9C9495)   // outline (both modes)
-val Neutral600 = Color(0xFF5C5455)   // light onSurfaceVariant
-val Neutral700 = Color(0xFF3E3637)   // dark surfaceVariant / dark outlineVariant
-val Neutral750 = Color(0xFF2E2829)   // inverseSurface light / dark surface (cards)
-val Neutral800 = Color(0xFF231E1F)   // dark inverseOnSurface / nav background
-val Neutral850 = Color(0xFF1A1617)   // dark surface (screen body)
-val Neutral900 = Color(0xFF130F10)   // dark background
-val Neutral950 = Color(0xFF0D0A0A)   // light onBackground / onSurface
+// ── Warm Neutral family (Atualizado: Estética Editorial/Papel) ───────────────
+val Neutral50 = Color(0xFFFDFAF6)    // Premium Paper (Cards destacados)
+val Neutral100 = Color(0xFFFAF8F5)   // Base Paper (Fundo principal do app)
+val Neutral150 = Color(0xFFF0EBE1)   // Superfícies sutis
+val Neutral200 = Color(0xFFE8E4DC)   // Fundo secundário (Warm grey/beige)
+val Neutral300 = Color(0xFFE5E0D8)   // Bordas finas delicadas (O sublinhado/divisórias)
+val Neutral400 = Color(0xFFD1C8C0)   // Outline forte
+val Neutral600 = Color(0xFF6B6263)   // Texto secundário claro
+val Neutral700 = Color(0xFF3E3637)   // Texto/Bordas no modo escuro
+val Neutral750 = Color(0xFF2E2829)
+val Neutral800 = Color(0xFF231E1F)
+val Neutral850 = Color(0xFF1A1617)
+val Neutral900 = Color(0xFF130F10)   // Fundo principal Dark Mode
+val Neutral950 = Color(0xFF0D0A0A)   // Texto principal Light Mode
 
 // ── Error family ─────────────────────────────────────────────────────────────
-val Error100 = Color(0xFFFFDAD6)   // light errorContainer
-val Error200 = Color(0xFFFFB4AB)   // dark error
-val Error600 = Color(0xFFBA1A1A)   // light error
-val Error700 = Color(0xFF93000A)   // dark onError / dark errorContainer
-val Error800 = Color(0xFF410002)   // light onErrorContainer
+val Error100 = Color(0xFFFFDAD6)
+val Error200 = Color(0xFFFFB4AB)
+val Error600 = Color(0xFFBA1A1A)
+val Error700 = Color(0xFF93000A)
+val Error800 = Color(0xFF410002)
 
 // ── Extended Pastel Containers ───────────────────────────────────────────────
 // Each hue has: light container (100), light on-container (700), dark container (850), dark on-container (300)

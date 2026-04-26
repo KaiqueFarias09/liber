@@ -32,6 +32,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -244,18 +245,20 @@ fun MoreOptionsSheet(
             .padding(bottom = 40.dp)
             .padding(top = 8.dp)
     ) {
-        Row(
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 24.dp)
-                .background(
-                    MaterialTheme.colorScheme.surfaceContainerLow,
-                    RoundedCornerShape(16.dp)
-                )
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(bottom = 24.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerLowest,
+            shape = RoundedCornerShape(16.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+            tonalElevation = 1.dp
         ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
             BookCover(
                 book = book,
                 style = CoverStyle.SMALL,
@@ -279,6 +282,7 @@ fun MoreOptionsSheet(
                 )
             }
         }
+    }
 
         MoreOptionItem(
             icon = PhosphorIcons.Regular.PencilSimple,

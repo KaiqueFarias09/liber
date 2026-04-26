@@ -297,8 +297,9 @@ private fun BooksToolbar(
             // View mode toggle
             Surface(
                 shape = RoundedCornerShape(8.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                tonalElevation = 0.dp,
+                color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+                tonalElevation = 1.dp,
             ) {
                 Row(modifier = Modifier.padding(2.dp)) {
                     ViewToggleButton(
@@ -551,8 +552,9 @@ fun BookGridItem(
 
             if (isNew) {
                 Surface(
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
                     shape = RoundedCornerShape(4.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
                 ) {
                     Text(
                         text = progressText,
