@@ -19,6 +19,7 @@ import com.example.liber.core.designsystem.LiberModalBottomSheet
 import com.example.liber.core.util.UiState
 import com.example.liber.core.util.UiText
 import com.example.liber.data.local.DictionaryEntryWithSenses
+import com.example.liber.feature.dictionary.components.DictionaryEntryItem
 
 @Composable
 fun DictionaryLookupSheet(
@@ -66,38 +67,12 @@ fun DictionaryLookupSheet(
                     } else {
                         LazyColumn(
                             modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             items(lookupState.data, key = { it.entry.id }) { result ->
-                                val primarySense = result.senses.firstOrNull()
-                                Column(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                                ) {
-                                    Text(
-                                        text = result.entry.headword,
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Medium,
-                                    )
-                                    Text(
-                                        text = primarySense?.partOfSpeech
-                                            ?: stringResource(R.string.reader_dictionary_unknown_pos),
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.primary,
-                                    )
-                                    Text(
-                                        text = primarySense?.definition
-                                            ?: stringResource(R.string.reader_dictionary_empty_definition),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                    )
-                                    primarySense?.example?.let { example ->
-                                        Text(
-                                            text = "\"$example\"",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                    }
-                                }
+                                DictionaryEntryItem(
+                                    entryWithSenses = result,
+                                    showDivider = result != lookupState.data.last()
+                                )
                             }
                         }
                     }

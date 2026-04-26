@@ -68,7 +68,6 @@ import com.adamglin.phosphoricons.regular.CaretRight
 import com.adamglin.phosphoricons.regular.CheckCircle
 import com.adamglin.phosphoricons.regular.DownloadSimple
 import com.adamglin.phosphoricons.regular.FileArrowUp
-import com.adamglin.phosphoricons.regular.Info
 import com.adamglin.phosphoricons.regular.PencilSimple
 import com.adamglin.phosphoricons.regular.Sparkle
 import com.adamglin.phosphoricons.regular.Trash
@@ -85,6 +84,7 @@ import com.example.liber.core.util.UiText
 import com.example.liber.data.local.DictionaryEntryWithSenses
 import com.example.liber.data.model.Dictionary
 import com.example.liber.data.model.FreeDictCatalogItem
+import com.example.liber.feature.dictionary.components.DictionaryEntryItem
 import java.util.Locale
 
 private val languageMap = mapOf(
@@ -109,31 +109,6 @@ private fun formatBytes(bytes: Long?): String {
     val sizes = arrayOf("B", "KB", "MB", "GB")
     val i = Math.floor(Math.log(bytes.toDouble()) / Math.log(k)).toInt()
     return String.format("%.1f %s", bytes / Math.pow(k, i.toDouble()), sizes[i])
-}
-
-@Composable
-fun LiberHtmlText(
-    html: String,
-    modifier: Modifier = Modifier,
-    color: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-) {
-    val context = LocalContext.current
-    val typeface = remember { ResourcesCompat.getFont(context, R.font.switzer_regular) }
-    val textColor = color.toArgb()
-    val fontSize = MaterialTheme.typography.bodyMedium.fontSize.value
-
-    AndroidView(
-        factory = { ctx ->
-            TextView(ctx).apply {
-                setTypeface(typeface)
-                setTextColor(textColor)
-                textSize = fontSize
-                includeFontPadding = false
-            }
-        },
-        update = { it.text = HtmlCompat.fromHtml(html, HtmlCompat.FROM_HTML_MODE_LEGACY) },
-        modifier = modifier
-    )
 }
 
 @Composable
@@ -704,77 +679,6 @@ private fun DictionaryViewerScreen(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun DictionaryEntryItem(
-    entryWithSenses: DictionaryEntryWithSenses,
-    showLemmaNote: Boolean
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = entryWithSenses.entry.headword,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            entryWithSenses.senses.firstOrNull()?.partOfSpeech?.let { pos ->
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = pos,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontStyle = FontStyle.Italic,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        entryWithSenses.senses.forEach { sense ->
-            LiberHtmlText(
-                html = sense.definition,
-                modifier = Modifier.padding(top = 2.dp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        if (showLemmaNote && entryWithSenses.entry.lemma != null) {
-            Row(
-                modifier = Modifier.padding(top = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = PhosphorIcons.Regular.Info,
-                    contentDescription = null,
-                    modifier = Modifier.size(12.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    text = entryWithSenses.entry.lemma,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                    modifier = Modifier
-                        .background(
-                            MaterialTheme.colorScheme.surfaceContainerHighest,
-                            RoundedCornerShape(4.dp)
-                        )
-                        .padding(horizontal = 4.dp, vertical = 2.dp)
-                )
-            }
-        }
-
-        Spacer(Modifier.height(12.dp))
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
     }
 }
 
