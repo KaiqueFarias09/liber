@@ -7,6 +7,7 @@ import com.example.liber.core.navigation.AppTab
 import com.example.liber.data.model.Book
 import com.example.liber.data.model.ReadingSessionSource
 import com.example.liber.data.repository.ReadingSessionTracker
+import com.example.liber.data.repository.UserPreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,6 +18,7 @@ import javax.inject.Inject
 class LiberAppViewModel @Inject constructor(
     application: Application,
     private val readingSessionTracker: ReadingSessionTracker,
+    val userPreferencesRepository: UserPreferencesRepository,
     appLogger: AppLogger,
 ) :
     BaseAndroidViewModel(application, "LiberAppViewModel", appLogger) {
