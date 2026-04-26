@@ -91,6 +91,9 @@ class DictionaryViewModel @Inject constructor(
 
     init {
         refreshFreeDictCatalog()
+        launchSafely("ensureLemmas", Dispatchers.IO) {
+            dictionaryRepository.ensureAllLanguagesHaveLemmas()
+        }
     }
 
     fun createDictionary(

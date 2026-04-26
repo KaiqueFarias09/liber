@@ -16,6 +16,9 @@ interface DictionaryDao {
     @Query("SELECT * FROM dictionaries ORDER BY isEnabled DESC, priority ASC, displayName ASC")
     fun getAllDictionaries(): Flow<List<Dictionary>>
 
+    @Query("SELECT * FROM dictionaries")
+    suspend fun getDictionaries(): List<Dictionary>
+
     @Query("SELECT * FROM dictionaries WHERE id = :id LIMIT 1")
     suspend fun getDictionaryById(id: String): Dictionary?
 

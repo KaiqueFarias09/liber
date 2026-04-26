@@ -124,22 +124,24 @@ class DictionaryRepository(
             fileSize = targetFile.length()
         }
 
-        dictionaryDao.upsertDictionary(
-            Dictionary(
-                id = UUID.randomUUID().toString(),
-                displayName = displayName,
-                sourceLanguageTag = sourceLanguageTag,
-                targetLanguageTag = targetLanguageTag,
-                dictionaryType = dictionaryType,
-                packageFormat = "manual",
-                version = "local-1",
-                localFilePath = localFilePath,
-                remoteUrl = null,
-                installSizeBytes = fileSize,
-                installedAt = now,
-                updatedAt = now,
-            )
+        val dictionary = Dictionary(
+            id = UUID.randomUUID().toString(),
+            displayName = displayName,
+            sourceLanguageTag = sourceLanguageTag,
+            targetLanguageTag = targetLanguageTag,
+            dictionaryType = dictionaryType,
+            packageFormat = "manual",
+            version = "local-1",
+            localFilePath = localFilePath,
+            remoteUrl = null,
+            installSizeBytes = fileSize,
+            installedAt = now,
+            updatedAt = now,
         )
+        dictionaryDao.upsertDictionary(dictionary)
+
+        // Ensure we have lemmatization data for this language
+        ensureLemmatizationData(normalizeLanguageTag(sourceLanguageTag))
     }
 
     suspend fun fetchFreeDictCatalog(): List<FreeDictCatalogItem> = executeOperation(
@@ -283,10 +285,11 @@ class DictionaryRepository(
 
         // 1. Get potential lemmas for the query
         val lemmas = wordLemmaDao.findLemmas(trimmed.lowercase(Locale.ROOT), normalizedTag)
-        val searchTerms = (listOf(trimmed) + lemmas).distinct()
+        val fallbacks = getFallbacks(trimmed, normalizedTag)
+        val searchTerms = (listOf(trimmed) + lemmas + fallbacks).distinct()
 
-        if (lemmas.isNotEmpty()) {
-            logger.log("Found lemmas for \"$trimmed\": $lemmas")
+        if (lemmas.isNotEmpty() || fallbacks.isNotEmpty()) {
+            logger.log("Expanded search terms for \"$trimmed\": ${searchTerms.drop(1)}")
         }
 
         val entries = mutableListOf<com.example.liber.data.model.DictionaryEntry>()
@@ -338,7 +341,8 @@ class DictionaryRepository(
         val searchTerms = if (dict != null) {
             val normalizedTag = normalizeLanguageTag(dict.sourceLanguageTag)
             val lemmas = wordLemmaDao.findLemmas(trimmed.lowercase(Locale.ROOT), normalizedTag)
-            (listOf(trimmed) + lemmas).distinct()
+            val fallbacks = getFallbacks(trimmed, normalizedTag)
+            (listOf(trimmed) + lemmas + fallbacks).distinct()
         } else {
             listOf(trimmed)
         }
@@ -353,6 +357,14 @@ class DictionaryRepository(
             limit = limit,
             offset = offset
         )
+    }
+
+    suspend fun ensureAllLanguagesHaveLemmas() = executeOperation("ensureAllLanguagesHaveLemmas") {
+        val dictionaries = dictionaryDao.getDictionaries()
+        val languages = dictionaries.map { normalizeLanguageTag(it.sourceLanguageTag) }.toSet()
+        languages.forEach { tag ->
+            ensureLemmatizationData(tag)
+        }
     }
 
     private suspend fun ensureLemmatizationData(languageTag: String) {
@@ -546,6 +558,36 @@ class DictionaryRepository(
 
     suspend fun clearLookupHistory() = executeOperation("clearLookupHistory") {
         dictionaryDao.clearLookupHistory()
+    }
+
+    private fun getFallbacks(query: String, normalizedTag: String): List<String> {
+        val trimmed = query.trim().lowercase(Locale.ROOT)
+        if (trimmed.length <= 3) return emptyList()
+
+        val fallbacks = mutableListOf<String>()
+
+        when (normalizedTag) {
+            "por", "spa" -> {
+                if (trimmed.endsWith("s")) {
+                    fallbacks.add(trimmed.dropLast(1)) // livros -> livro
+                    if (trimmed.endsWith("es")) {
+                        fallbacks.add(trimmed.dropLast(2)) // luzes -> luz
+                    }
+                }
+            }
+            "eng" -> {
+                if (trimmed.endsWith("s")) {
+                    fallbacks.add(trimmed.dropLast(1)) // books -> book
+                    if (trimmed.endsWith("es")) {
+                        fallbacks.add(trimmed.dropLast(2)) // boxes -> box
+                        if (trimmed.endsWith("ies")) {
+                            fallbacks.add(trimmed.dropLast(3) + "y") // flies -> fly
+                        }
+                    }
+                }
+            }
+        }
+        return fallbacks.distinct()
     }
 
     private fun now(): Long = System.currentTimeMillis()
