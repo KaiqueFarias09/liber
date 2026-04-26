@@ -541,6 +541,11 @@ private fun DictionaryViewerScreen(
         }
     }
 
+    // Reset scroll position when search query changes
+    LaunchedEffect(browseQuery) {
+        listState.scrollToItem(0)
+    }
+
     val displayTitle = dictionary.localAlias
         ?: (getLanguageName(dictionary.sourceLanguageTag) + " to " + (dictionary.targetLanguageTag?.let {
             getLanguageName(it)
@@ -709,7 +714,7 @@ private fun DictionaryEntryItem(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp)
+            .padding(vertical = 8.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -735,14 +740,14 @@ private fun DictionaryEntryItem(
         entryWithSenses.senses.forEach { sense ->
             LiberHtmlText(
                 html = sense.definition,
-                modifier = Modifier.padding(top = 4.dp),
+                modifier = Modifier.padding(top = 2.dp),
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
             )
         }
 
         if (showLemmaNote && entryWithSenses.entry.lemma != null) {
             Row(
-                modifier = Modifier.padding(top = 8.dp),
+                modifier = Modifier.padding(top = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
@@ -767,7 +772,7 @@ private fun DictionaryEntryItem(
             }
         }
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(12.dp))
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
     }
 }
