@@ -86,7 +86,9 @@ interface DictionaryDao {
         SELECT * 
         FROM dictionary_entries 
         WHERE dictionaryId = :dictionaryId 
-        ORDER BY headword ASC 
+        ORDER BY 
+          CASE WHEN headword LIKE '-%' THEN 1 ELSE 0 END,
+          headword ASC
         LIMIT :limit OFFSET :offset
         """
     )
@@ -103,13 +105,21 @@ interface DictionaryDao {
         FROM dictionary_entries 
         WHERE dictionaryId = :dictionaryId 
           AND (headword LIKE :query OR normalizedHeadword LIKE :query) 
-        ORDER BY headword ASC 
+        ORDER BY 
+          CASE 
+            WHEN headword = :pureQuery OR normalizedHeadword = :pureQuery THEN 1
+            WHEN headword LIKE :prefix OR normalizedHeadword LIKE :prefix THEN 2
+            ELSE 3
+          END,
+          headword ASC 
         LIMIT :limit OFFSET :offset
         """
     )
     suspend fun searchEntriesInDictionary(
         dictionaryId: String,
         query: String,
+        pureQuery: String,
+        prefix: String,
         limit: Int,
         offset: Int,
     ): List<DictionaryEntryWithSenses>

@@ -332,7 +332,14 @@ class DictionaryRepository(
         if (trimmed.isEmpty()) {
             dictionaryDao.getEntriesByDictionary(dictionaryId, limit, offset)
         } else {
-            dictionaryDao.searchEntriesInDictionary(dictionaryId, "%$trimmed%", limit, offset)
+            dictionaryDao.searchEntriesInDictionary(
+                dictionaryId = dictionaryId,
+                query = "%$trimmed%",
+                pureQuery = trimmed,
+                prefix = "$trimmed%",
+                limit = limit,
+                offset = offset
+            )
         }
     }
 
