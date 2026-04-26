@@ -72,6 +72,7 @@ import com.adamglin.phosphoricons.regular.Info
 import com.adamglin.phosphoricons.regular.PencilSimple
 import com.adamglin.phosphoricons.regular.Sparkle
 import com.adamglin.phosphoricons.regular.Trash
+import com.adamglin.phosphoricons.regular.X
 import com.example.liber.R
 import com.example.liber.core.designsystem.AppErrorState
 import com.example.liber.core.designsystem.LiberDialog
@@ -516,9 +517,11 @@ private fun DictionaryViewerScreen(
     val isBrowsingMore by viewModel.isBrowsingMore.collectAsState()
     val lemmatizationStatus by viewModel.lemmatizationStatus.collectAsState()
     val languagesWithLemmas by viewModel.languagesWithLemmas.collectAsState()
+    val smartInfoDismissed by viewModel.smartRecognitionInfoDismissed.collectAsState()
 
     val normalizedLang = viewModel.normalizeLanguageTag(dictionary.sourceLanguageTag)
     val hasLemmatization = languagesWithLemmas.contains(normalizedLang) || lemmatizationStatus.containsKey(normalizedLang)
+    val showSmartInfo = hasLemmatization && !smartInfoDismissed
 
     val listState = rememberLazyListState()
 
@@ -553,7 +556,7 @@ private fun DictionaryViewerScreen(
                 .fillMaxSize()
                 .padding(horizontal = 24.dp)
         ) {
-            if (hasLemmatization) {
+            if (showSmartInfo) {
                 // Info block for lemmatization
                 Surface(
                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
@@ -585,7 +588,7 @@ private fun DictionaryViewerScreen(
                             )
                         }
                         Spacer(Modifier.width(12.dp))
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 "Smart Word Recognition",
                                 style = MaterialTheme.typography.titleSmall,
@@ -597,6 +600,19 @@ private fun DictionaryViewerScreen(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 lineHeight = 16.sp
+                            )
+                        }
+                        IconButton(
+                            onClick = { viewModel.dismissSmartRecognitionInfo() },
+                            modifier = Modifier
+                                .size(24.dp)
+                                .padding(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = PhosphorIcons.Regular.X,
+                                contentDescription = "Dismiss",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                modifier = Modifier.size(12.dp)
                             )
                         }
                     }

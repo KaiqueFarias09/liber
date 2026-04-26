@@ -15,6 +15,7 @@ import com.example.liber.data.model.Dictionary
 import com.example.liber.data.model.DictionaryLookupHistory
 import com.example.liber.data.model.FreeDictCatalogItem
 import com.example.liber.data.repository.DictionaryRepository
+import com.example.liber.data.repository.UserPreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,6 +30,7 @@ import javax.inject.Inject
 class DictionaryViewModel @Inject constructor(
     application: Application,
     private val dictionaryRepository: DictionaryRepository,
+    private val userPreferencesRepository: UserPreferencesRepository,
     private val appLogger: AppLogger,
 ) : BaseAndroidViewModel(application, "DictionaryViewModel", appLogger) {
 
@@ -44,6 +46,9 @@ class DictionaryViewModel @Inject constructor(
 
     val languagesWithLemmas: StateFlow<Set<String>> = dictionaryRepository.languagesWithLemmas
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+
+    val smartRecognitionInfoDismissed: StateFlow<Boolean> = userPreferencesRepository.smartRecognitionInfoDismissed
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     fun normalizeLanguageTag(tag: String): String = dictionaryRepository.normalizeLanguageTag(tag)
 
@@ -277,6 +282,15 @@ class DictionaryViewModel @Inject constructor(
             parameters = mapOf("id" to id),
         ) {
             dictionaryRepository.deleteLookupHistory(id)
+        }
+    }
+
+    fun dismissSmartRecognitionInfo() {
+        launchSafely(
+            actionName = "dismissSmartRecognitionInfo",
+            dispatcher = Dispatchers.IO,
+        ) {
+            userPreferencesRepository.setSmartRecognitionInfoDismissed(true)
         }
     }
 

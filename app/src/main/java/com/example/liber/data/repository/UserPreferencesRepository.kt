@@ -44,6 +44,7 @@ class UserPreferencesRepository(
         val READING_GOAL_MINUTES = intPreferencesKey("reading_goal_minutes")
         val DICTIONARY_HISTORY_ENABLED = booleanPreferencesKey("dictionary_history_enabled")
         val DICTIONARY_HISTORY_RETENTION_DAYS = intPreferencesKey("dictionary_history_retention_days")
+        val SMART_RECOGNITION_INFO_DISMISSED = booleanPreferencesKey("smart_recognition_info_dismissed")
     }
 
     val themeMode: Flow<ThemeMode> = dataStore.data
@@ -218,6 +219,9 @@ class UserPreferencesRepository(
     val readingGoalMinutes: Flow<Int> = dataStore.data
         .map { it[PreferencesKeys.READING_GOAL_MINUTES] ?: 30 }
 
+    val smartRecognitionInfoDismissed: Flow<Boolean> = dataStore.data
+        .map { it[PreferencesKeys.SMART_RECOGNITION_INFO_DISMISSED] ?: false }
+
     suspend fun setAudiobooksSortOption(option: LibrarySortOption) = executeOperation(
         operationName = "setAudiobooksSortOption",
         parameters = mapOf("option" to option.name),
@@ -244,6 +248,13 @@ class UserPreferencesRepository(
         parameters = mapOf("days" to days),
     ) {
         dataStore.edit { it[PreferencesKeys.DICTIONARY_HISTORY_RETENTION_DAYS] = days }
+    }
+
+    suspend fun setSmartRecognitionInfoDismissed(dismissed: Boolean) = executeOperation(
+        operationName = "setSmartRecognitionInfoDismissed",
+        parameters = mapOf("dismissed" to dismissed),
+    ) {
+        dataStore.edit { it[PreferencesKeys.SMART_RECOGNITION_INFO_DISMISSED] = dismissed }
     }
 
     suspend fun resetReaderSettings() = executeOperation("resetReaderSettings") {
