@@ -3,6 +3,11 @@ package com.example.liber.feature.dictionary
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import android.widget.TextView
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -39,20 +45,28 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.res.ResourcesCompat
+import androidx.core.text.HtmlCompat
 import androidx.documentfile.provider.DocumentFile
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.Book
 import com.adamglin.phosphoricons.regular.CaretDown
+import com.adamglin.phosphoricons.regular.CaretRight
 import com.adamglin.phosphoricons.regular.CheckCircle
 import com.adamglin.phosphoricons.regular.DownloadSimple
 import com.adamglin.phosphoricons.regular.FileArrowUp
+import com.adamglin.phosphoricons.regular.Info
 import com.adamglin.phosphoricons.regular.PencilSimple
+import com.adamglin.phosphoricons.regular.Sparkle
 import com.adamglin.phosphoricons.regular.Trash
 import com.example.liber.R
 import com.example.liber.core.designsystem.AppErrorState
@@ -63,6 +77,7 @@ import com.example.liber.core.designsystem.LiberTabBar
 import com.example.liber.core.designsystem.LiberTextField
 import com.example.liber.core.util.UiState
 import com.example.liber.core.util.UiText
+import com.example.liber.data.local.DictionaryEntryWithSenses
 import com.example.liber.data.model.Dictionary
 import com.example.liber.data.model.FreeDictCatalogItem
 import java.util.Locale
@@ -92,15 +107,92 @@ private fun formatBytes(bytes: Long?): String {
 }
 
 @Composable
+fun LiberHtmlText(
+    html: String,
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+) {
+    val context = LocalContext.current
+    val typeface = remember { ResourcesCompat.getFont(context, R.font.switzer_regular) }
+    val textColor = color.toArgb()
+    val fontSize = MaterialTheme.typography.bodyMedium.fontSize.value
+
+    AndroidView(
+        factory = { ctx ->
+            TextView(ctx).apply {
+                setTypeface(typeface)
+                setTextColor(textColor)
+                textSize = fontSize
+                includeFontPadding = false
+            }
+        },
+        update = { it.text = HtmlCompat.fromHtml(html, HtmlCompat.FROM_HTML_MODE_LEGACY) },
+        modifier = modifier
+    )
+}
+
+@Composable
 fun DictionaryManagementScreen(
     viewModel: DictionaryViewModel,
     onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var currentScreen by remember { mutableStateOf("manager") } // "manager" | "viewer"
+    var selectedDictionary by remember { mutableStateOf<Dictionary?>(null) }
+
+    AnimatedContent(
+        targetState = currentScreen,
+        transitionSpec = {
+            if (targetState == "viewer") {
+                slideInHorizontally { it } togetherWith slideOutHorizontally { -it }
+            } else {
+                slideInHorizontally { -it } togetherWith slideOutHorizontally { it }
+            }
+        },
+        label = "dictionary_screen_transition"
+    ) { screen ->
+        when (screen) {
+            "manager" -> {
+                DictionaryManagerContent(
+                    viewModel = viewModel,
+                    onBack = onBack,
+                    onOpenDictionary = {
+                        selectedDictionary = it
+                        viewModel.browseDictionary(it.id)
+                        currentScreen = "viewer"
+                    },
+                    modifier = modifier
+                )
+            }
+            "viewer" -> {
+                selectedDictionary?.let { dict ->
+                    DictionaryViewerScreen(
+                        dictionary = dict,
+                        viewModel = viewModel,
+                        onBack = {
+                            currentScreen = "manager"
+                            viewModel.clearBrowseState()
+                        },
+                        modifier = modifier
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DictionaryManagerContent(
+    viewModel: DictionaryViewModel,
+    onBack: () -> Unit,
+    onOpenDictionary: (Dictionary) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val dictionaries by viewModel.dictionaries.collectAsState()
     val catalogState by viewModel.freeDictCatalogState.collectAsState()
     val downloadingCodes by viewModel.downloadingCodes.collectAsState()
     val lemmatizationStatus by viewModel.lemmatizationStatus.collectAsState()
+    val languagesWithLemmas by viewModel.languagesWithLemmas.collectAsState()
 
     var activeTab by remember { mutableStateOf("installed") } // "installed" | "available"
     var searchQuery by remember { mutableStateOf("") }
@@ -187,6 +279,10 @@ fun DictionaryManagementScreen(
                         }
                     } else {
                         items(dictionaries, key = { it.id }) { dictionary ->
+                            val normalizedLang = viewModel.normalizeLanguageTag(dictionary.sourceLanguageTag)
+                            val isLemmatizing = lemmatizationStatus.containsKey(normalizedLang)
+                            val hasLemma = languagesWithLemmas.contains(normalizedLang)
+
                             DictionaryCard(
                                 title = dictionary.localAlias
                                     ?: (getLanguageName(dictionary.sourceLanguageTag) + " to " + (dictionary.targetLanguageTag?.let {
@@ -196,8 +292,10 @@ fun DictionaryManagementScreen(
                                     } ?: "Self")),
                                 subtitle = dictionary.id,
                                 version = dictionary.version,
-                                headwords = null, // Installed dictionaries don't easily show headwords count here
+                                headwords = null,
                                 formattedSize = formatBytes(dictionary.installSizeBytes),
+                                onClick = { onOpenDictionary(dictionary) },
+                                hasLemmatization = hasLemma || isLemmatizing,
                                 action = {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         IconButton(
@@ -314,7 +412,9 @@ fun DictionaryManagementScreen(
                                         dictionaries.any { it.id == "freedict-${item.code}" }
                                     
                                     // Helper for lemmatization status
-                                    val lemmaStatus = lemmatizationStatus[viewModel.normalizeLanguageTag(item.sourceLanguageTag)]
+                                    val normalizedLang = viewModel.normalizeLanguageTag(item.sourceLanguageTag)
+                                    val isLemmatizing = lemmatizationStatus.containsKey(normalizedLang)
+                                    val hasLemma = languagesWithLemmas.contains(normalizedLang)
 
                                     DictionaryCard(
                                         title = getLanguageName(item.sourceLanguageTag) + " to " + getLanguageName(
@@ -324,24 +424,15 @@ fun DictionaryManagementScreen(
                                         version = item.version,
                                         headwords = item.headwords,
                                         formattedSize = formatBytes(item.stardictSizeBytes),
+                                        hasLemmatization = hasLemma || isLemmatizing,
                                         action = {
                                             if (isInstalled) {
-                                                Column(horizontalAlignment = Alignment.End) {
-                                                    Icon(
-                                                        imageVector = PhosphorIcons.Regular.CheckCircle,
-                                                        contentDescription = "Installed",
-                                                        tint = Color(0xFF4CAF50),
-                                                        modifier = Modifier.size(24.dp)
-                                                    )
-                                                    if (lemmaStatus != null) {
-                                                        Text(
-                                                            text = "Lemmas: $lemmaStatus",
-                                                            style = MaterialTheme.typography.labelSmall,
-                                                            color = MaterialTheme.colorScheme.primary,
-                                                            fontSize = 9.sp
-                                                        )
-                                                    }
-                                                }
+                                                Icon(
+                                                    imageVector = PhosphorIcons.Regular.CheckCircle,
+                                                    contentDescription = "Installed",
+                                                    tint = Color(0xFF4CAF50),
+                                                    modifier = Modifier.size(24.dp)
+                                                )
                                             } else {
                                                 OutlinedButton(
                                                     onClick = { viewModel.downloadFreeDict(item) },
@@ -410,6 +501,226 @@ fun DictionaryManagementScreen(
 }
 
 @Composable
+private fun DictionaryViewerScreen(
+    dictionary: Dictionary,
+    viewModel: DictionaryViewModel,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val browseState by viewModel.browseState.collectAsState()
+    val browseQuery by viewModel.browseQuery.collectAsState()
+    val lemmatizationStatus by viewModel.lemmatizationStatus.collectAsState()
+    val languagesWithLemmas by viewModel.languagesWithLemmas.collectAsState()
+
+    val normalizedLang = viewModel.normalizeLanguageTag(dictionary.sourceLanguageTag)
+    val hasLemmatization = languagesWithLemmas.contains(normalizedLang) || lemmatizationStatus.containsKey(normalizedLang)
+
+    val displayTitle = dictionary.localAlias
+        ?: (getLanguageName(dictionary.sourceLanguageTag) + " to " + (dictionary.targetLanguageTag?.let {
+            getLanguageName(it)
+        } ?: "Self"))
+
+    LiberScreen(
+        title = UiText.DynamicString(displayTitle),
+        onBack = onBack,
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp)
+        ) {
+            if (hasLemmatization) {
+                // Info block for lemmatization
+                Surface(
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                    shape = RoundedCornerShape(16.dp),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                    ),
+                    modifier = Modifier.padding(vertical = 16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                    CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = PhosphorIcons.Regular.Sparkle,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                "Smart Word Recognition",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                "This dictionary automatically finds root words (Lemmatization). For example, it smartly finds definitions for inflected forms.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                lineHeight = 16.sp
+                            )
+                        }
+                    }
+                }
+            }
+
+            LiberSearchField(
+                value = browseQuery,
+                onValueChange = { viewModel.browseDictionary(dictionary.id, it) },
+                placeholder = UiText.DynamicString("Search words in this dictionary..."),
+                onClear = { viewModel.browseDictionary(dictionary.id, "") },
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+
+            when (browseState) {
+                is UiState.Loading -> {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                    }
+                }
+
+                is UiState.Error -> {
+                    val errorState = browseState as UiState.Error
+                    AppErrorState(
+                        title = errorState.title,
+                        message = errorState.message,
+                        onRetry = { viewModel.browseDictionary(dictionary.id, browseQuery) },
+                        fillMaxSize = false,
+                    )
+                }
+
+                is UiState.Success -> {
+                    val entries = (browseState as UiState.Success<List<DictionaryEntryWithSenses>>).data
+                    if (entries.isEmpty()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(vertical = 64.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = PhosphorIcons.Regular.Book,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "No words found for \"$browseQuery\"",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontStyle = FontStyle.Italic
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            items(entries, key = { it.entry.id }) { entryWithSenses ->
+                                DictionaryEntryItem(
+                                    entryWithSenses = entryWithSenses,
+                                    showLemmaNote = hasLemmatization
+                                )
+                            }
+                            item { Spacer(Modifier.height(32.dp)) }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DictionaryEntryItem(
+    entryWithSenses: DictionaryEntryWithSenses,
+    showLemmaNote: Boolean
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = entryWithSenses.entry.headword,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            entryWithSenses.senses.firstOrNull()?.partOfSpeech?.let { pos ->
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = pos,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontStyle = FontStyle.Italic,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        entryWithSenses.senses.forEach { sense ->
+            LiberHtmlText(
+                html = sense.definition,
+                modifier = Modifier.padding(top = 4.dp),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+            )
+        }
+
+        if (showLemmaNote && entryWithSenses.entry.lemma != null) {
+            Row(
+                modifier = Modifier.padding(top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = PhosphorIcons.Regular.Info,
+                    contentDescription = null,
+                    modifier = Modifier.size(12.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = entryWithSenses.entry.lemma,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                    modifier = Modifier
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            RoundedCornerShape(4.dp)
+                        )
+                        .padding(horizontal = 4.dp, vertical = 2.dp)
+                )
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+    }
+}
+
+@Composable
 private fun DictionaryCard(
     title: String,
     subtitle: String,
@@ -417,6 +728,8 @@ private fun DictionaryCard(
     headwords: Int?,
     formattedSize: String,
     action: @Composable () -> Unit,
+    onClick: (() -> Unit)? = null,
+    hasLemmatization: Boolean = false,
     footer: (@Composable () -> Unit)? = null
 ) {
     Surface(
@@ -426,7 +739,9 @@ private fun DictionaryCard(
             1.dp,
             MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
         ),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .let { if (onClick != null) it.clickable { onClick() } else it }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -482,10 +797,49 @@ private fun DictionaryCard(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+
+                    if (hasLemmatization) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Surface(
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            shape = RoundedCornerShape(4.dp),
+                            border = androidx.compose.foundation.BorderStroke(
+                                0.5.dp,
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                            )
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Icon(
+                                    imageVector = PhosphorIcons.Regular.Sparkle,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(10.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Smart recognition",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                        }
+                    }
                 }
 
                 if (footer != null) {
                     footer()
+                } else if (onClick != null) {
+                    Icon(
+                        imageVector = PhosphorIcons.Regular.CaretRight,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                    )
                 } else {
                     // Badge based on "status" (mocking stable for now if not available)
                     Surface(

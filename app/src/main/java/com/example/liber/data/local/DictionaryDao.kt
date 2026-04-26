@@ -80,6 +80,30 @@ interface DictionaryDao {
     )
     suspend fun getEntriesWithSenses(entryIds: List<Long>): List<DictionaryEntryWithSenses>
 
+    @Transaction
+    @Query("SELECT * FROM dictionary_entries WHERE dictionaryId = :dictionaryId ORDER BY headword ASC LIMIT :limit")
+    suspend fun getEntriesByDictionary(
+        dictionaryId: String,
+        limit: Int,
+    ): List<DictionaryEntryWithSenses>
+
+    @Transaction
+    @Query(
+        """
+        SELECT * 
+        FROM dictionary_entries 
+        WHERE dictionaryId = :dictionaryId 
+          AND (headword LIKE :query OR normalizedHeadword LIKE :query) 
+        ORDER BY headword ASC 
+        LIMIT :limit
+        """
+    )
+    suspend fun searchEntriesInDictionary(
+        dictionaryId: String,
+        query: String,
+        limit: Int,
+    ): List<DictionaryEntryWithSenses>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLookupHistory(item: DictionaryLookupHistory)
 

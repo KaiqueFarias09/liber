@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.example.liber.data.model.WordLemma
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface WordLemmaDao {
@@ -19,4 +20,7 @@ interface WordLemmaDao {
 
     @Query("DELETE FROM word_lemmas WHERE languageTag = :languageTag")
     suspend fun deleteLemmasForLanguage(languageTag: String)
+
+    @Query("SELECT DISTINCT languageTag FROM word_lemmas")
+    fun getLanguagesWithLemmas(): Flow<List<String>>
 }

@@ -42,6 +42,9 @@ class DictionaryViewModel @Inject constructor(
 
     val lemmatizationStatus: StateFlow<Map<String, String>> = dictionaryRepository.lemmatizationStatus
 
+    val languagesWithLemmas: StateFlow<Set<String>> = dictionaryRepository.languagesWithLemmas
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+
     fun normalizeLanguageTag(tag: String): String = dictionaryRepository.normalizeLanguageTag(tag)
 
     private val _activeLookupQuery = MutableStateFlow<String?>(null)
@@ -51,6 +54,14 @@ class DictionaryViewModel @Inject constructor(
         UiState.Success(emptyList())
     )
     val lookupState: StateFlow<UiState<List<DictionaryEntryWithSenses>>> = _lookupState
+
+    private val _browseState = MutableStateFlow<UiState<List<DictionaryEntryWithSenses>>>(
+        UiState.Success(emptyList())
+    )
+    val browseState: StateFlow<UiState<List<DictionaryEntryWithSenses>>> = _browseState
+
+    private val _browseQuery = MutableStateFlow("")
+    val browseQuery: StateFlow<String> = _browseQuery
 
     val dictionariesState: StateFlow<UiState<List<Dictionary>>> = dictionaryRepository
         .getAllDictionaries()
@@ -259,5 +270,30 @@ class DictionaryViewModel @Inject constructor(
         ) {
             dictionaryRepository.deleteLookupHistory(id)
         }
+    }
+
+    fun browseDictionary(dictionaryId: String, query: String = "") {
+        _browseQuery.value = query
+        _browseState.value = UiState.Loading
+        launchSafely(
+            actionName = "browseDictionary",
+            dispatcher = Dispatchers.IO,
+            parameters = mapOf("dictionaryId" to dictionaryId, "query" to query),
+            onError = { throwable ->
+                _browseState.value = throwable.toAppError().toUiStateError()
+            }
+        ) {
+            val results = if (query.isBlank()) {
+                dictionaryRepository.getEntriesByDictionary(dictionaryId)
+            } else {
+                dictionaryRepository.searchEntriesInDictionary(dictionaryId, query)
+            }
+            _browseState.value = UiState.Success(results)
+        }
+    }
+
+    fun clearBrowseState() {
+        _browseQuery.value = ""
+        _browseState.value = UiState.Success(emptyList())
     }
 }

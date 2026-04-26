@@ -4,13 +4,12 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
-import android.content.Intent
 import android.net.Uri
 import androidx.core.app.NotificationCompat
+import com.example.liber.R
+import com.example.liber.api.FreeDictApi
 import com.example.liber.core.logging.AppLogger
 import com.example.liber.core.logging.BaseRepository
-import com.example.liber.api.FreeDictApi
-import com.example.liber.R
 import com.example.liber.data.local.DictionaryDao
 import com.example.liber.data.local.DictionaryEntryWithSenses
 import com.example.liber.data.local.WordLemmaDao
@@ -22,9 +21,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
 import java.util.Locale
@@ -69,6 +68,9 @@ class DictionaryRepository(
 
     private val _lemmatizationStatus = MutableStateFlow<Map<String, String>>(emptyMap())
     val lemmatizationStatus: StateFlow<Map<String, String>> = _lemmatizationStatus.asStateFlow()
+
+    val languagesWithLemmas: Flow<Set<String>> = wordLemmaDao.getLanguagesWithLemmas()
+        .map { it.toSet() }
 
     fun getAllDictionaries(): Flow<List<Dictionary>> = observeOperation(
         "getAllDictionaries",
@@ -167,73 +169,74 @@ class DictionaryRepository(
             .sortedWith(compareBy({ it.sourceLanguageTag }, { it.targetLanguageTag }))
     }
 
-    suspend fun downloadAndInstallFreeDict(item: FreeDictCatalogItem): Dictionary = executeOperation(
-        operationName = "downloadAndInstallFreeDict",
-        parameters = mapOf("code" to item.code, "version" to item.version),
-    ) {
-        val dictionariesDir = File(appContext.filesDir, "dictionaries")
-        if (!dictionariesDir.exists()) {
-            dictionariesDir.mkdirs()
-        }
-
-        val fileName = "${item.code}-${item.version}.stardict.tar.xz"
-        val targetFile = File(dictionariesDir, fileName)
-
-        val request = Request.Builder()
-            .url(item.stardictUrl)
-            .build()
-
-        httpClient.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) {
-                throw IllegalStateException("Failed to download dictionary (${response.code})")
+    suspend fun downloadAndInstallFreeDict(item: FreeDictCatalogItem): Dictionary =
+        executeOperation(
+            operationName = "downloadAndInstallFreeDict",
+            parameters = mapOf("code" to item.code, "version" to item.version),
+        ) {
+            val dictionariesDir = File(appContext.filesDir, "dictionaries")
+            if (!dictionariesDir.exists()) {
+                dictionariesDir.mkdirs()
             }
-            val body = response.body ?: throw IllegalStateException("Empty dictionary response")
-            body.byteStream().use { input ->
-                targetFile.outputStream().use { output ->
-                    input.copyTo(output)
+
+            val fileName = "${item.code}-${item.version}.stardict.tar.xz"
+            val targetFile = File(dictionariesDir, fileName)
+
+            val request = Request.Builder()
+                .url(item.stardictUrl)
+                .build()
+
+            httpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    throw IllegalStateException("Failed to download dictionary (${response.code})")
+                }
+                val body = response.body
+                body.byteStream().use { input ->
+                    targetFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
                 }
             }
-        }
 
-        val now = now()
-        val id = "freedict-${item.code}"
-        val existing = dictionaryDao.getDictionaryById(id)
-        val dictionary = Dictionary(
-            id = id,
-            displayName = item.code,
-            localAlias = existing?.localAlias,
-            sourceLanguageTag = item.sourceLanguageTag,
-            targetLanguageTag = item.targetLanguageTag,
-            dictionaryType = "bilingual",
-            packageFormat = "stardict.tar.xz",
-            version = item.version,
-            localFilePath = targetFile.absolutePath,
-            remoteUrl = item.stardictUrl,
-            installSizeBytes = targetFile.length(),
-            isEnabled = existing?.isEnabled ?: false,
-            priority = existing?.priority ?: 100,
-            installedAt = existing?.installedAt ?: now,
-            updatedAt = now,
-        )
-        dictionaryDao.upsertDictionary(dictionary)
-
-        // Trigger indexing
-        try {
-            val normalizedTag = normalizeLanguageTag(item.sourceLanguageTag)
-            starDictIndexer.index(id, targetFile, normalizedTag)
-            
-            // Check and download lemmatization data if needed
-            ensureLemmatizationData(normalizedTag)
-        } catch (e: Exception) {
-            logger.recordError(
-                throwable = e,
-                operationName = "downloadAndInstallFreeDict",
-                message = "Failed to index dictionary: $id",
+            val now = now()
+            val id = "freedict-${item.code}"
+            val existing = dictionaryDao.getDictionaryById(id)
+            val dictionary = Dictionary(
+                id = id,
+                displayName = item.code,
+                localAlias = existing?.localAlias,
+                sourceLanguageTag = item.sourceLanguageTag,
+                targetLanguageTag = item.targetLanguageTag,
+                dictionaryType = "bilingual",
+                packageFormat = "stardict.tar.xz",
+                version = item.version,
+                localFilePath = targetFile.absolutePath,
+                remoteUrl = item.stardictUrl,
+                installSizeBytes = targetFile.length(),
+                isEnabled = existing?.isEnabled ?: false,
+                priority = existing?.priority ?: 100,
+                installedAt = existing?.installedAt ?: now,
+                updatedAt = now,
             )
-        }
+            dictionaryDao.upsertDictionary(dictionary)
 
-        return dictionary
-    }
+            // Trigger indexing
+            try {
+                val normalizedTag = normalizeLanguageTag(item.sourceLanguageTag)
+                starDictIndexer.index(id, targetFile, normalizedTag)
+
+                // Check and download lemmatization data if needed
+                ensureLemmatizationData(normalizedTag)
+            } catch (e: Exception) {
+                logger.recordError(
+                    throwable = e,
+                    operationName = "downloadAndInstallFreeDict",
+                    message = "Failed to index dictionary: $id",
+                )
+            }
+
+            return dictionary
+        }
 
     suspend fun renameDictionary(id: String, localAlias: String?) = executeOperation(
         operationName = "renameDictionary",
@@ -281,18 +284,19 @@ class DictionaryRepository(
         // 1. Get potential lemmas for the query
         val lemmas = wordLemmaDao.findLemmas(trimmed.lowercase(Locale.ROOT), normalizedTag)
         val searchTerms = (listOf(trimmed) + lemmas).distinct()
-        
+
         if (lemmas.isNotEmpty()) {
             logger.log("Found lemmas for \"$trimmed\": $lemmas")
         }
 
         val entries = mutableListOf<com.example.liber.data.model.DictionaryEntry>()
-        
+
         // 2. Search for each term (original + lemmas)
         for (term in searchTerms) {
             val normalizedPrefix = normalize(term) + "%"
             val rawPrefix = term + "%"
-            val results = dictionaryDao.searchEntries(normalizedTag, normalizedPrefix, rawPrefix, limit)
+            val results =
+                dictionaryDao.searchEntries(normalizedTag, normalizedPrefix, rawPrefix, limit)
             entries.addAll(results)
             if (entries.size >= limit) break
         }
@@ -304,6 +308,32 @@ class DictionaryRepository(
         return dictionaryDao.getEntriesWithSenses(distinctEntries.map { it.id })
     }
 
+    suspend fun getEntriesByDictionary(
+        dictionaryId: String,
+        limit: Int = 50,
+    ): List<DictionaryEntryWithSenses> = executeOperation(
+        operationName = "getEntriesByDictionary",
+        parameters = mapOf("dictionaryId" to dictionaryId, "limit" to limit),
+    ) {
+        dictionaryDao.getEntriesByDictionary(dictionaryId, limit)
+    }
+
+    suspend fun searchEntriesInDictionary(
+        dictionaryId: String,
+        query: String,
+        limit: Int = 50,
+    ): List<DictionaryEntryWithSenses> = executeOperation(
+        operationName = "searchEntriesInDictionary",
+        parameters = mapOf("dictionaryId" to dictionaryId, "query" to query, "limit" to limit),
+    ) {
+        val trimmed = query.trim()
+        if (trimmed.isEmpty()) {
+            dictionaryDao.getEntriesByDictionary(dictionaryId, limit)
+        } else {
+            dictionaryDao.searchEntriesInDictionary(dictionaryId, "%$trimmed%", limit)
+        }
+    }
+
     private suspend fun ensureLemmatizationData(languageTag: String) {
         val count = wordLemmaDao.getCountForLanguage(languageTag)
         if (count > 0) {
@@ -313,7 +343,7 @@ class DictionaryRepository(
 
         val notificationId = LEMMA_NOTIFICATION_ID_BASE + languageTag.hashCode()
         val languageName = getLanguageName(languageTag)
-        
+
         fun updateProgress(status: String, progress: Int = -1) {
             updateLemmatizationStatus(languageTag, status)
             val builder = NotificationCompat.Builder(appContext, CHANNEL_ID)
@@ -322,7 +352,7 @@ class DictionaryRepository(
                 .setContentText(status)
                 .setOnlyAlertOnce(true)
                 .setOngoing(true)
-            
+
             if (progress >= 0) {
                 builder.setProgress(100, progress, false)
             } else {
@@ -334,7 +364,7 @@ class DictionaryRepository(
         updateProgress("Downloading...")
         logger.log("Downloading lemmatization data for $languageTag...")
         val url = "https://raw.githubusercontent.com/unimorph/$languageTag/master/$languageTag"
-        
+
         val request = Request.Builder().url(url).build()
         try {
             httpClient.newCall(request).execute().use { response ->
@@ -344,16 +374,12 @@ class DictionaryRepository(
                     notificationManager.cancel(notificationId)
                     return
                 }
-                val body = response.body ?: run {
-                    updateLemmatizationStatus(languageTag, null)
-                    notificationManager.cancel(notificationId)
-                    return
-                }
-                
+                val body = response.body
+
                 val totalBytes = body.contentLength()
                 var bytesRead = 0L
                 val lemmas = mutableListOf<WordLemma>()
-                
+
                 InputStreamReader(body.byteStream()).buffered().use { reader ->
                     var line = reader.readLine()
                     var lastUpdate = 0L
@@ -369,15 +395,16 @@ class DictionaryRepository(
                                 )
                             )
                         }
-                        
+
                         if (lemmas.size >= 1000) {
                             wordLemmaDao.insertLemmas(lemmas.toList())
                             lemmas.clear()
-                            
+
                             // Update notification progress every 1s or so to avoid spamming
                             val now = System.currentTimeMillis()
                             if (now - lastUpdate > 1000) {
-                                val progress = if (totalBytes > 0) ((bytesRead * 100) / totalBytes).toInt() else -1
+                                val progress =
+                                    if (totalBytes > 0) ((bytesRead * 100) / totalBytes).toInt() else -1
                                 updateProgress("Importing... $progress%", progress)
                                 lastUpdate = now
                             }
@@ -385,13 +412,13 @@ class DictionaryRepository(
                         line = reader.readLine()
                     }
                 }
-                
+
                 if (lemmas.isNotEmpty()) {
                     wordLemmaDao.insertLemmas(lemmas)
                 }
                 logger.log("Lemmatization data for $languageTag imported successfully.")
                 updateLemmatizationStatus(languageTag, null)
-                
+
                 // Show final success notification briefly then clear
                 notificationManager.notify(
                     notificationId,

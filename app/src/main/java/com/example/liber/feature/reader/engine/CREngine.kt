@@ -28,7 +28,6 @@ object CREngine {
         if (initialized) return
         synchronized(this) {
             if (initialized) return
-            val appLogger = AndroidAppLogger(context.applicationContext)
 
             System.loadLibrary("cr3engine")
 
@@ -50,7 +49,7 @@ object CREngine {
             val sdkInt = Build.VERSION.SDK_INT
             val ok = Engine.init(fonts.toTypedArray(), sdkInt)
             if (!ok) {
-                appLogger.warn("Engine.init returned false - no fonts registered", tag = "CREngine")
+                android.util.Log.w("CREngine", "Engine.init returned false - no fonts registered")
             }
 
             // Set up a document cache (~128 MB) in the app's cache directory

@@ -7,12 +7,14 @@ import com.example.liber.data.model.DictionarySense
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.commons.compress.compressors.xz.XZCompressorInputStream
 import java.io.BufferedInputStream
+import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileInputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.Locale
+import java.util.zip.GZIPInputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -44,10 +46,15 @@ class StarDictIndexer @Inject constructor(
                             var entry = tais.nextEntry
                             while (entry != null) {
                                 val name = entry.name.lowercase(Locale.ROOT)
+                                appLogger.debug("Archive entry: $name", tag = TAG)
                                 when {
                                     name.endsWith(".ifo") -> ifoData = readEntry(tais)
                                     name.endsWith(".idx") -> idxData = readEntryBytes(tais)
+                                    name.endsWith(".idx.gz") || name.endsWith(".idx.dz") -> 
+                                        idxData = decompressGzip(readEntryBytes(tais))
                                     name.endsWith(".dict") -> dictData = readEntryBytes(tais)
+                                    name.endsWith(".dict.dz") || name.endsWith(".dict.gz") -> 
+                                        dictData = decompressGzip(readEntryBytes(tais))
                                 }
                                 entry = tais.nextEntry
                             }
@@ -62,7 +69,7 @@ class StarDictIndexer @Inject constructor(
 
         if (idxData == null || dictData == null) {
             appLogger.error(
-                "Missing required files in archive (idx: ${idxData != null}, dict: ${dictData != null})",
+                "Missing required files in archive (idx: ${idxData != null}, dict: ${dictData != null}, ifo: ${ifoData != null})",
                 tag = TAG,
             )
             return
@@ -73,6 +80,15 @@ class StarDictIndexer @Inject constructor(
 
         parseAndStore(dictionaryId, languageTag, idxData, dictData, offsetBits)
         appLogger.info("Indexing finished for $dictionaryId. Indexed entries for language: $languageTag", tag = TAG)
+    }
+
+    private fun decompressGzip(compressed: ByteArray): ByteArray {
+        return try {
+            GZIPInputStream(ByteArrayInputStream(compressed)).use { it.readBytes() }
+        } catch (e: Exception) {
+            appLogger.error("Failed to decompress dict.dz", tag = TAG, throwable = e)
+            compressed
+        }
     }
 
     private fun readEntry(tais: TarArchiveInputStream): String {
