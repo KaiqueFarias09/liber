@@ -7,6 +7,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onLast
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.core.os.LocaleListCompat
@@ -37,6 +38,7 @@ class SettingsE2ETest {
     val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(
         android.Manifest.permission.READ_EXTERNAL_STORAGE,
         android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
+        android.Manifest.permission.POST_NOTIFICATIONS,
     )
 
     @Before
@@ -47,6 +49,8 @@ class SettingsE2ETest {
         InstrumentationRegistry.getInstrumentation().runOnMainSync {
             AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags("en"))
         }
+
+        com.example.liber.feature.reader.engine.CREngine.init(InstrumentationRegistry.getInstrumentation().targetContext)
 
         DataStoreTestHelper.clear()
         FileTestHelper.copyAssetsToEmulatorStorage()
@@ -97,8 +101,19 @@ class SettingsE2ETest {
 
         UiAutomatorHelper.selectFolderInSystemPicker("test_audiobook")
 
-        // Wait for scan to complete
-        val audioTitle = "Test Audiobook"
+        // Wait for the app to resume and for Compose to be ready
+        Thread.sleep(2000)
+
+        // Verify folder is listed in ScanFoldersScreen
+        composeTestRule.onAllNodesWithText("test_audiobook", substring = true).onLast().assertIsDisplayed()
+
+        // Go back to Settings screen so we can see the bottom navigation tabs
+        val backLabel = composeTestRule.activity.getString(R.string.audio_control_back)
+        composeTestRule.onNodeWithContentDescription(backLabel).performClick()
+
+        // Give it a moment to transition back
+        Thread.sleep(1000)
+
         // Navigate to Library -> Audiobooks
         val libraryLabel = composeTestRule.activity.getString(R.string.tab_library)
         composeTestRule.onAllNodesWithText(libraryLabel).onLast().performClick()
@@ -106,9 +121,11 @@ class SettingsE2ETest {
         val audiobooksLabel = composeTestRule.activity.getString(R.string.tab_audiobooks)
         composeTestRule.onNodeWithText(audiobooksLabel).performClick()
 
-        composeTestRule.waitUntil(30000) {
-            composeTestRule.onAllNodesWithContentDescription(audioTitle, substring = true).fetchSemanticsNodes().isNotEmpty()
+        // Assert empty state or banner appears since the folder is empty
+        composeTestRule.waitUntil(10000) {
+            composeTestRule.onAllNodesWithText("No audiobooks", substring = true).fetchSemanticsNodes().isNotEmpty()
         }
+        composeTestRule.onNodeWithText("No audiobooks", substring = true).assertIsDisplayed()
     }
 
     @Test

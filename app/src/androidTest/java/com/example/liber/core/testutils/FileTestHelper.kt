@@ -6,10 +6,10 @@ import java.io.File
 import java.io.FileOutputStream
 
 object FileTestHelper {
-    private val targetDir =
-        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+    private val targetDir = File(Environment.getExternalStorageDirectory(), "Books/LiberTests")
 
     fun copyAssetsToEmulatorStorage() {
+        if (!targetDir.exists()) targetDir.mkdirs()
         val targetContext = InstrumentationRegistry.getInstrumentation().targetContext
         val testContext = InstrumentationRegistry.getInstrumentation().context
         val assets = testContext.assets

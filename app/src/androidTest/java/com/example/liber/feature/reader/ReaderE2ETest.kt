@@ -36,6 +36,7 @@ class ReaderE2ETest {
     val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(
         android.Manifest.permission.READ_EXTERNAL_STORAGE,
         android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
+        android.Manifest.permission.POST_NOTIFICATIONS,
     )
 
     @Before
@@ -46,6 +47,8 @@ class ReaderE2ETest {
         InstrumentationRegistry.getInstrumentation().runOnMainSync {
             AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags("en"))
         }
+
+        com.example.liber.feature.reader.engine.CREngine.init(InstrumentationRegistry.getInstrumentation().targetContext)
 
         DataStoreTestHelper.clear()
         FileTestHelper.copyAssetsToEmulatorStorage()
