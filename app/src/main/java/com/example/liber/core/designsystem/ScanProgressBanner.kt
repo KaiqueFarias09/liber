@@ -124,12 +124,7 @@ private fun bannerTitle(state: ScanState): UiText = when (state) {
         val added = state.added
         val folder = state.folderName
         if (added == 0) UiText.StringResource(R.string.scan_state_finished_none, folder)
-        else if (added == 1) UiText.StringResource(
-            R.string.scan_state_finished_singular,
-            added,
-            folder
-        )
-        else UiText.StringResource(R.string.scan_state_finished_plural, added, folder)
+        else UiText.PluralResource(R.plurals.scan_state_finished, added, added, folder)
     }
 
     is ScanState.Failed -> UiText.StringResource(R.string.scan_state_failed, state.reason)

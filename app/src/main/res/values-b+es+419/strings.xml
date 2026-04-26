@@ -17,8 +17,11 @@
     <string name="scan_state_scanning">Escaneando %1$s…</string>
     <string name="scan_state_progress">%1$d de %2$d archivos · %3$s</string>
     <string name="scan_state_finished_none">No se encontraron libros nuevos en %1$s</string>
-    <string name="scan_state_finished_plural">%1$d libros agregados de %2$s</string>
-    <string name="scan_state_finished_singular">%1$d libro agregado de %2$s</string>
+    <plurals name="scan_state_finished">
+        <item quantity="one">%1$d libro agregado de %2$s</item>
+        <item quantity="many">%1$d libros agregados de %2$s</item>
+        <item quantity="other">%1$d libros agregados de %2$s</item>
+    </plurals>
     <string name="scan_state_failed">Error de escaneo: %1$s</string>
     <string name="error_unknown">Ocurrió un error desconocido</string>
     <string name="error_default_title">Algo salió mal</string>
@@ -60,9 +63,17 @@
     <string name="audio_playback_speed">Velocidad de Reproducción</string>
     <string name="audio_chapters">Capítulos</string>
     <string name="audio_sleep_timer">Temporizador de Sueño</string>
-    <string name="audio_chapters_count">%1$d capítulos</string>
+    <plurals name="audio_chapters_count">
+        <item quantity="one">%1$d capítulo</item>
+        <item quantity="many">%1$d capítulos</item>
+        <item quantity="other">%1$d capítulos</item>
+    </plurals>
     <string name="audio_sleep_timer_off">Apagado</string>
-    <string name="audio_sleep_timer_minutes">%1$d Minutos</string>
+    <plurals name="audio_sleep_timer_minutes">
+        <item quantity="one">%1$d minuto</item>
+        <item quantity="many">%1$d minutos</item>
+        <item quantity="other">%1$d minutos</item>
+    </plurals>
     <string name="audio_sleep_timer_end_of_chapter">Fin del Capítulo</string>
     <string name="audio_sleep_timer_description">La reproducción se pausará automáticamente.</string>
     <string name="dialog_title_remove_download">Eliminar Descarga</string>
@@ -73,7 +84,7 @@
     <string name="sheet_title_search_web">Buscar en la Web</string>
     <string name="sheet_subtitle_edit_metadata">Cambiar título, autor y narrador</string>
     <string name="sheet_subtitle_change_cover">Subir o buscar una nueva imagen</string>
-    <string name="action_share_audiobook">Compartir Audiolibro</string>
+    <string name="action_share_audiobook">Compartir libro</string>
     <string name="action_remove_download">Eliminar Descarga</string>
     <string name="field_label_author">Autor</string>
     <string name="field_label_narrator">Narrador</string>
@@ -90,8 +101,11 @@
     <string name="placeholder_search_book">Buscar un libro…</string>
     <string name="error_no_results">No se encontraron resultados</string>
     <string name="label_unknown_author">Autor Desconocido</string>
-    <string name="label_plural_books">%1$d libros</string>
-    <string name="label_singular_book">%1$d libro</string>
+    <plurals name="label_books">
+        <item quantity="one">%1$d libro</item>
+        <item quantity="many">%1$d libros</item>
+        <item quantity="other">%1$d libros</item>
+    </plurals>
     <string name="empty_collections_dialog_message">Aún no tienes colecciones. Crea una en la pestaña Colecciones.</string>
     <string name="reader_nav_contents">Contenido</string>
     <string name="reader_nav_search">Buscar</string>
@@ -168,7 +182,11 @@
     <string name="settings_dictionary_freedict_title">Descargar de FreeDict</string>
     <string name="settings_dictionary_download_action">Descargar</string>
     <string name="settings_dictionary_downloaded_state">paquete descargado</string>
-    <string name="settings_dictionary_headwords">%1$d entradas</string>
+    <plurals name="settings_dictionary_headwords">
+        <item quantity="one">%1$d entrada</item>
+        <item quantity="many">%1$d entradas</item>
+        <item quantity="other">%1$d entradas</item>
+    </plurals>
     <string name="settings_label_theme">Tema</string>
     <string name="settings_language">Idioma</string>
     <string name="settings_theme_auto">Automático</string>
@@ -196,8 +214,11 @@
     <string name="action_remove_from_collection">Quitar de la colección</string>
     <string name="label_status_new">NUEVO</string>
     <string name="label_status_finished">TERMINADO</string>
-    <string name="label_singular_audiobook">%1$d audiolibro</string>
-    <string name="label_plural_audiobooks">%1$d audiolibros</string>
+    <plurals name="label_audiobooks">
+        <item quantity="one">%1$d audiolibro</item>
+        <item quantity="many">%1$d audiolibros</item>
+        <item quantity="other">%1$d audiolibros</item>
+    </plurals>
     <string name="sort_option_recent">Reciente</string>
     <string name="sort_option_title">Título</string>
     <string name="sort_option_author">Autor</string>
@@ -248,9 +269,21 @@
     <string name="settings_reading_insights_goal_title">Meta de hoy</string>
     <string name="settings_reading_insights_goal_progress">%1$d / %2$d min</string>
     <string name="settings_reading_insights_goal_complete">Meta alcanzada. Sigue leyendo si la historia te atrapó.</string>
-    <string name="settings_reading_insights_goal_remaining">Estás cerca. Solo faltan %1$d minutos para alcanzar la meta de hoy.</string>
-    <string name="settings_reading_insights_streak_title">Racha de %1$d días</string>
-    <string name="settings_reading_insights_streak_best">Mejor racha: %1$d días</string>
+    <plurals name="settings_reading_insights_goal_remaining">
+        <item quantity="one">Estás cerca. Solo falta %1$d minuto para alcanzar la meta de hoy.</item>
+        <item quantity="many">Estás cerca. Solo faltan %1$d minutos para alcanzar la meta de hoy.</item>
+        <item quantity="other">Estás cerca. Solo faltan %1$d minutos para alcanzar la meta de hoy.</item>
+    </plurals>
+    <plurals name="settings_reading_insights_streak_title">
+        <item quantity="one">Racha de %1$d día</item>
+        <item quantity="many">Racha de %1$d días</item>
+        <item quantity="other">Racha de %1$d días</item>
+    </plurals>
+    <plurals name="settings_reading_insights_streak_best">
+        <item quantity="one">Mejor racha: %1$d día</item>
+        <item quantity="many">Mejor racha: %1$d días</item>
+        <item quantity="other">Mejor racha: %1$d días</item>
+    </plurals>
     <string name="settings_reading_insights_habits">Hábitos y perfil</string>
     <string name="settings_reading_insights_avg_session">Sesión promedio</string>
     <string name="settings_reading_insights_profile">Perfil</string>
@@ -259,8 +292,11 @@
     <string name="settings_reading_insights_reading_now">Leyendo ahora</string>
     <string name="settings_label_about_liber">Acerca de Liber</string>
     <string name="settings_label_version">v%1$s</string>
-    <string name="label_singular_folder">%1$d carpeta</string>
-    <string name="label_plural_folders">%1$d carpetas</string>
+    <plurals name="label_folders">
+        <item quantity="one">%1$d carpeta</item>
+        <item quantity="many">%1$d carpetas</item>
+        <item quantity="other">%1$d carpetas</item>
+    </plurals>
     <string name="scan_folders_title">Carpetas de escaneo</string>
     <string name="scan_folders_empty">Aún no se han agregado carpetas.</string>
     <string name="scan_folders_description">Selecciona los directorios donde se guardan tus libros y audiolibros. Liber observará estas carpetas para detectar contenido nuevo.</string>

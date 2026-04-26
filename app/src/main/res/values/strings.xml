@@ -16,8 +16,10 @@
     <string name="scan_state_scanning">Scanning %1$s…</string>
     <string name="scan_state_progress">%1$d of %2$d files · %3$s</string>
     <string name="scan_state_finished_none">No new books found in %1$s</string>
-    <string name="scan_state_finished_plural">%1$d books added from %2$s</string>
-    <string name="scan_state_finished_singular">%1$d book added from %2$s</string>
+    <plurals name="scan_state_finished">
+        <item quantity="one">%1$d book added from %2$s</item>
+        <item quantity="other">%1$d books added from %2$s</item>
+    </plurals>
     <string name="scan_state_failed">Scan failed: %1$s</string>
     <string name="error_unknown">An unknown error occurred</string>
     <string name="error_default_title">Something went wrong</string>
@@ -59,9 +61,15 @@
     <string name="audio_playback_speed">Playback Speed</string>
     <string name="audio_chapters">Chapters</string>
     <string name="audio_sleep_timer">Sleep Timer</string>
-    <string name="audio_chapters_count">%1$d chapters</string>
+    <plurals name="audio_chapters_count">
+        <item quantity="one">%1$d chapter</item>
+        <item quantity="other">%1$d chapters</item>
+    </plurals>
     <string name="audio_sleep_timer_off">Off</string>
-    <string name="audio_sleep_timer_minutes">%1$d Minutes</string>
+    <plurals name="audio_sleep_timer_minutes">
+        <item quantity="one">%1$d Minute</item>
+        <item quantity="other">%1$d Minutes</item>
+    </plurals>
     <string name="audio_sleep_timer_end_of_chapter">End of Chapter</string>
     <string name="audio_sleep_timer_description">Playback will pause automatically.</string>
     <string name="dialog_title_remove_download">Remove Download</string>
@@ -72,7 +80,7 @@
     <string name="sheet_title_search_web">Search Web</string>
     <string name="sheet_subtitle_edit_metadata">Change title, author, and narrator</string>
     <string name="sheet_subtitle_change_cover">Upload or search for a new image</string>
-    <string name="action_share_audiobook">Share Audiobook</string>
+    <string name="action_share_audiobook">Share book</string>
     <string name="action_remove_download">Remove Download</string>
     <string name="field_label_author">Author</string>
     <string name="field_label_narrator">Narrator</string>
@@ -89,8 +97,10 @@
     <string name="placeholder_search_book">Search for a book…</string>
     <string name="error_no_results">No results found</string>
     <string name="label_unknown_author">Unknown Author</string>
-    <string name="label_plural_books">%1$d books</string>
-    <string name="label_singular_book">%1$d book</string>
+    <plurals name="label_books">
+        <item quantity="one">%1$d book</item>
+        <item quantity="other">%1$d books</item>
+    </plurals>
     <string name="empty_collections_dialog_message">You have no collections yet. Create one in the Collections tab.</string>
     <string name="reader_nav_contents">Contents</string>
     <string name="reader_nav_search">Search</string>
@@ -167,7 +177,10 @@
     <string name="settings_dictionary_freedict_title">Download from FreeDict</string>
     <string name="settings_dictionary_download_action">Download</string>
     <string name="settings_dictionary_downloaded_state">package downloaded</string>
-    <string name="settings_dictionary_headwords">%1$d headwords</string>
+    <plurals name="settings_dictionary_headwords">
+        <item quantity="one">%1$d headword</item>
+        <item quantity="other">%1$d headwords</item>
+    </plurals>
     <string name="settings_label_theme">Theme</string>
     <string name="settings_language">Language</string>
     <string name="settings_theme_auto">Auto</string>
@@ -195,8 +208,10 @@
     <string name="action_remove_from_collection">Remove from collection</string>
     <string name="label_status_new">NEW</string>
     <string name="label_status_finished">FINISHED</string>
-    <string name="label_singular_audiobook">%1$d audiobook</string>
-    <string name="label_plural_audiobooks">%1$d audiobooks</string>
+    <plurals name="label_audiobooks">
+        <item quantity="one">%1$d audiobook</item>
+        <item quantity="other">%1$d audiobooks</item>
+    </plurals>
     <string name="sort_option_recent">Recent</string>
     <string name="sort_option_title">Title</string>
     <string name="sort_option_author">Author</string>
@@ -247,9 +262,18 @@
     <string name="settings_reading_insights_goal_title">Today\'s Goal</string>
     <string name="settings_reading_insights_goal_progress">%1$d / %2$d min</string>
     <string name="settings_reading_insights_goal_complete">Goal reached. Keep going if the story has you hooked.</string>
-    <string name="settings_reading_insights_goal_remaining">You\'re close. Just %1$d more minutes to hit today\'s goal.</string>
-    <string name="settings_reading_insights_streak_title">%1$d Day Streak</string>
-    <string name="settings_reading_insights_streak_best">Best streak: %1$d days</string>
+    <plurals name="settings_reading_insights_goal_remaining">
+        <item quantity="one">You\'re close. Just %1$d more minute to hit today\'s goal.</item>
+        <item quantity="other">You\'re close. Just %1$d more minutes to hit today\'s goal.</item>
+    </plurals>
+    <plurals name="settings_reading_insights_streak_title">
+        <item quantity="one">%1$d Day Streak</item>
+        <item quantity="other">%1$d Day Streak</item>
+    </plurals>
+    <plurals name="settings_reading_insights_streak_best">
+        <item quantity="one">Best streak: %1$d day</item>
+        <item quantity="other">Best streak: %1$d days</item>
+    </plurals>
     <string name="settings_reading_insights_habits">Habits &amp; Persona</string>
     <string name="settings_reading_insights_avg_session">Avg. Session</string>
     <string name="settings_reading_insights_profile">Profile</string>
@@ -258,8 +282,10 @@
     <string name="settings_reading_insights_reading_now">Reading now</string>
     <string name="settings_label_about_liber">About Liber</string>
     <string name="settings_label_version">v%1$s</string>
-    <string name="label_singular_folder">%1$d folder</string>
-    <string name="label_plural_folders">%1$d folders</string>
+    <plurals name="label_folders">
+        <item quantity="one">%1$d folder</item>
+        <item quantity="other">%1$d folders</item>
+    </plurals>
     <string name="scan_folders_title">Scan Folders</string>
     <string name="scan_folders_empty">No folders added yet.</string>
     <string name="scan_folders_description">Select the directories where your books and audiobooks are stored. Liber will watch these folders for new content.</string>

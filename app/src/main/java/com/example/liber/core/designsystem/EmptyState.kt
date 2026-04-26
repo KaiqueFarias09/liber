@@ -58,13 +58,13 @@ fun EmptyState(
                 .widthIn(max = 360.dp)
                 .fillMaxWidth()
                 .aspectRatio(1f),
-            color = MaterialTheme.colorScheme.surfaceContainerLowest,
+            color = MaterialTheme.colorScheme.surface,
             border = BorderStroke(
                 1.dp,
-                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                MaterialTheme.colorScheme.outlineVariant
             ),
             shape = RoundedCornerShape(2.dp),
-            tonalElevation = 1.dp
+            tonalElevation = 0.dp
         ) {
             Box(
                 modifier = Modifier
@@ -73,7 +73,7 @@ fun EmptyState(
                         val cornerSize = 8.dp.toPx()
                         val strokeWidth = 1.dp.toPx()
                         val margin = 8.dp.toPx()
-                        val color = Color.LightGray.copy(alpha = 0.5f)
+                        val color = Color.LightGray
 
                         // Top Left
                         drawRect(color, Offset(margin, margin), Size(cornerSize, strokeWidth))

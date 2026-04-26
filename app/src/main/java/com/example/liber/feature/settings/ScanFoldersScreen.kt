@@ -33,6 +33,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -189,8 +190,9 @@ private fun ScanSourceItem(
                             text = stringResource(
                                 R.string.settings_last_scanned,
                                 relativeTime,
-                                stringResource(
-                                    if (source.bookCount == 1) R.string.label_singular_book else R.string.label_plural_books,
+                                pluralStringResource(
+                                    R.plurals.label_books,
+                                    source.bookCount,
                                     source.bookCount
                                 )
                             ),

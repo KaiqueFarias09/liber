@@ -1,6 +1,5 @@
 package com.example.liber.feature.insights
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -33,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -52,6 +52,7 @@ import com.example.liber.core.designsystem.BookCover
 import com.example.liber.core.designsystem.CoverStyle
 import com.example.liber.core.designsystem.Gambetta
 import com.example.liber.core.designsystem.LiberScreen
+import com.example.liber.core.designsystem.liberOutlinedContainer
 import com.example.liber.core.util.UiState
 import com.example.liber.core.util.UiText
 import com.example.liber.data.model.Book
@@ -295,7 +296,11 @@ private fun GoalCard(
             text = if (remainingMinutes == 0) {
                 stringResource(R.string.settings_reading_insights_goal_complete)
             } else {
-                stringResource(R.string.settings_reading_insights_goal_remaining, remainingMinutes)
+                pluralStringResource(
+                    R.plurals.settings_reading_insights_goal_remaining,
+                    remainingMinutes,
+                    remainingMinutes
+                )
             },
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -327,16 +332,18 @@ private fun StreakCard(
                         modifier = Modifier.size(18.dp),
                     )
                     Text(
-                        text = stringResource(
-                            R.string.settings_reading_insights_streak_title,
+                        text = pluralStringResource(
+                            R.plurals.settings_reading_insights_streak_title,
+                            streakDays,
                             streakDays
                         ),
                         style = MaterialTheme.typography.titleLarge.copy(fontFamily = Gambetta),
                     )
                 }
                 Text(
-                    text = stringResource(
-                        R.string.settings_reading_insights_streak_best,
+                    text = pluralStringResource(
+                        R.plurals.settings_reading_insights_streak_best,
+                        bestStreakDays,
                         bestStreakDays
                     ),
                     style = MaterialTheme.typography.bodySmall,
@@ -495,10 +502,11 @@ private fun FinishedBooksSection(
                 ),
                 style = MaterialTheme.typography.titleLarge.copy(fontFamily = Gambetta),
             )
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerLowest,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+            Box(
+                modifier = Modifier.liberOutlinedContainer(
+                    shape = RoundedCornerShape(10.dp),
+                    borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                )
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -562,15 +570,14 @@ private fun InsightCard(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLowest,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
-        tonalElevation = 1.dp
+    Box(
+        modifier = modifier
+            .liberOutlinedContainer(
+                shape = RoundedCornerShape(24.dp)
+            )
+            .padding(20.dp),
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
             content = content,
         )
     }

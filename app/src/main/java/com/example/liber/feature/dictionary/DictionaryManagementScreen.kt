@@ -55,6 +55,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -228,7 +229,7 @@ private fun DictionaryManagerContent(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceContainerLowest.copy(alpha = 0.5f))
+                    .background(MaterialTheme.colorScheme.background)
                     .padding(vertical = 16.dp)
             ) {
                 if (activeTab == "available") {
@@ -991,7 +992,11 @@ private fun EditorialDictionaryItem(
 
                 if (wordsCount != null) {
                     Text(
-                        text = String.format("%,d words", wordsCount),
+                        text = pluralStringResource(
+                            R.plurals.settings_dictionary_headwords,
+                            wordsCount,
+                            wordsCount
+                        ),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )

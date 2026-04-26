@@ -30,27 +30,28 @@ private val LiberLightColorScheme = lightColorScheme(
     tertiaryContainer = Sage200,
     onTertiaryContainer = Sage800,
 
-    // O fundo agora é o nosso papel principal (#FAF8F5)
-    background = Neutral100,
+    // O fundo agora é o tom mais pigmentado (#E8E4DC), servindo como a "mesa"
+    // Isso permite que todas as camadas acima (papéis) sejam progressivamente mais claras
+    background = Neutral200,
     onBackground = Neutral950,
 
-    // Superfícies recebem o mesmo tom para parecer um manuscrito único
-    surface = Neutral100,
+    // Superfície base (primeira camada de papel)
+    surface = Neutral150,
     onSurface = Neutral950,
-    surfaceVariant = Neutral200, // #E8E4DC para dar contraste suave
+    surfaceVariant = Neutral100,
     onSurfaceVariant = Neutral600,
     surfaceTint = Color.Transparent,
 
-    // Mapeamento minucioso dos containers para manter a vibe Indie
-    surfaceContainerLowest = Neutral50,   // Adeus Color.White! Bem-vindo #FDFAF6
+    // Hierarquia de containers: do mais profundo (escuro) ao mais elevado (claro)
+    surfaceContainerLowest = Neutral100,  // Base de papel limpa
     surfaceContainerLow = Neutral100,
-    surfaceContainer = Neutral150,
-    surfaceContainerHigh = Neutral200,
-    surfaceContainerHighest = Neutral300,
+    surfaceContainer = Neutral100,
+    surfaceContainerHigh = Neutral50,    // Papel Premium
+    surfaceContainerHighest = Neutral50,  // Diálogos e Popups
 
-    // Bordas finas em tom de bege/areia (#E5E0D8)
-    outline = Neutral400,
-    outlineVariant = Neutral300,
+    // Bordas em tons de areia/argila com contraste balanceado
+    outline = Neutral600,
+    outlineVariant = Neutral400,
 
     error = Error600,
     onError = Color.White,
@@ -95,8 +96,8 @@ private val LiberDarkColorScheme = darkColorScheme(
     surfaceContainerHigh = Neutral750,
     surfaceContainerHighest = Neutral700,
 
-    outline = Neutral400,
-    outlineVariant = Neutral700,
+    outline = Neutral300,
+    outlineVariant = Neutral750,
 
     error = Error200,
     onError = Error700,

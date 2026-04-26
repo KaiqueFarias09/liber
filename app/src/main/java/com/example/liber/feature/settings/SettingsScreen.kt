@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -269,13 +270,15 @@ private fun LibrarySection(
                 subtitle = stringResource(
                     R.string.settings_last_scanned,
                     relativeTime,
-                    stringResource(
-                        if (totalBooks == 1) R.string.label_singular_book else R.string.label_plural_books,
+                    pluralStringResource(
+                        R.plurals.label_books,
+                        totalBooks,
                         totalBooks
                     )
                 ),
-                value = stringResource(
-                    if (scanSources.size == 1) R.string.label_singular_folder else R.string.label_plural_folders,
+                value = pluralStringResource(
+                    R.plurals.label_folders,
+                    scanSources.size,
                     scanSources.size
                 ),
                 onClick = onAddScanFolder, // For now, opens the add dialog or a list
@@ -352,9 +355,12 @@ private fun LanguageBottomSheet(
                 Surface(
                     onClick = { onLanguageSelected(language.tag) },
                     color = if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                    else MaterialTheme.colorScheme.surfaceContainerLowest,
+                    else MaterialTheme.colorScheme.surfaceContainerHigh,
                     shape = MaterialTheme.shapes.medium,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                    ),
                     tonalElevation = if (isSelected) 0.dp else 1.dp,
                 ) {
                     Row(
@@ -426,10 +432,12 @@ private fun ThemeSetting(
                     )
                 },
                 colors = SegmentedButtonDefaults.colors(
-                    activeContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    activeContentColor = MaterialTheme.colorScheme.onSurface,
-                    inactiveContainerColor = Color.Transparent,
+                    activeContainerColor = MaterialTheme.colorScheme.surface,
+                    activeContentColor = MaterialTheme.colorScheme.primary,
+                    inactiveContainerColor = MaterialTheme.colorScheme.background,
                     inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    activeBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    inactiveBorderColor = MaterialTheme.colorScheme.outlineVariant,
                 )
             )
         }

@@ -2,7 +2,6 @@ package com.example.liber.feature.audiobook
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -49,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -146,8 +146,7 @@ fun AudioPlayerScreen(
         }
     }
 
-    val infiniteTransition =
-        androidx.compose.animation.core.rememberInfiniteTransition(label = "vinyl")
+    androidx.compose.animation.core.rememberInfiniteTransition(label = "vinyl")
 
     if (showDeleteConfirmation) {
         LiberDialog(
@@ -183,7 +182,11 @@ fun AudioPlayerScreen(
                             .size(40.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.surfaceContainerLowest)
-                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), CircleShape)
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                                CircleShape
+                            )
                     ) {
                         Icon(
                             imageVector = PhosphorIcons.Regular.ArrowLeft,
@@ -199,7 +202,11 @@ fun AudioPlayerScreen(
                             .size(40.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.surfaceContainerLowest)
-                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), CircleShape)
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                                CircleShape
+                            )
                     ) {
                         Icon(
                             imageVector = PhosphorIcons.Regular.DotsThree,
@@ -364,7 +371,9 @@ fun AudioPlayerScreen(
                             .background(if (playWhenReady) MaterialTheme.colorScheme.surfaceContainerLowest else MaterialTheme.colorScheme.onSurface)
                             .border(
                                 1.dp,
-                                if (playWhenReady) MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f) else Color.Transparent,
+                                if (playWhenReady) MaterialTheme.colorScheme.outlineVariant.copy(
+                                    alpha = 0.4f
+                                ) else Color.Transparent,
                                 CircleShape
                             )
                     ) {
@@ -413,7 +422,11 @@ fun AudioPlayerScreen(
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
                             .background(MaterialTheme.colorScheme.surfaceContainerLowest)
-                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                                RoundedCornerShape(6.dp)
+                            )
                             .clickable { activeSheet = AudioPlayerSheet.SPEED }
                             .padding(horizontal = 10.dp, vertical = 6.dp)
                     ) {
@@ -429,7 +442,11 @@ fun AudioPlayerScreen(
                         modifier = Modifier
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.surfaceContainerLowest)
-                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), CircleShape)
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                                CircleShape
+                            )
                             .clickable { activeSheet = AudioPlayerSheet.CHAPTERS }
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -565,7 +582,13 @@ fun SpeedSheet(currentSpeed: Float, onSpeedSelected: (Float) -> Unit) {
                         .weight(1f)
                         .clip(RoundedCornerShape(12.dp))
                         .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLowest)
-                        .border(1.dp, if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                        .border(
+                            1.dp,
+                            if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outlineVariant.copy(
+                                alpha = 0.4f
+                            ),
+                            RoundedCornerShape(12.dp)
+                        )
                         .clickable { onSpeedSelected(speed) }
                         .padding(vertical = 12.dp),
                     contentAlignment = Alignment.Center
@@ -601,7 +624,11 @@ fun ChaptersSheet(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = stringResource(R.string.audio_chapters_count, tracks.size),
+                text = pluralStringResource(
+                    R.plurals.audio_chapters_count,
+                    tracks.size,
+                    tracks.size
+                ),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -667,9 +694,9 @@ fun SleepTimerSheet(
     ) {
         val options = listOf(
             stringResource(R.string.audio_sleep_timer_off) to null,
-            stringResource(R.string.audio_sleep_timer_minutes, 15) to 15,
-            stringResource(R.string.audio_sleep_timer_minutes, 30) to 30,
-            stringResource(R.string.audio_sleep_timer_minutes, 45) to 45
+            pluralStringResource(R.plurals.audio_sleep_timer_minutes, 15, 15) to 15,
+            pluralStringResource(R.plurals.audio_sleep_timer_minutes, 30, 30) to 30,
+            pluralStringResource(R.plurals.audio_sleep_timer_minutes, 45, 45) to 45
         )
 
         options.forEach { (label, minutes) ->
