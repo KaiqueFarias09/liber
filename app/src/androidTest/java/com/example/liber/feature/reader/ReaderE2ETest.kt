@@ -14,6 +14,7 @@ import androidx.test.rule.GrantPermissionRule
 import com.example.liber.MainActivity
 import com.example.liber.R
 import com.example.liber.core.testutils.DataStoreTestHelper
+import com.example.liber.core.testutils.DatabaseTestHelper
 import com.example.liber.core.testutils.FileTestHelper
 import com.example.liber.core.testutils.UiAutomatorHelper
 import dagger.hilt.android.testing.HiltAndroidRule
@@ -51,6 +52,7 @@ class ReaderE2ETest {
         com.example.liber.feature.reader.engine.CREngine.init(InstrumentationRegistry.getInstrumentation().targetContext)
 
         DataStoreTestHelper.clear()
+        DatabaseTestHelper.clear()
         FileTestHelper.copyAssetsToEmulatorStorage()
     }
 

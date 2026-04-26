@@ -16,6 +16,7 @@ import androidx.test.rule.GrantPermissionRule
 import com.example.liber.MainActivity
 import com.example.liber.R
 import com.example.liber.core.testutils.DataStoreTestHelper
+import com.example.liber.core.testutils.DatabaseTestHelper
 import com.example.liber.core.testutils.FileTestHelper
 import com.example.liber.core.testutils.UiAutomatorHelper
 import dagger.hilt.android.testing.HiltAndroidRule
@@ -53,6 +54,7 @@ class SettingsE2ETest {
         com.example.liber.feature.reader.engine.CREngine.init(InstrumentationRegistry.getInstrumentation().targetContext)
 
         DataStoreTestHelper.clear()
+        DatabaseTestHelper.clear()
         FileTestHelper.copyAssetsToEmulatorStorage()
 
         val settingsLabel = composeTestRule.activity.getString(R.string.tab_settings)
@@ -126,6 +128,43 @@ class SettingsE2ETest {
             composeTestRule.onAllNodesWithText("No audiobooks", substring = true).fetchSemanticsNodes().isNotEmpty()
         }
         composeTestRule.onNodeWithText("No audiobooks", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun scenario2b_addScanFolderWithAudiobook() {
+        val scanFoldersLabel =
+            composeTestRule.activity.getString(R.string.settings_label_scan_folders)
+        composeTestRule.onNodeWithText(scanFoldersLabel).performClick()
+
+        // Click Add folder
+        val addFolderLabel = composeTestRule.activity.getString(R.string.scan_folders_add_action)
+        composeTestRule.onNodeWithText(addFolderLabel).performClick()
+
+        UiAutomatorHelper.selectFolderInSystemPicker("white_nights_librivox")
+
+        // Wait for scan to complete
+        Thread.sleep(2000)
+
+        // Verify folder is listed
+        composeTestRule.onAllNodesWithText("white_nights_librivox", substring = true).onLast().assertIsDisplayed()
+
+        // Go back to Settings
+        val backLabel = composeTestRule.activity.getString(R.string.audio_control_back)
+        composeTestRule.onNodeWithContentDescription(backLabel).performClick()
+
+        // Navigate to Library -> Audiobooks
+        val libraryLabel = composeTestRule.activity.getString(R.string.tab_library)
+        composeTestRule.onAllNodesWithText(libraryLabel).onLast().performClick()
+
+        val audiobooksLabel = composeTestRule.activity.getString(R.string.tab_audiobooks)
+        composeTestRule.onNodeWithText(audiobooksLabel).performClick()
+
+        // Assert audiobook appears with title from metadata
+        val audioTitle = "White Nights"
+        composeTestRule.waitUntil(30000) {
+            composeTestRule.onAllNodesWithContentDescription(audioTitle, substring = true).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeTestRule.onNodeWithContentDescription(audioTitle, substring = true).assertIsDisplayed()
     }
 
     @Test

@@ -37,21 +37,23 @@ object FileTestHelper {
             }
         }
 
-        val folderName = "test_audiobook"
-        val folderDir = File(targetDir, folderName)
-        if (!folderDir.exists()) folderDir.mkdirs()
+        val folderNames = listOf("test_audiobook", "white_nights_librivox")
+        folderNames.forEach { folderName ->
+            val folderDir = File(targetDir, folderName)
+            if (!folderDir.exists()) folderDir.mkdirs()
 
-        assets.list(folderName)?.forEach { fileName ->
-            try {
-                assets.open("$folderName/$fileName").use { input ->
-                    val outFile = File(folderDir, fileName)
-                    FileOutputStream(outFile).use { output ->
-                        input.copyTo(output)
+            assets.list(folderName)?.forEach { fileName ->
+                try {
+                    assets.open("$folderName/$fileName").use { input ->
+                        val outFile = File(folderDir, fileName)
+                        FileOutputStream(outFile).use { output ->
+                            input.copyTo(output)
+                        }
+                        scannedPaths.add(outFile.absolutePath)
                     }
-                    scannedPaths.add(outFile.absolutePath)
+                } catch (e: Exception) {
+                    println("Failed to copy $fileName: ${e.message}")
                 }
-            } catch (e: Exception) {
-                println("Failed to copy $fileName: ${e.message}")
             }
         }
 
