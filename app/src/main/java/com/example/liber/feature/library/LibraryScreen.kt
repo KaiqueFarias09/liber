@@ -1,10 +1,8 @@
 package com.example.liber.feature.library
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
@@ -14,27 +12,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.example.liber.R
 import com.example.liber.core.designsystem.AppErrorState
 import com.example.liber.core.designsystem.BookGrid
 import com.example.liber.core.designsystem.EmptyState
-import com.example.liber.core.designsystem.LiberHeader
+import com.example.liber.core.designsystem.LiberCollapsingScreen
 import com.example.liber.core.designsystem.LiberTabBar
 import com.example.liber.core.designsystem.ScanProgressBanner
 import com.example.liber.core.util.UiState
@@ -90,147 +79,99 @@ fun LibraryScreen(
         onTabSelected(currentTabIndex)
     }
 
-    val density = LocalDensity.current
-    val headerHeightState = remember { mutableIntStateOf(0) }
-    val scrolledPxState = remember { mutableFloatStateOf(0f) }
-
-    val nestedScrollConnection = remember {
-        object : NestedScrollConnection {
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                val delta = available.y
-                val maxScroll = headerHeightState.intValue.toFloat()
-                val prevScrolled = scrolledPxState.floatValue
-                val newScrolled = (prevScrolled - delta).coerceIn(0f, maxScroll)
-                scrolledPxState.floatValue = newScrolled
-                val consumed = prevScrolled - newScrolled
-                return Offset(0f, consumed)
-            }
-        }
-    }
-
-    Box(
+    LiberCollapsingScreen(
+        title = UiText.StringResource(R.string.tab_library),
         modifier = modifier
-            .fillMaxSize()
-            .nestedScroll(nestedScrollConnection)
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            Spacer(
-                Modifier
-                    .fillMaxWidth()
-                    .height(
-                        with(density) {
-                            (headerHeightState.intValue.toFloat() - scrolledPxState.floatValue)
-                                .coerceAtLeast(0f).toDp()
-                        }
-                    )
-            )
+        ScanProgressBanner(
+            state = scanState,
+            onDismiss = onDismissScanBanner,
+        )
 
-            ScanProgressBanner(
-                state = scanState,
-                onDismiss = onDismissScanBanner,
-            )
-
-            LiberTabBar(
-                tabs = listOf(
-                    UiText.StringResource(R.string.tab_books),
-                    UiText.StringResource(R.string.tab_audiobooks),
-                    UiText.StringResource(R.string.tab_collections)
-                ),
-                selectedTabIndex = currentTabIndex,
-                onTabSelected = { index ->
-                    scope.launch {
-                        pagerState.animateScrollToPage(index)
-                    }
+        LiberTabBar(
+            tabs = listOf(
+                UiText.StringResource(R.string.tab_books),
+                UiText.StringResource(R.string.tab_audiobooks),
+                UiText.StringResource(R.string.tab_collections)
+            ),
+            selectedTabIndex = currentTabIndex,
+            onTabSelected = { index ->
+                scope.launch {
+                    pagerState.animateScrollToPage(index)
                 }
-            )
+            }
+        )
 
-            Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(8.dp))
 
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.Top,
-            ) { page ->
-                when (page) {
-                    0 -> {
-                        LibraryBooksTab(
-                            booksState = booksState,
-                            isAudiobook = false,
-                            onBookClick = onBookClick,
-                            onAddBooks = onAddBooks,
-                            onToggleWantToRead = onToggleWantToRead,
-                            onToggleFinished = onToggleFinished,
-                            onShowDetails = onShowDetails,
-                            onDeleteBook = onDeleteBook,
-                            onShareBook = onShareBook,
-                            onAddToCollection = onAddToCollection,
-                            collections = collections,
-                            viewMode = booksViewMode,
-                            onViewModeChange = onBooksViewModeChange,
-                            sortOption = booksSortOption,
-                            onSortOptionChange = onBooksSortOptionChange,
-                            activeBookId = activeBookId,
-                            isPlaying = isPlaying
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.Top,
+        ) { page ->
+            when (page) {
+                0 -> {
+                    LibraryBooksTab(
+                        booksState = booksState,
+                        isAudiobook = false,
+                        onBookClick = onBookClick,
+                        onAddBooks = onAddBooks,
+                        onToggleWantToRead = onToggleWantToRead,
+                        onToggleFinished = onToggleFinished,
+                        onShowDetails = onShowDetails,
+                        onDeleteBook = onDeleteBook,
+                        onShareBook = onShareBook,
+                        onAddToCollection = onAddToCollection,
+                        collections = collections,
+                        viewMode = booksViewMode,
+                        onViewModeChange = onBooksViewModeChange,
+                        sortOption = booksSortOption,
+                        onSortOptionChange = onBooksSortOptionChange,
+                        activeBookId = activeBookId,
+                        isPlaying = isPlaying
+                    )
+                }
+
+                1 -> {
+                    LibraryBooksTab(
+                        booksState = booksState,
+                        isAudiobook = true,
+                        onBookClick = onBookClick,
+                        onAddBooks = onAddBooks,
+                        onToggleWantToRead = onToggleWantToRead,
+                        onToggleFinished = onToggleFinished,
+                        onShowDetails = onShowDetails,
+                        onDeleteBook = onDeleteBook,
+                        onShareBook = onShareBook,
+                        onAddToCollection = onAddToCollection,
+                        collections = collections,
+                        viewMode = audiobooksViewMode,
+                        onViewModeChange = onAudiobooksViewModeChange,
+                        sortOption = audiobooksSortOption,
+                        onSortOptionChange = onAudiobooksSortOptionChange,
+                        activeBookId = activeBookId,
+                        isPlaying = isPlaying
+                    )
+                }
+
+                2 -> {
+                    when (collectionsState) {
+                        is UiState.Loading -> LoadingState()
+                        is UiState.Error -> AppErrorState(
+                            title = collectionsState.title,
+                            message = collectionsState.message,
                         )
-                    }
 
-                    1 -> {
-                        LibraryBooksTab(
-                            booksState = booksState,
-                            isAudiobook = true,
-                            onBookClick = onBookClick,
-                            onAddBooks = onAddBooks,
-                            onToggleWantToRead = onToggleWantToRead,
-                            onToggleFinished = onToggleFinished,
-                            onShowDetails = onShowDetails,
-                            onDeleteBook = onDeleteBook,
-                            onShareBook = onShareBook,
-                            onAddToCollection = onAddToCollection,
-                            collections = collections,
-                            viewMode = audiobooksViewMode,
-                            onViewModeChange = onAudiobooksViewModeChange,
-                            sortOption = audiobooksSortOption,
-                            onSortOptionChange = onAudiobooksSortOptionChange,
-                            activeBookId = activeBookId,
-                            isPlaying = isPlaying
-                        )
-                    }
-
-                    2 -> {
-                        when (collectionsState) {
-                            is UiState.Loading -> LoadingState()
-                            is UiState.Error -> AppErrorState(
-                                title = collectionsState.title,
-                                message = collectionsState.message,
+                        is UiState.Success -> {
+                            CollectionsListScreen(
+                                collections = collectionsState.data,
+                                onCollectionClick = { onCollectionClick(it.id) },
+                                onCreateCollection = onCreateCollection,
                             )
-                            is UiState.Success -> {
-                                CollectionsListScreen(
-                                    collections = collectionsState.data,
-                                    onCollectionClick = { onCollectionClick(it.id) },
-                                    onCreateCollection = onCreateCollection,
-                                )
-                            }
                         }
                     }
                 }
             }
-        }
-
-        // Header overlay
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .onSizeChanged { headerHeightState.intValue = it.height }
-                .graphicsLayer {
-                    val scrolled = scrolledPxState.floatValue
-                    val maxScroll = headerHeightState.intValue.toFloat().coerceAtLeast(1f)
-                    translationY = -scrolled
-                    alpha = (1f - scrolled / maxScroll).coerceIn(0f, 1f)
-                }
-        ) {
-            LiberHeader(
-                title = UiText.StringResource(R.string.tab_library)
-            )
         }
     }
 }
@@ -261,6 +202,7 @@ private fun LibraryBooksTab(
             title = booksState.title,
             message = booksState.message,
         )
+
         is UiState.Success -> {
             val books = booksState.data.filter { it.isAudiobook == isAudiobook }
             if (books.isEmpty()) {

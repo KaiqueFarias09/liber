@@ -77,8 +77,8 @@ import com.adamglin.phosphoricons.regular.X
 import com.example.liber.R
 import com.example.liber.core.designsystem.AppErrorState
 import com.example.liber.core.designsystem.Gambetta
+import com.example.liber.core.designsystem.LiberCollapsingScreen
 import com.example.liber.core.designsystem.LiberDialog
-import com.example.liber.core.designsystem.LiberScreen
 import com.example.liber.core.designsystem.LiberTabBar
 import com.example.liber.core.designsystem.LiberTextField
 import com.example.liber.core.util.UiState
@@ -198,7 +198,7 @@ private fun DictionaryManagerContent(
         } else listOf("All")
     }
 
-    LiberScreen(
+    LiberCollapsingScreen(
         title = UiText.StringResource(R.string.settings_dictionary_title),
         modifier = modifier,
         onBack = onBack,
@@ -211,211 +211,211 @@ private fun DictionaryManagerContent(
             }
         }
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            val tabTitles = listOf(
-                UiText.DynamicString("Installed (${dictionaries.size})"),
-                UiText.DynamicString("FreeDict API")
-            )
-            val tabIds = listOf("installed", "available")
+        val tabTitles = listOf(
+            UiText.DynamicString("Installed (${dictionaries.size})"),
+            UiText.DynamicString("FreeDict API")
+        )
+        val tabIds = listOf("installed", "available")
 
-            LiberTabBar(
-                tabs = tabTitles,
-                selectedTabIndex = tabIds.indexOf(activeTab).coerceAtLeast(0),
-                onTabSelected = { index -> activeTab = tabIds[index] },
-                modifier = Modifier.padding(top = 8.dp)
-            )
+        LiberTabBar(
+            tabs = tabTitles,
+            selectedTabIndex = tabIds.indexOf(activeTab).coerceAtLeast(0),
+            onTabSelected = { index -> activeTab = tabIds[index] },
+            modifier = Modifier.padding(top = 8.dp)
+        )
 
-            // SEARCH BAR / FILTERS
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.background)
-                    .padding(vertical = 16.dp)
-            ) {
-                if (activeTab == "available") {
-                    EditorialSearchField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        placeholder = "Search languages...",
-                        modifier = Modifier.fillMaxWidth()
-                    )
+        LazyColumn(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+        ) {
+            item {
+                // SEARCH BAR / FILTERS
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.background)
+                        .padding(vertical = 16.dp)
+                ) {
+                    if (activeTab == "available") {
+                        EditorialSearchField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            placeholder = "Search languages...",
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
-                    EditorialFilterSentence(
-                        filterFrom = filterFrom,
-                        onFromChange = { filterFrom = it },
-                        filterTo = filterTo,
-                        onToChange = { filterTo = it },
-                        sourceLanguages = sourceLanguages,
-                        targetLanguages = targetLanguages,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 24.dp)
-                    )
-                } else {
-                    EditorialSearchField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        placeholder = "Filter installed...",
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                        EditorialFilterSentence(
+                            filterFrom = filterFrom,
+                            onFromChange = { filterFrom = it },
+                            filterTo = filterTo,
+                            onToChange = { filterTo = it },
+                            sourceLanguages = sourceLanguages,
+                            targetLanguages = targetLanguages,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp)
+                        )
+                    } else {
+                        EditorialSearchField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            placeholder = "Filter installed...",
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
 
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-            ) {
-                if (activeTab == "installed") {
-                    val filteredDicts = dictionaries.filter {
-                        (it.displayName.contains(searchQuery, ignoreCase = true) ||
-                                (it.localAlias?.contains(searchQuery, ignoreCase = true) ?: false))
-                    }
-                    if (filteredDicts.isEmpty()) {
-                        item {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 24.dp, vertical = 64.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                Icon(
-                                    imageVector = if (searchQuery.isEmpty()) PhosphorIcons.Regular.Book else PhosphorIcons.Regular.X,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(48.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                )
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Text(
-                                    text = if (searchQuery.isEmpty()) "No dictionaries installed yet." else "No matches found.",
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontFamily = Gambetta,
-                                        fontStyle = FontStyle.Italic
-                                    ),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    } else {
-                        items(filteredDicts, key = { it.id }) { dictionary ->
-                            val normalizedLang =
-                                viewModel.normalizeLanguageTag(dictionary.sourceLanguageTag)
-                            val isLemmatizing = lemmatizationStatus.containsKey(normalizedLang)
-                            val hasLemma = languagesWithLemmas.contains(normalizedLang)
-
-                            EditorialDictionaryItem(
-                                title = dictionary.localAlias
-                                    ?: (getLanguageName(dictionary.sourceLanguageTag) + " to " + (dictionary.targetLanguageTag?.let {
-                                        getLanguageName(it)
-                                    } ?: "Self")),
-                                subtitle = dictionary.id,
-                                version = dictionary.version,
-                                size = formatBytes(dictionary.installSizeBytes),
-                                hasLemmatization = hasLemma || isLemmatizing,
-                                onClick = { onOpenDictionary(dictionary) },
-                                onDelete = { viewModel.deleteDictionary(dictionary.id) }
+            if (activeTab == "installed") {
+                val filteredDicts = dictionaries.filter {
+                    (it.displayName.contains(searchQuery, ignoreCase = true) ||
+                            (it.localAlias?.contains(searchQuery, ignoreCase = true) ?: false))
+                }
+                if (filteredDicts.isEmpty()) {
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp, vertical = 64.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = if (searchQuery.isEmpty()) PhosphorIcons.Regular.Book else PhosphorIcons.Regular.X,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = if (searchQuery.isEmpty()) "No dictionaries installed yet." else "No matches found.",
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontFamily = Gambetta,
+                                    fontStyle = FontStyle.Italic
+                                ),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
                 } else {
-                    // AVAILABLE TAB
-                    when (catalogState) {
-                        is UiState.Loading -> {
+                    items(filteredDicts, key = { it.id }) { dictionary ->
+                        val normalizedLang =
+                            viewModel.normalizeLanguageTag(dictionary.sourceLanguageTag)
+                        val isLemmatizing = lemmatizationStatus.containsKey(normalizedLang)
+                        val hasLemma = languagesWithLemmas.contains(normalizedLang)
+
+                        EditorialDictionaryItem(
+                            title = dictionary.localAlias
+                                ?: (getLanguageName(dictionary.sourceLanguageTag) + " to " + (dictionary.targetLanguageTag?.let {
+                                    getLanguageName(it)
+                                } ?: "Self")),
+                            subtitle = dictionary.id,
+                            version = dictionary.version,
+                            size = formatBytes(dictionary.installSizeBytes),
+                            hasLemmatization = hasLemma || isLemmatizing,
+                            onClick = { onOpenDictionary(dictionary) },
+                            onDelete = { viewModel.deleteDictionary(dictionary.id) }
+                        )
+                    }
+                }
+            } else {
+                // AVAILABLE TAB
+                when (catalogState) {
+                    is UiState.Loading -> {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) { CircularProgressIndicator() }
+                        }
+                    }
+
+                    is UiState.Error -> {
+                        item {
+                            val errorState = catalogState as UiState.Error
+                            AppErrorState(
+                                title = errorState.title,
+                                message = errorState.message,
+                                onRetry = viewModel::refreshFreeDictCatalog,
+                                fillMaxSize = false,
+                            )
+                        }
+                    }
+
+                    is UiState.Success -> {
+                        val catalog =
+                            (catalogState as UiState.Success<List<FreeDictCatalogItem>>).data
+                        val filtered = catalog.filter {
+                            val matchSearch =
+                                it.code.contains(searchQuery, ignoreCase = true) ||
+                                        getLanguageName(it.sourceLanguageTag).contains(
+                                            searchQuery,
+                                            ignoreCase = true
+                                        ) ||
+                                        getLanguageName(it.targetLanguageTag).contains(
+                                            searchQuery,
+                                            ignoreCase = true
+                                        )
+
+                            val matchFrom =
+                                filterFrom == "All" || getLanguageName(it.sourceLanguageTag) == filterFrom
+                            val matchTo =
+                                filterTo == "All" || getLanguageName(it.targetLanguageTag) == filterTo
+
+                            matchSearch && matchFrom && matchTo
+                        }
+
+                        if (filtered.isEmpty()) {
                             item {
-                                Box(
+                                Text(
+                                    text = "No dictionaries found for this combination.",
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontFamily = Gambetta,
+                                        fontStyle = FontStyle.Italic
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(32.dp),
-                                    contentAlignment = Alignment.Center
-                                ) { CircularProgressIndicator() }
-                            }
-                        }
-
-                        is UiState.Error -> {
-                            item {
-                                val errorState = catalogState as UiState.Error
-                                AppErrorState(
-                                    title = errorState.title,
-                                    message = errorState.message,
-                                    onRetry = viewModel::refreshFreeDictCatalog,
-                                    fillMaxSize = false,
+                                        .padding(vertical = 64.dp),
+                                    textAlign = TextAlign.Center
                                 )
                             }
-                        }
+                        } else {
+                            items(filtered, key = { it.code }) { item ->
+                                val isDownloading = downloadingCodes.contains(item.code)
+                                val isInstalled =
+                                    dictionaries.any { it.id == "freedict-${item.code}" }
 
-                        is UiState.Success -> {
-                            val catalog =
-                                (catalogState as UiState.Success<List<FreeDictCatalogItem>>).data
-                            val filtered = catalog.filter {
-                                val matchSearch =
-                                    it.code.contains(searchQuery, ignoreCase = true) ||
-                                            getLanguageName(it.sourceLanguageTag).contains(
-                                                searchQuery,
-                                                ignoreCase = true
-                                            ) ||
-                                            getLanguageName(it.targetLanguageTag).contains(
-                                                searchQuery,
-                                                ignoreCase = true
-                                            )
+                                val normalizedLang =
+                                    viewModel.normalizeLanguageTag(item.sourceLanguageTag)
+                                val isLemmatizing =
+                                    lemmatizationStatus.containsKey(normalizedLang)
+                                val hasLemma = languagesWithLemmas.contains(normalizedLang)
 
-                                val matchFrom =
-                                    filterFrom == "All" || getLanguageName(it.sourceLanguageTag) == filterFrom
-                                val matchTo =
-                                    filterTo == "All" || getLanguageName(it.targetLanguageTag) == filterTo
-
-                                matchSearch && matchFrom && matchTo
-                            }
-
-                            if (filtered.isEmpty()) {
-                                item {
-                                    Text(
-                                        text = "No dictionaries found for this combination.",
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            fontFamily = Gambetta,
-                                            fontStyle = FontStyle.Italic
-                                        ),
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 64.dp),
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                            } else {
-                                items(filtered, key = { it.code }) { item ->
-                                    val isDownloading = downloadingCodes.contains(item.code)
-                                    val isInstalled =
-                                        dictionaries.any { it.id == "freedict-${item.code}" }
-
-                                    val normalizedLang =
-                                        viewModel.normalizeLanguageTag(item.sourceLanguageTag)
-                                    val isLemmatizing =
-                                        lemmatizationStatus.containsKey(normalizedLang)
-                                    val hasLemma = languagesWithLemmas.contains(normalizedLang)
-
-                                    EditorialDictionaryItem(
-                                        title = getLanguageName(item.sourceLanguageTag) + " to " + getLanguageName(
-                                            item.targetLanguageTag
-                                        ),
-                                        subtitle = item.code,
-                                        version = item.version,
-                                        wordsCount = item.headwords,
-                                        size = formatBytes(item.stardictSizeBytes),
-                                        hasLemmatization = hasLemma || isLemmatizing,
-                                        isInstalled = isInstalled,
-                                        isDownloading = isDownloading,
-                                        onDownload = { viewModel.downloadFreeDict(item) },
-                                        onClick = { /* No-op for not installed */ }
-                                    )
-                                }
+                                EditorialDictionaryItem(
+                                    title = getLanguageName(item.sourceLanguageTag) + " to " + getLanguageName(
+                                        item.targetLanguageTag
+                                    ),
+                                    subtitle = item.code,
+                                    version = item.version,
+                                    wordsCount = item.headwords,
+                                    size = formatBytes(item.stardictSizeBytes),
+                                    hasLemmatization = hasLemma || isLemmatizing,
+                                    isInstalled = isInstalled,
+                                    isDownloading = isDownloading,
+                                    onDownload = { viewModel.downloadFreeDict(item) },
+                                    onClick = { /* No-op for not installed */ }
+                                )
                             }
                         }
                     }
                 }
-
-                item { Spacer(modifier = Modifier.height(24.dp)) }
             }
+
+            item { Spacer(modifier = Modifier.height(24.dp)) }
         }
     }
 
@@ -491,165 +491,175 @@ private fun DictionaryViewerScreen(
             getLanguageName(it)
         } ?: "Self"))
 
-    LiberScreen(
+    LiberCollapsingScreen(
         title = UiText.DynamicString(displayTitle),
         onBack = onBack,
         modifier = modifier
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize()
         ) {
             if (showSmartInfo) {
                 // Info block for lemmatization
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceContainerLowest,
-                    shape = RoundedCornerShape(16.dp),
-                    border = androidx.compose.foundation.BorderStroke(
-                        1.dp,
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-                    ),
-                    tonalElevation = 1.dp,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.Top
+                item {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                        shape = RoundedCornerShape(16.dp),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                        ),
+                        tonalElevation = 1.dp,
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                    CircleShape
-                                ),
-                            contentAlignment = Alignment.Center
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.Top
                         ) {
-                            Icon(
-                                imageVector = PhosphorIcons.Regular.Sparkle,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                        Spacer(Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                "Smart Word Recognition",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                "This dictionary automatically finds root words (Lemmatization). For example, it smartly finds definitions for inflected forms.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                lineHeight = 16.sp
-                            )
-                        }
-                        IconButton(
-                            onClick = { viewModel.dismissSmartRecognitionInfo() },
-                            modifier = Modifier
-                                .size(24.dp)
-                                .padding(4.dp)
-                        ) {
-                            Icon(
-                                imageVector = PhosphorIcons.Regular.X,
-                                contentDescription = "Dismiss",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                modifier = Modifier.size(12.dp)
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                        CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = PhosphorIcons.Regular.Sparkle,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    "Smart Word Recognition",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    "This dictionary automatically finds root words (Lemmatization). For example, it smartly finds definitions for inflected forms.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    lineHeight = 16.sp
+                                )
+                            }
+                            IconButton(
+                                onClick = { viewModel.dismissSmartRecognitionInfo() },
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .padding(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = PhosphorIcons.Regular.X,
+                                    contentDescription = "Dismiss",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                    modifier = Modifier.size(12.dp)
+                                )
+                            }
                         }
                     }
                 }
             }
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceContainerLowest.copy(alpha = 0.5f))
-                    .padding(vertical = 8.dp)
-            ) {
-                EditorialSearchField(
-                    value = browseQuery,
-                    onValueChange = { viewModel.browseDictionary(dictionary.id, it) },
-                    placeholder = "Search words...",
-                    modifier = Modifier.fillMaxWidth()
-                )
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surfaceContainerLowest.copy(alpha = 0.5f))
+                        .padding(vertical = 8.dp)
+                ) {
+                    EditorialSearchField(
+                        value = browseQuery,
+                        onValueChange = { viewModel.browseDictionary(dictionary.id, it) },
+                        placeholder = "Search words...",
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
 
             when (browseState) {
                 is UiState.Loading -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 64.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                        }
                     }
                 }
 
                 is UiState.Error -> {
-                    val errorState = browseState as UiState.Error
-                    AppErrorState(
-                        title = errorState.title,
-                        message = errorState.message,
-                        onRetry = { viewModel.browseDictionary(dictionary.id, browseQuery) },
-                        fillMaxSize = false,
-                    )
+                    item {
+                        val errorState = browseState as UiState.Error
+                        AppErrorState(
+                            title = errorState.title,
+                            message = errorState.message,
+                            onRetry = { viewModel.browseDictionary(dictionary.id, browseQuery) },
+                            fillMaxSize = false,
+                        )
+                    }
                 }
 
                 is UiState.Success -> {
                     val entries =
                         (browseState as UiState.Success<List<DictionaryEntryWithSenses>>).data
                     if (entries.isEmpty()) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 24.dp, vertical = 64.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = PhosphorIcons.Regular.Book,
-                                contentDescription = null,
-                                modifier = Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "No words found for \"$browseQuery\"",
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontFamily = Gambetta,
-                                    fontStyle = FontStyle.Italic
-                                ),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    } else {
-                        LazyColumn(
-                            state = listState,
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            items(entries, key = { it.entry.id }) { entryWithSenses ->
-                                DictionaryEntryItem(
-                                    entryWithSenses = entryWithSenses,
-                                    showLemmaNote = hasLemmatization
+                        item {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 24.dp, vertical = 64.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = PhosphorIcons.Regular.Book,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(48.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "No words found for \"$browseQuery\"",
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontFamily = Gambetta,
+                                        fontStyle = FontStyle.Italic
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                            if (isBrowsingMore) {
-                                item {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 16.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                                    }
+                        }
+                    } else {
+                        items(entries, key = { it.entry.id }) { entryWithSenses ->
+                            DictionaryEntryItem(
+                                entryWithSenses = entryWithSenses,
+                                showLemmaNote = hasLemmatization
+                            )
+                        }
+                        if (isBrowsingMore) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
                                 }
                             }
-                            item { Spacer(Modifier.height(32.dp)) }
                         }
                     }
                 }
             }
+            item { Spacer(Modifier.height(32.dp)) }
         }
     }
 }

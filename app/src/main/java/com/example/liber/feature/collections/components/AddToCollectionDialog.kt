@@ -16,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.adamglin.PhosphorIcons
@@ -68,16 +69,12 @@ fun AddToCollectionDialog(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface,
                             )
-                            // TODO: Isn't there a better way to do this plural localization?
                             Text(
-                                text = if (collection.books.size == 1) {
-                                    stringResource(R.string.label_singular_book, 1)
-                                } else {
-                                    stringResource(
-                                        R.string.label_plural_books,
-                                        collection.books.size
-                                    )
-                                },
+                                text = pluralStringResource(
+                                    R.plurals.label_books,
+                                    collection.books.size,
+                                    collection.books.size
+                                ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
