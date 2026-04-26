@@ -333,9 +333,7 @@ fun LiberApp(
                 },
             ) { innerPadding ->
                 Row(
-                    modifier = Modifier
-                        .padding(innerPadding)
-                        .fillMaxSize()
+                    modifier = Modifier.fillMaxSize()
                 ) {
                     if (showNavRail && isTopLevelRoute) {
                         LiberNavRail(
@@ -348,6 +346,7 @@ fun LiberApp(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
+                            .padding(innerPadding)
                             .background(MaterialTheme.colorScheme.background),
                         contentAlignment = Alignment.TopCenter
                     ) {

@@ -1,8 +1,6 @@
 package com.example.liber.core.designsystem
 
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -32,12 +30,10 @@ fun LiberBottomNav(
     )
 
     NavigationBar(
-        modifier = modifier
-            .windowInsetsPadding(NavigationBarDefaults.windowInsets)
-            .height(68.dp),
+        modifier = modifier,
         containerColor = MaterialTheme.colorScheme.surface,
         tonalElevation = 0.dp,
-        windowInsets = WindowInsets(0, 0, 0, 0)
+        windowInsets = NavigationBarDefaults.windowInsets
     ) {
         AppTab.entries.forEach { tab ->
             val selected = tab == activeTab
