@@ -97,7 +97,7 @@ fun NotebookView(
                         emptyMessage = UiText.StringResource(R.string.reader_notebook_empty_highlights),
                         onNoteClick = onNoteClick,
                         onDeleteNote = onDeleteNote,
-                        emptyImage = R.drawable.highlights_empty,
+                        image = R.drawable.highlights_empty,
                     )
                 }
 
@@ -109,7 +109,7 @@ fun NotebookView(
                         emptyMessage = UiText.StringResource(R.string.reader_notebook_empty_notes),
                         onNoteClick = onNoteClick,
                         onDeleteNote = onDeleteNote,
-                        emptyImage = R.drawable.notes_empty,
+                        image = R.drawable.notes_empty,
                     )
                 }
             }
@@ -128,7 +128,6 @@ fun BookmarksView(
         EmptyState(
             title = UiText.StringResource(R.string.reader_notebook_empty_bookmarks),
             image = R.drawable.bookmarks_empty,
-            showBackground = false,
             modifier = modifier.padding(horizontal = 20.dp),
         )
     } else {
@@ -199,13 +198,12 @@ fun AnnotationList(
     onNoteClick: (Annotation) -> Unit,
     onDeleteNote: (Annotation) -> Unit,
     modifier: Modifier = Modifier,
-    @androidx.annotation.DrawableRes emptyImage: Int? = null,
+    @androidx.annotation.DrawableRes image: Int? = null,
 ) {
     if (annotations.isEmpty()) {
         EmptyState(
             title = emptyMessage,
-            image = emptyImage,
-            showBackground = false,
+            image = image,
             modifier = modifier.padding(horizontal = 20.dp),
         )
     } else {

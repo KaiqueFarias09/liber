@@ -94,7 +94,6 @@ fun HomeScreen(
                     title = UiText.StringResource(R.string.home_empty_title_want_to_read),
                     subtitle = UiText.StringResource(R.string.home_empty_subtitle_want_to_read),
                     image = R.drawable.want_to_read_empty,
-                    showImage = true,
                     modifier = Modifier.padding(horizontal = 24.dp)
                 )
             } else {
