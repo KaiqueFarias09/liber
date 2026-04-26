@@ -40,6 +40,10 @@ class DictionaryViewModel @Inject constructor(
     private val _downloadingCodes = MutableStateFlow<Set<String>>(emptySet())
     val downloadingCodes: StateFlow<Set<String>> = _downloadingCodes.asStateFlow()
 
+    val lemmatizationStatus: StateFlow<Map<String, String>> = dictionaryRepository.lemmatizationStatus
+
+    fun normalizeLanguageTag(tag: String): String = dictionaryRepository.normalizeLanguageTag(tag)
+
     private val _activeLookupQuery = MutableStateFlow<String?>(null)
     val activeLookupQuery: StateFlow<String?> = _activeLookupQuery
 

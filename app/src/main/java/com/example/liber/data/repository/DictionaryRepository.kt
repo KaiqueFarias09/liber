@@ -1,24 +1,38 @@
 package com.example.liber.data.repository
 
 import android.app.Application
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import android.content.Intent
 import android.net.Uri
+import androidx.core.app.NotificationCompat
 import com.example.liber.core.logging.AppLogger
 import com.example.liber.core.logging.BaseRepository
 import com.example.liber.api.FreeDictApi
+import com.example.liber.R
 import com.example.liber.data.local.DictionaryDao
 import com.example.liber.data.local.DictionaryEntryWithSenses
+import com.example.liber.data.local.WordLemmaDao
 import com.example.liber.data.model.Dictionary
 import com.example.liber.data.model.DictionaryLookupHistory
 import com.example.liber.data.model.FreeDictCatalogItem
+import com.example.liber.data.model.WordLemma
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.io.BufferedReader
 import java.io.File
+import java.io.InputStreamReader
 import java.util.Locale
 import java.util.UUID
 
 class DictionaryRepository(
     private val dictionaryDao: DictionaryDao,
+    private val wordLemmaDao: WordLemmaDao,
     private val freeDictApi: FreeDictApi,
     private val starDictIndexer: StarDictIndexer,
     application: Application,
@@ -27,6 +41,34 @@ class DictionaryRepository(
 
     private val appContext = application.applicationContext
     private val httpClient = OkHttpClient()
+
+    private val notificationManager =
+        appContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+    companion object {
+        private const val CHANNEL_ID = "dictionary_tasks"
+        private const val LEMMA_NOTIFICATION_ID_BASE = 2000
+    }
+
+    init {
+        createNotificationChannel()
+    }
+
+    private fun createNotificationChannel() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                "Dictionary Tasks",
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "Shows progress for dictionary and lemmatization downloads"
+            }
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+
+    private val _lemmatizationStatus = MutableStateFlow<Map<String, String>>(emptyMap())
+    val lemmatizationStatus: StateFlow<Map<String, String>> = _lemmatizationStatus.asStateFlow()
 
     fun getAllDictionaries(): Flow<List<Dictionary>> = observeOperation(
         "getAllDictionaries",
@@ -177,7 +219,11 @@ class DictionaryRepository(
 
         // Trigger indexing
         try {
-            starDictIndexer.index(id, targetFile, item.sourceLanguageTag)
+            val normalizedTag = normalizeLanguageTag(item.sourceLanguageTag)
+            starDictIndexer.index(id, targetFile, normalizedTag)
+            
+            // Check and download lemmatization data if needed
+            ensureLemmatizationData(normalizedTag)
         } catch (e: Exception) {
             logger.recordError(
                 throwable = e,
@@ -232,19 +278,165 @@ class DictionaryRepository(
         )
         if (trimmed.isBlank()) return emptyList()
 
-        val normalizedPrefix = normalize(trimmed) + "%"
-        val rawPrefix = trimmed + "%"
-        val entries = dictionaryDao.searchEntries(normalizedTag, normalizedPrefix, rawPrefix, limit)
-        logger.log("Found ${entries.size} entries in database")
-        if (entries.isEmpty()) return emptyList()
+        // 1. Get potential lemmas for the query
+        val lemmas = wordLemmaDao.findLemmas(trimmed.lowercase(Locale.ROOT), normalizedTag)
+        val searchTerms = (listOf(trimmed) + lemmas).distinct()
+        
+        if (lemmas.isNotEmpty()) {
+            logger.log("Found lemmas for \"$trimmed\": $lemmas")
+        }
 
-        return dictionaryDao.getEntriesWithSenses(entries.map { it.id })
+        val entries = mutableListOf<com.example.liber.data.model.DictionaryEntry>()
+        
+        // 2. Search for each term (original + lemmas)
+        for (term in searchTerms) {
+            val normalizedPrefix = normalize(term) + "%"
+            val rawPrefix = term + "%"
+            val results = dictionaryDao.searchEntries(normalizedTag, normalizedPrefix, rawPrefix, limit)
+            entries.addAll(results)
+            if (entries.size >= limit) break
+        }
+
+        val distinctEntries = entries.distinctBy { it.id }.take(limit)
+        logger.log("Found ${distinctEntries.size} entries in database")
+        if (distinctEntries.isEmpty()) return emptyList()
+
+        return dictionaryDao.getEntriesWithSenses(distinctEntries.map { it.id })
     }
 
-    private fun normalizeLanguageTag(tag: String): String {
-        val iso2 = tag.split("-").first().lowercase(Locale.ROOT)
-        // Basic mapping for common languages to ISO 639-2/T (used by FreeDict)
-        return when (iso2) {
+    private suspend fun ensureLemmatizationData(languageTag: String) {
+        val count = wordLemmaDao.getCountForLanguage(languageTag)
+        if (count > 0) {
+            logger.log("Lemmatization data for $languageTag already exists ($count entries).")
+            return
+        }
+
+        val notificationId = LEMMA_NOTIFICATION_ID_BASE + languageTag.hashCode()
+        val languageName = getLanguageName(languageTag)
+        
+        fun updateProgress(status: String, progress: Int = -1) {
+            updateLemmatizationStatus(languageTag, status)
+            val builder = NotificationCompat.Builder(appContext, CHANNEL_ID)
+                .setSmallIcon(R.mipmap.ic_launcher_foreground)
+                .setContentTitle("Downloading Lemmas: $languageName")
+                .setContentText(status)
+                .setOnlyAlertOnce(true)
+                .setOngoing(true)
+            
+            if (progress >= 0) {
+                builder.setProgress(100, progress, false)
+            } else {
+                builder.setProgress(0, 0, true)
+            }
+            notificationManager.notify(notificationId, builder.build())
+        }
+
+        updateProgress("Downloading...")
+        logger.log("Downloading lemmatization data for $languageTag...")
+        val url = "https://raw.githubusercontent.com/unimorph/$languageTag/master/$languageTag"
+        
+        val request = Request.Builder().url(url).build()
+        try {
+            httpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    logger.log("No UniMorph data found for $languageTag at $url")
+                    updateLemmatizationStatus(languageTag, null)
+                    notificationManager.cancel(notificationId)
+                    return
+                }
+                val body = response.body ?: run {
+                    updateLemmatizationStatus(languageTag, null)
+                    notificationManager.cancel(notificationId)
+                    return
+                }
+                
+                val totalBytes = body.contentLength()
+                var bytesRead = 0L
+                val lemmas = mutableListOf<WordLemma>()
+                
+                InputStreamReader(body.byteStream()).buffered().use { reader ->
+                    var line = reader.readLine()
+                    var lastUpdate = 0L
+                    while (line != null) {
+                        bytesRead += line.length + 1 // roughly
+                        val parts = line.split("\t")
+                        if (parts.size >= 2) {
+                            lemmas.add(
+                                WordLemma(
+                                    languageTag = languageTag,
+                                    lemma = parts[0].trim(),
+                                    inflection = parts[1].trim()
+                                )
+                            )
+                        }
+                        
+                        if (lemmas.size >= 1000) {
+                            wordLemmaDao.insertLemmas(lemmas.toList())
+                            lemmas.clear()
+                            
+                            // Update notification progress every 1s or so to avoid spamming
+                            val now = System.currentTimeMillis()
+                            if (now - lastUpdate > 1000) {
+                                val progress = if (totalBytes > 0) ((bytesRead * 100) / totalBytes).toInt() else -1
+                                updateProgress("Importing... $progress%", progress)
+                                lastUpdate = now
+                            }
+                        }
+                        line = reader.readLine()
+                    }
+                }
+                
+                if (lemmas.isNotEmpty()) {
+                    wordLemmaDao.insertLemmas(lemmas)
+                }
+                logger.log("Lemmatization data for $languageTag imported successfully.")
+                updateLemmatizationStatus(languageTag, null)
+                
+                // Show final success notification briefly then clear
+                notificationManager.notify(
+                    notificationId,
+                    NotificationCompat.Builder(appContext, CHANNEL_ID)
+                        .setSmallIcon(R.mipmap.ic_launcher_foreground)
+                        .setContentTitle("Lemmas Ready: $languageName")
+                        .setContentText("Import complete.")
+                        .setAutoCancel(true)
+                        .build()
+                )
+            }
+        } catch (e: Exception) {
+            logger.log("Failed to download lemmatization data for $languageTag: ${e.message}")
+            updateLemmatizationStatus(languageTag, null)
+            notificationManager.cancel(notificationId)
+        }
+    }
+
+    private fun getLanguageName(tag: String): String {
+        return try {
+            Locale.forLanguageTag(tag).getDisplayLanguage(Locale.ENGLISH)
+                .ifEmpty { tag.uppercase(Locale.ROOT) }
+        } catch (_: Exception) {
+            tag.uppercase(Locale.ROOT)
+        }
+    }
+
+    private fun updateLemmatizationStatus(languageTag: String, status: String?) {
+        val current = _lemmatizationStatus.value.toMutableMap()
+        if (status == null) {
+            current.remove(languageTag)
+        } else {
+            current[languageTag] = status
+        }
+        _lemmatizationStatus.value = current
+    }
+
+    fun normalizeLanguageTag(tag: String): String {
+        val primary = tag.split("-", "_").first().lowercase(Locale.ROOT)
+
+        // If it's already a 3-letter code, return it (likely ISO 639-2)
+        if (primary.length == 3) return primary
+
+        // Basic mapping for common 2-letter codes to ISO 639-2/T (used by FreeDict)
+        return when (primary) {
             "en" -> "eng"
             "pt" -> "por"
             "fr" -> "fra"
@@ -263,11 +455,11 @@ class DictionaryRepository(
             "ar" -> "ara"
             "hi" -> "hin"
             else -> {
-                // Try using Java Locale to get ISO3 if not in map
                 try {
-                    Locale.Builder().setLanguage(iso2).build().isO3Language.lowercase(Locale.ROOT)
+                    // Try to get ISO 639-2/T code from Java Locale
+                    Locale.forLanguageTag(primary).isO3Language.lowercase(Locale.ROOT)
                 } catch (_: Exception) {
-                    iso2
+                    primary
                 }
             }
         }

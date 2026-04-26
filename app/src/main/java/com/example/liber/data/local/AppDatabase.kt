@@ -18,6 +18,7 @@ import com.example.liber.data.model.DictionaryLookupHistory
 import com.example.liber.data.model.DictionarySense
 import com.example.liber.data.model.ReadingSession
 import com.example.liber.data.model.ScanSource
+import com.example.liber.data.model.WordLemma
 
 @Database(
     entities = [
@@ -32,8 +33,9 @@ import com.example.liber.data.model.ScanSource
         DictionarySense::class,
         DictionaryLookupHistory::class,
         ReadingSession::class,
+        WordLemma::class,
     ],
-    version = 15,
+    version = 16,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)
@@ -43,6 +45,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun scanSourceDao(): ScanSourceDao
     abstract fun dictionaryDao(): DictionaryDao
     abstract fun readingSessionDao(): ReadingSessionDao
+    abstract fun wordLemmaDao(): WordLemmaDao
 
     companion object {
         @Volatile
@@ -274,6 +277,23 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_15_16 = object : Migration(15, 16) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `word_lemmas` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `languageTag` TEXT NOT NULL,
+                        `inflection` TEXT NOT NULL,
+                        `lemma` TEXT NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_word_lemmas_inflection` ON `word_lemmas` (`inflection`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_word_lemmas_languageTag` ON `word_lemmas` (`languageTag`)")
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -295,6 +315,7 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_12_13,
                         MIGRATION_13_14,
                         MIGRATION_14_15,
+                        MIGRATION_15_16,
                     )
                     .build()
                 INSTANCE = instance

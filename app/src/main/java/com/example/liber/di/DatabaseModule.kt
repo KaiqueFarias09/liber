@@ -7,6 +7,7 @@ import com.example.liber.data.local.CollectionDao
 import com.example.liber.data.local.DictionaryDao
 import com.example.liber.data.local.ReadingSessionDao
 import com.example.liber.data.local.ScanSourceDao
+import com.example.liber.data.local.WordLemmaDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -37,4 +38,7 @@ object DatabaseModule {
 
     @Provides
     fun provideReadingSessionDao(db: AppDatabase): ReadingSessionDao = db.readingSessionDao()
+
+    @Provides
+    fun provideWordLemmaDao(db: AppDatabase): WordLemmaDao = db.wordLemmaDao()
 }

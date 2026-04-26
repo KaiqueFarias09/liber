@@ -100,6 +100,7 @@ fun DictionaryManagementScreen(
     val dictionaries by viewModel.dictionaries.collectAsState()
     val catalogState by viewModel.freeDictCatalogState.collectAsState()
     val downloadingCodes by viewModel.downloadingCodes.collectAsState()
+    val lemmatizationStatus by viewModel.lemmatizationStatus.collectAsState()
 
     var activeTab by remember { mutableStateOf("installed") } // "installed" | "available"
     var searchQuery by remember { mutableStateOf("") }
@@ -311,6 +312,9 @@ fun DictionaryManagementScreen(
                                     val isDownloading = downloadingCodes.contains(item.code)
                                     val isInstalled =
                                         dictionaries.any { it.id == "freedict-${item.code}" }
+                                    
+                                    // Helper for lemmatization status
+                                    val lemmaStatus = lemmatizationStatus[viewModel.normalizeLanguageTag(item.sourceLanguageTag)]
 
                                     DictionaryCard(
                                         title = getLanguageName(item.sourceLanguageTag) + " to " + getLanguageName(
@@ -322,12 +326,22 @@ fun DictionaryManagementScreen(
                                         formattedSize = formatBytes(item.stardictSizeBytes),
                                         action = {
                                             if (isInstalled) {
-                                                Icon(
-                                                    imageVector = PhosphorIcons.Regular.CheckCircle,
-                                                    contentDescription = "Installed",
-                                                    tint = Color(0xFF4CAF50),
-                                                    modifier = Modifier.size(24.dp)
-                                                )
+                                                Column(horizontalAlignment = Alignment.End) {
+                                                    Icon(
+                                                        imageVector = PhosphorIcons.Regular.CheckCircle,
+                                                        contentDescription = "Installed",
+                                                        tint = Color(0xFF4CAF50),
+                                                        modifier = Modifier.size(24.dp)
+                                                    )
+                                                    if (lemmaStatus != null) {
+                                                        Text(
+                                                            text = "Lemmas: $lemmaStatus",
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            color = MaterialTheme.colorScheme.primary,
+                                                            fontSize = 9.sp
+                                                        )
+                                                    }
+                                                }
                                             } else {
                                                 OutlinedButton(
                                                     onClick = { viewModel.downloadFreeDict(item) },

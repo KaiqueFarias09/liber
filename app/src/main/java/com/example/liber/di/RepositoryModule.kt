@@ -1,6 +1,8 @@
 package com.example.liber.di
 
 import android.app.Application
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import com.example.liber.api.FreeDictApi
 import com.example.liber.core.logging.AppLogger
 import com.example.liber.data.local.BookDao
@@ -8,6 +10,7 @@ import com.example.liber.data.local.CollectionDao
 import com.example.liber.data.local.DictionaryDao
 import com.example.liber.data.local.ReadingSessionDao
 import com.example.liber.data.local.ScanSourceDao
+import com.example.liber.data.local.WordLemmaDao
 import com.example.liber.data.repository.BookImporter
 import com.example.liber.data.repository.BookRepository
 import com.example.liber.data.repository.CollectionRepository
@@ -73,19 +76,27 @@ object RepositoryModule {
     @Singleton
     fun provideDictionaryRepository(
         dictionaryDao: DictionaryDao,
+        wordLemmaDao: WordLemmaDao,
         freeDictApi: FreeDictApi,
         starDictIndexer: StarDictIndexer,
         application: Application,
         appLogger: AppLogger,
     ): DictionaryRepository =
-        DictionaryRepository(dictionaryDao, freeDictApi, starDictIndexer, application, appLogger)
+        DictionaryRepository(
+            dictionaryDao,
+            wordLemmaDao,
+            freeDictApi,
+            starDictIndexer,
+            application,
+            appLogger
+        )
 
     @Provides
     @Singleton
     fun provideUserPreferencesRepository(
-        application: Application,
+        dataStore: DataStore<Preferences>,
         appLogger: AppLogger,
-    ): UserPreferencesRepository = UserPreferencesRepository(application, appLogger)
+    ): UserPreferencesRepository = UserPreferencesRepository(dataStore, appLogger)
 
     @Provides
     @Singleton
