@@ -330,17 +330,29 @@ class DictionaryRepository(
     ) {
         val trimmed = query.trim()
         if (trimmed.isEmpty()) {
-            dictionaryDao.getEntriesByDictionary(dictionaryId, limit, offset)
-        } else {
-            dictionaryDao.searchEntriesInDictionary(
-                dictionaryId = dictionaryId,
-                query = "%$trimmed%",
-                pureQuery = trimmed,
-                prefix = "$trimmed%",
-                limit = limit,
-                offset = offset
-            )
+            return@executeOperation dictionaryDao.getEntriesByDictionary(dictionaryId, limit, offset)
         }
+
+        // 1. Find the dictionary to get the source language
+        val dict = dictionaryDao.getDictionaryById(dictionaryId)
+        val searchTerms = if (dict != null) {
+            val normalizedTag = normalizeLanguageTag(dict.sourceLanguageTag)
+            val lemmas = wordLemmaDao.findLemmas(trimmed.lowercase(Locale.ROOT), normalizedTag)
+            (listOf(trimmed) + lemmas).distinct()
+        } else {
+            listOf(trimmed)
+        }
+
+        // 2. Perform search with expanded terms
+        dictionaryDao.searchEntriesInDictionary(
+            dictionaryId = dictionaryId,
+            query = "%$trimmed%",
+            pureQuery = trimmed,
+            prefix = "$trimmed%",
+            extraTerms = searchTerms,
+            limit = limit,
+            offset = offset
+        )
     }
 
     private suspend fun ensureLemmatizationData(languageTag: String) {

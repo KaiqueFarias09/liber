@@ -104,10 +104,16 @@ interface DictionaryDao {
         SELECT * 
         FROM dictionary_entries 
         WHERE dictionaryId = :dictionaryId 
-          AND (headword LIKE :query OR normalizedHeadword LIKE :query) 
+          AND (
+            headword LIKE :query 
+            OR normalizedHeadword LIKE :query 
+            OR headword IN (:extraTerms)
+            OR normalizedHeadword IN (:extraTerms)
+          ) 
         ORDER BY 
           CASE 
             WHEN headword = :pureQuery OR normalizedHeadword = :pureQuery THEN 1
+            WHEN headword IN (:extraTerms) OR normalizedHeadword IN (:extraTerms) THEN 1
             WHEN headword LIKE :prefix OR normalizedHeadword LIKE :prefix THEN 2
             ELSE 3
           END,
@@ -120,6 +126,7 @@ interface DictionaryDao {
         query: String,
         pureQuery: String,
         prefix: String,
+        extraTerms: List<String>,
         limit: Int,
         offset: Int,
     ): List<DictionaryEntryWithSenses>
