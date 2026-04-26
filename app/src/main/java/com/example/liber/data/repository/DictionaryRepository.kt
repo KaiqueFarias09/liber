@@ -311,26 +311,28 @@ class DictionaryRepository(
     suspend fun getEntriesByDictionary(
         dictionaryId: String,
         limit: Int = 50,
+        offset: Int = 0,
     ): List<DictionaryEntryWithSenses> = executeOperation(
         operationName = "getEntriesByDictionary",
-        parameters = mapOf("dictionaryId" to dictionaryId, "limit" to limit),
+        parameters = mapOf("dictionaryId" to dictionaryId, "limit" to limit, "offset" to offset),
     ) {
-        dictionaryDao.getEntriesByDictionary(dictionaryId, limit)
+        dictionaryDao.getEntriesByDictionary(dictionaryId, limit, offset)
     }
 
     suspend fun searchEntriesInDictionary(
         dictionaryId: String,
         query: String,
         limit: Int = 50,
+        offset: Int = 0,
     ): List<DictionaryEntryWithSenses> = executeOperation(
         operationName = "searchEntriesInDictionary",
-        parameters = mapOf("dictionaryId" to dictionaryId, "query" to query, "limit" to limit),
+        parameters = mapOf("dictionaryId" to dictionaryId, "query" to query, "limit" to limit, "offset" to offset),
     ) {
         val trimmed = query.trim()
         if (trimmed.isEmpty()) {
-            dictionaryDao.getEntriesByDictionary(dictionaryId, limit)
+            dictionaryDao.getEntriesByDictionary(dictionaryId, limit, offset)
         } else {
-            dictionaryDao.searchEntriesInDictionary(dictionaryId, "%$trimmed%", limit)
+            dictionaryDao.searchEntriesInDictionary(dictionaryId, "%$trimmed%", limit, offset)
         }
     }
 

@@ -81,10 +81,19 @@ interface DictionaryDao {
     suspend fun getEntriesWithSenses(entryIds: List<Long>): List<DictionaryEntryWithSenses>
 
     @Transaction
-    @Query("SELECT * FROM dictionary_entries WHERE dictionaryId = :dictionaryId ORDER BY headword ASC LIMIT :limit")
+    @Query(
+        """
+        SELECT * 
+        FROM dictionary_entries 
+        WHERE dictionaryId = :dictionaryId 
+        ORDER BY headword ASC 
+        LIMIT :limit OFFSET :offset
+        """
+    )
     suspend fun getEntriesByDictionary(
         dictionaryId: String,
         limit: Int,
+        offset: Int,
     ): List<DictionaryEntryWithSenses>
 
     @Transaction
@@ -95,13 +104,14 @@ interface DictionaryDao {
         WHERE dictionaryId = :dictionaryId 
           AND (headword LIKE :query OR normalizedHeadword LIKE :query) 
         ORDER BY headword ASC 
-        LIMIT :limit
+        LIMIT :limit OFFSET :offset
         """
     )
     suspend fun searchEntriesInDictionary(
         dictionaryId: String,
         query: String,
         limit: Int,
+        offset: Int,
     ): List<DictionaryEntryWithSenses>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

@@ -63,6 +63,14 @@ class DictionaryViewModel @Inject constructor(
     private val _browseQuery = MutableStateFlow("")
     val browseQuery: StateFlow<String> = _browseQuery
 
+    private var currentBrowseDictionaryId: String? = null
+    private var browseOffset = 0
+    private var isEndReached = false
+    private val PAGE_SIZE = 50
+
+    private val _isBrowsingMore = MutableStateFlow(false)
+    val isBrowsingMore: StateFlow<Boolean> = _isBrowsingMore
+
     val dictionariesState: StateFlow<UiState<List<Dictionary>>> = dictionaryRepository
         .getAllDictionaries()
         .map { UiState.Success(it) }
@@ -273,8 +281,16 @@ class DictionaryViewModel @Inject constructor(
     }
 
     fun browseDictionary(dictionaryId: String, query: String = "") {
+        if (currentBrowseDictionaryId == dictionaryId && _browseQuery.value == query && _browseState.value !is UiState.Error) {
+            return
+        }
+
+        currentBrowseDictionaryId = dictionaryId
         _browseQuery.value = query
         _browseState.value = UiState.Loading
+        browseOffset = 0
+        isEndReached = false
+
         launchSafely(
             actionName = "browseDictionary",
             dispatcher = Dispatchers.IO,
@@ -284,15 +300,51 @@ class DictionaryViewModel @Inject constructor(
             }
         ) {
             val results = if (query.isBlank()) {
-                dictionaryRepository.getEntriesByDictionary(dictionaryId)
+                dictionaryRepository.getEntriesByDictionary(dictionaryId, limit = PAGE_SIZE, offset = 0)
             } else {
-                dictionaryRepository.searchEntriesInDictionary(dictionaryId, query)
+                dictionaryRepository.searchEntriesInDictionary(dictionaryId, query, limit = PAGE_SIZE, offset = 0)
             }
+            isEndReached = results.size < PAGE_SIZE
+            browseOffset = results.size
             _browseState.value = UiState.Success(results)
         }
     }
 
+    fun loadMoreEntries() {
+        val dictId = currentBrowseDictionaryId ?: return
+        if (isEndReached || _isBrowsingMore.value || _browseState.value !is UiState.Success) return
+
+        val query = _browseQuery.value
+        _isBrowsingMore.value = true
+
+        launchSafely(
+            actionName = "loadMoreEntries",
+            dispatcher = Dispatchers.IO,
+            parameters = mapOf("dictionaryId" to dictId, "query" to query, "offset" to browseOffset),
+            onError = { _isBrowsingMore.value = false }
+        ) {
+            try {
+                val results = if (query.isBlank()) {
+                    dictionaryRepository.getEntriesByDictionary(dictId, limit = PAGE_SIZE, offset = browseOffset)
+                } else {
+                    dictionaryRepository.searchEntriesInDictionary(dictId, query, limit = PAGE_SIZE, offset = browseOffset)
+                }
+
+                isEndReached = results.size < PAGE_SIZE
+                browseOffset += results.size
+
+                val currentList = (_browseState.value as UiState.Success).data
+                _browseState.value = UiState.Success(currentList + results)
+            } finally {
+                _isBrowsingMore.value = false
+            }
+        }
+    }
+
     fun clearBrowseState() {
+        currentBrowseDictionaryId = null
+        browseOffset = 0
+        isEndReached = false
         _browseQuery.value = ""
         _browseState.value = UiState.Success(emptyList())
     }

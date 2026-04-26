@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
@@ -37,11 +38,14 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -509,11 +513,30 @@ private fun DictionaryViewerScreen(
 ) {
     val browseState by viewModel.browseState.collectAsState()
     val browseQuery by viewModel.browseQuery.collectAsState()
+    val isBrowsingMore by viewModel.isBrowsingMore.collectAsState()
     val lemmatizationStatus by viewModel.lemmatizationStatus.collectAsState()
     val languagesWithLemmas by viewModel.languagesWithLemmas.collectAsState()
 
     val normalizedLang = viewModel.normalizeLanguageTag(dictionary.sourceLanguageTag)
     val hasLemmatization = languagesWithLemmas.contains(normalizedLang) || lemmatizationStatus.containsKey(normalizedLang)
+
+    val listState = rememberLazyListState()
+
+    // Infinite scroll trigger
+    val shouldLoadMore = remember {
+        derivedStateOf {
+            val totalItemsCount = listState.layoutInfo.totalItemsCount
+            val lastVisibleItemIndex = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            // Load more when we are 5 items from the bottom
+            totalItemsCount > 0 && lastVisibleItemIndex >= totalItemsCount - 5
+        }
+    }
+
+    LaunchedEffect(shouldLoadMore.value) {
+        if (shouldLoadMore.value) {
+            viewModel.loadMoreEntries()
+        }
+    }
 
     val displayTitle = dictionary.localAlias
         ?: (getLanguageName(dictionary.sourceLanguageTag) + " to " + (dictionary.targetLanguageTag?.let {
@@ -631,6 +654,7 @@ private fun DictionaryViewerScreen(
                         }
                     } else {
                         LazyColumn(
+                            state = listState,
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                             modifier = Modifier.fillMaxSize()
                         ) {
@@ -639,6 +663,18 @@ private fun DictionaryViewerScreen(
                                     entryWithSenses = entryWithSenses,
                                     showLemmaNote = hasLemmatization
                                 )
+                            }
+                            if (isBrowsingMore) {
+                                item {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 16.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                                    }
+                                }
                             }
                             item { Spacer(Modifier.height(32.dp)) }
                         }
