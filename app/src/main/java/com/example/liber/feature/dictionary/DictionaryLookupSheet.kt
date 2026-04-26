@@ -71,7 +71,7 @@ fun DictionaryLookupSheet(
                             items(lookupState.data, key = { it.entry.id }) { result ->
                                 DictionaryEntryItem(
                                     entryWithSenses = result,
-                                    showDivider = result != lookupState.data.last()
+                                    showLemmaNote = false
                                 )
                             }
                         }
