@@ -100,7 +100,7 @@ class BookScanService : Service() {
 
             val existingBook = bookRepo.getBookByFileUri(file.uri.toString())
             if (existingBook == null) {
-                val book = importer.parseBook(file)
+                val book = importer.parseBook(file, showNotification = false)
                 if (book != null) {
                     val existsByContentId = book.contentId
                         ?.let { bookRepo.getBookByContentId(it) } != null
@@ -138,7 +138,7 @@ class BookScanService : Service() {
         importer: BookImporter,
         bookRepo: BookRepository
     ) {
-        val freshBook = importer.parseBook(folder) ?: return
+        val freshBook = importer.parseBook(folder, showNotification = false) ?: return
         bookRepo.updateCoverPath(bookId, freshBook.coverUri?.toString())
     }
 
