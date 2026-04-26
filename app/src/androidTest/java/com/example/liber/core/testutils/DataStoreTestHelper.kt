@@ -1,18 +1,27 @@
 package com.example.liber.core.testutils
 
-import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.preferencesDataStore
 import androidx.test.platform.app.InstrumentationRegistry
+import dagger.hilt.EntryPoint
+import dagger.hilt.EntryPoints
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.runBlocking
 
-private val Context.dataStore by preferencesDataStore(name = "user_preferences")
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface DataStoreEntryPoint {
+    fun dataStore(): DataStore<Preferences>
+}
 
 object DataStoreTestHelper {
     fun clear() {
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val context = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
+        val dataStore = EntryPoints.get(context, DataStoreEntryPoint::class.java).dataStore()
         runBlocking {
-            context.dataStore.edit { it.clear() }
+            dataStore.edit { it.clear() }
         }
     }
 }
