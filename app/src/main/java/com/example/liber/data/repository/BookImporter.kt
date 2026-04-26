@@ -1,11 +1,15 @@
 package com.example.liber.data.repository
 
 import android.app.Application
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.net.Uri
+import androidx.core.app.NotificationCompat
 import androidx.documentfile.provider.DocumentFile
+import com.example.liber.R
 import com.example.liber.core.logging.AppLogger
 import com.example.liber.core.util.FileSecurityUtils
 import com.example.liber.core.util.rethrowIfCancellation
@@ -47,6 +51,51 @@ class BookImporter(
     private val application: Application,
     private val appLogger: AppLogger,
 ) {
+
+    private val notificationManager =
+        application.getSystemService(Application.NOTIFICATION_SERVICE) as NotificationManager
+
+    companion object {
+        private const val CHANNEL_ID = "import_channel"
+        private const val IMPORT_NOTIFICATION_ID = 3000
+    }
+
+    init {
+        createNotificationChannel()
+    }
+
+    private fun createNotificationChannel() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                "Book Importing",
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "Shows progress for book imports"
+            }
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+
+    private fun showImportNotification(title: String, progress: Int = -1) {
+        val builder = NotificationCompat.Builder(application, CHANNEL_ID)
+            .setSmallIcon(R.mipmap.ic_launcher_foreground)
+            .setContentTitle("Importing Book")
+            .setContentText(title)
+            .setOnlyAlertOnce(true)
+            .setOngoing(progress >= 0)
+        
+        if (progress >= 0) {
+            builder.setProgress(100, progress, false)
+        } else {
+            builder.setProgress(0, 0, true)
+        }
+        notificationManager.notify(IMPORT_NOTIFICATION_ID, builder.build())
+    }
+
+    private fun clearImportNotification() {
+        notificationManager.cancel(IMPORT_NOTIFICATION_ID)
+    }
 
     private val httpClient = DefaultHttpClient()
     private val assetRetriever = AssetRetriever(application.contentResolver, httpClient)
@@ -92,13 +141,19 @@ class BookImporter(
         }
     }
 
-    suspend fun parseBook(file: DocumentFile): Book? = withContext(Dispatchers.IO) {
-        if (file.isDirectory) return@withContext parseAudiobookFolder(file)
+    suspend fun parseBook(file: DocumentFile, showNotification: Boolean = true): Book? = withContext(Dispatchers.IO) {
+        val fileName = file.name ?: "Unknown"
+        if (showNotification) showImportNotification(fileName)
+        try {
+            if (file.isDirectory) return@withContext parseAudiobookFolder(file)
 
-        val extension = file.name?.substringAfterLast('.', "").orEmpty().lowercase()
-        when {
-            AudioFormats.isSupported(extension) -> parseSingleAudioFile(file)
-            else -> parseEpub(file)
+            val extension = file.name?.substringAfterLast('.', "").orEmpty().lowercase()
+            when {
+                AudioFormats.isSupported(extension) -> parseSingleAudioFile(file)
+                else -> parseEpub(file)
+            }
+        } finally {
+            if (showNotification) clearImportNotification()
         }
     }
 

@@ -71,8 +71,8 @@ class StarDictIndexer @Inject constructor(
         val offsetBits = if (ifoData?.contains("idxoffsetbits=64") == true) 64 else 32
         appLogger.debug("Extraction complete. Parsing index (offsetBits=$offsetBits)...", tag = TAG)
 
-        parseAndStore(dictionaryId, languageTag, idxData!!, dictData!!, offsetBits)
-        appLogger.debug("Indexing finished for $dictionaryId", tag = TAG)
+        parseAndStore(dictionaryId, languageTag, idxData, dictData, offsetBits)
+        appLogger.info("Indexing finished for $dictionaryId. Indexed entries for language: $languageTag", tag = TAG)
     }
 
     private fun readEntry(tais: TarArchiveInputStream): String {
@@ -99,6 +99,7 @@ class StarDictIndexer @Inject constructor(
     ) {
         val entries = mutableListOf<DictionaryEntry>()
         val definitions = mutableListOf<String>()
+        var totalIndexed = 0
         
         var pos = 0
         val offsetSize = offsetBits / 8
@@ -120,11 +121,11 @@ class StarDictIndexer @Inject constructor(
             val offset = if (offsetBits == 64) {
                 ByteBuffer.wrap(idxData, pos, 8).order(ByteOrder.BIG_ENDIAN).long
             } else {
-                ByteBuffer.wrap(idxData, pos, 4).order(ByteOrder.BIG_ENDIAN).int.toLong()
+                (ByteBuffer.wrap(idxData, pos, 4).order(ByteOrder.BIG_ENDIAN).int.toLong()) and 0xFFFFFFFFL
             }
             pos += offsetSize
             
-            val size = ByteBuffer.wrap(idxData, pos, 4).order(ByteOrder.BIG_ENDIAN).int
+            val size = (ByteBuffer.wrap(idxData, pos, 4).order(ByteOrder.BIG_ENDIAN).int.toLong()) and 0xFFFFFFFFL
             pos += 4
 
             val entry = DictionaryEntry(
@@ -137,13 +138,14 @@ class StarDictIndexer @Inject constructor(
 
             // Read definition from dictData
             if (offset >= 0 && offset + size <= dictData.size) {
-                val definition = String(dictData, offset.toInt(), size, Charsets.UTF_8).trim()
+                val definition = String(dictData, offset.toInt(), size.toInt(), Charsets.UTF_8).trim()
                 definitions.add(definition)
             } else {
                 definitions.add("")
             }
 
             if (entries.size >= BATCH_SIZE) {
+                totalIndexed += entries.size
                 flush(entries, definitions)
                 entries.clear()
                 definitions.clear()
@@ -151,8 +153,10 @@ class StarDictIndexer @Inject constructor(
         }
 
         if (entries.isNotEmpty()) {
+            totalIndexed += entries.size
             flush(entries, definitions)
         }
+        appLogger.debug("parseAndStore: Total entries found in index: $totalIndexed", tag = TAG)
     }
 
     private suspend fun flush(

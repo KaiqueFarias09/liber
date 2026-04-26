@@ -21,6 +21,7 @@ import com.example.liber.data.repository.UserPreferencesRepository
 import com.example.liber.feature.library.LibrarySortOption
 import com.example.liber.feature.library.LibraryViewMode
 import com.example.liber.feature.reader.AnnotationRequest
+import com.example.liber.service.BookImportService
 import com.example.liber.ui.LiberAppViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -283,24 +284,7 @@ class HomeViewModel @Inject constructor(
     }
 
     fun loadBooksFromUris(uris: List<Uri>) {
-        launchSafely(
-            actionName = "loadBooksFromUris",
-            parameters = mapOf("count" to uris.size),
-        ) {
-            _isLoading.value = true
-            try {
-                withContext(Dispatchers.IO) {
-                    uris.forEach { uri ->
-                        importBook(uri)
-                    }
-                }
-            } catch (e: Exception) {
-                e.rethrowIfCancellation()
-                logger.recordError(e, "loadBooksFromUris", "Failed to import book batch")
-            } finally {
-                _isLoading.value = false
-            }
-        }
+        BookImportService.startImport(getApplication(), uris)
     }
 
     fun importAndOpenBook(uri: Uri, liberAppViewModel: LiberAppViewModel) {
