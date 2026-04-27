@@ -32,7 +32,7 @@ class CollectionRepository(
         upstream = collectionDao.getCollectionWithBooks(id),
     )
 
-    fun getCollectionWithPreviews(id: Long): Flow<Map<Collection, List<BookPreview>>> =
+    fun getCollectionWithPreviews(id: Long): Flow<Map<CollectionWithCount, List<BookPreview>>> =
         observeOperation(
             "getCollectionWithPreviews",
             parameters = mapOf("id" to id),

@@ -4,6 +4,6 @@ import androidx.room.Embedded
 import com.example.liber.data.model.Collection
 
 data class CollectionWithCount(
-    @Embedded val collection: Collection,
+    @Embedded(prefix = "coll_") val collection: Collection,
     val totalBooks: Int,
 )

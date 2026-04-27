@@ -39,13 +39,13 @@ class CollectionDetailViewModel @Inject constructor(
     val collectionState: StateFlow<UiState<CollectionDetailUiState>> = collectionRepository
         .getCollectionWithPreviews(collectionId)
         .map { map ->
-            val collection = map.keys.firstOrNull()
-            if (collection != null) {
+            val withCount = map.keys.firstOrNull()
+            if (withCount != null) {
                 UiState.Success(
                     CollectionDetailUiState(
-                        id = collection.id,
-                        name = collection.name,
-                        books = map[collection] ?: emptyList(),
+                        id = withCount.collection.id,
+                        name = withCount.collection.name,
+                        books = map[withCount] ?: emptyList(),
                     )
                 )
             } else {

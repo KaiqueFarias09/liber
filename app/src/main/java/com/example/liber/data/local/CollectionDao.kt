@@ -20,17 +20,29 @@ interface CollectionDao {
     @Transaction
     @Query(
         """
-        SELECT collections.*, books.*, 
-               (SELECT COUNT(*) FROM book_collections WHERE collectionId = collections.id) as totalBooks 
-        FROM collections 
-        LEFT JOIN book_collections ON collections.id = book_collections.collectionId
-        LEFT JOIN books ON book_collections.bookId = books.id
-        WHERE books.id IS NULL OR books.id IN (
+        SELECT 
+            c.id AS coll_id, 
+            c.name AS coll_name, 
+            c.createdAt AS coll_createdAt,
+            b.id AS id,
+            b.title AS title,
+            b.author AS author,
+            b.coverUri AS coverUri,
+            b.mediaType AS mediaType,
+            b.lastOpenedAt AS lastOpenedAt,
+            b.wantToRead AS wantToRead,
+            b.readingProgress AS readingProgress,
+            b.durationMillis AS durationMillis,
+            (SELECT COUNT(*) FROM book_collections WHERE collectionId = c.id) as totalBooks 
+        FROM collections AS c
+        LEFT JOIN book_collections ON c.id = book_collections.collectionId
+        LEFT JOIN books AS b ON book_collections.bookId = b.id
+        WHERE b.id IS NULL OR b.id IN (
             SELECT bookId FROM book_collections
-            WHERE collectionId = collections.id
+            WHERE collectionId = c.id
             LIMIT 8
         )
-        ORDER BY createdAt DESC
+        ORDER BY c.createdAt DESC
     """
     )
     fun getAllCollectionsWithPreviews(): Flow<Map<CollectionWithCount, List<BookPreview>>>
@@ -42,14 +54,26 @@ interface CollectionDao {
     @Transaction
     @Query(
         """
-        SELECT collections.*, books.id, books.title, books.author, books.coverUri, books.mediaType, books.lastOpenedAt, books.wantToRead, books.readingProgress
-        FROM collections
-        LEFT JOIN book_collections ON collections.id = book_collections.collectionId
-        LEFT JOIN books ON book_collections.bookId = books.id
-        WHERE collections.id = :id
+        SELECT 
+            c.id AS coll_id, 
+            c.name AS coll_name, 
+            c.createdAt AS coll_createdAt,
+            b.id AS id, 
+            b.title AS title, 
+            b.author AS author, 
+            b.coverUri AS coverUri, 
+            b.mediaType AS mediaType, 
+            b.lastOpenedAt AS lastOpenedAt, 
+            b.wantToRead AS wantToRead, 
+            b.readingProgress AS readingProgress,
+            (SELECT COUNT(*) FROM book_collections WHERE collectionId = c.id) as totalBooks
+        FROM collections AS c
+        LEFT JOIN book_collections ON c.id = book_collections.collectionId
+        LEFT JOIN books AS b ON book_collections.bookId = b.id
+        WHERE c.id = :id
     """
     )
-    fun getCollectionWithPreviews(id: Long): Flow<Map<Collection, List<BookPreview>>>
+    fun getCollectionWithPreviews(id: Long): Flow<Map<CollectionWithCount, List<BookPreview>>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCollection(collection: Collection): Long

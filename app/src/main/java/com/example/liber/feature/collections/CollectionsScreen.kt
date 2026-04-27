@@ -97,8 +97,7 @@ fun CollectionsListScreen(
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                 val columns = when {
                     maxWidth < 600.dp -> 1
-                    maxWidth < 840.dp -> 2
-                    else -> 3
+                    else -> 2
                 }
 
                 LazyVerticalGrid(
@@ -113,7 +112,7 @@ fun CollectionsListScreen(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    items(collections, key = { it.id }) { collection ->
+                    items(collections, key = { "collection_${it.id}" }) { collection ->
                         CollectionShelfRow(
                             collection = collection,
                             onClick = { onCollectionClick(collection) },
