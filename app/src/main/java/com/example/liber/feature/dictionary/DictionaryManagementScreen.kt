@@ -271,6 +271,21 @@ private fun DictionaryManagerContent(
                 val filteredDicts = dictionaries.filter {
                     (it.displayName.contains(searchQuery, ignoreCase = true) ||
                             (it.localAlias?.contains(searchQuery, ignoreCase = true) ?: false))
+                }.sortedWith { a, b ->
+                    if (searchQuery.isNotEmpty()) {
+                        val aSourceMatches = getLanguageName(a.sourceLanguageTag).contains(
+                            searchQuery,
+                            ignoreCase = true
+                        )
+                        val bSourceMatches = getLanguageName(b.sourceLanguageTag).contains(
+                            searchQuery,
+                            ignoreCase = true
+                        )
+                        if (aSourceMatches != bSourceMatches) {
+                            return@sortedWith if (aSourceMatches) -1 else 1
+                        }
+                    }
+                    0 // Keep original order otherwise
                 }
                 if (filteredDicts.isEmpty()) {
                     item {
@@ -366,6 +381,21 @@ private fun DictionaryManagerContent(
                                 filterTo == "All" || getLanguageName(it.targetLanguageTag) == filterTo
 
                             matchSearch && matchFrom && matchTo
+                        }.sortedWith { a, b ->
+                            if (searchQuery.isNotEmpty()) {
+                                val aSourceMatches = getLanguageName(a.sourceLanguageTag)
+                                    .contains(searchQuery, ignoreCase = true)
+                                val bSourceMatches = getLanguageName(b.sourceLanguageTag)
+                                    .contains(searchQuery, ignoreCase = true)
+                                if (aSourceMatches != bSourceMatches) {
+                                    return@sortedWith if (aSourceMatches) -1 else 1
+                                }
+                            }
+                            val sourceCmp = getLanguageName(a.sourceLanguageTag)
+                                .compareTo(getLanguageName(b.sourceLanguageTag))
+                            if (sourceCmp != 0) return@sortedWith sourceCmp
+                            getLanguageName(a.targetLanguageTag)
+                                .compareTo(getLanguageName(b.targetLanguageTag))
                         }
 
                         if (filtered.isEmpty()) {
