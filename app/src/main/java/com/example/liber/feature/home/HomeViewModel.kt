@@ -19,6 +19,7 @@ import com.example.liber.data.repository.BookImporter
 import com.example.liber.data.repository.BookRepository
 import com.example.liber.data.repository.ScanSourceRepository
 import com.example.liber.data.repository.UserPreferencesRepository
+import com.example.liber.feature.library.LibraryFilterStatus
 import com.example.liber.feature.library.LibrarySortOption
 import com.example.liber.feature.library.LibraryViewMode
 import com.example.liber.feature.reader.AnnotationRequest
@@ -30,6 +31,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.withContext
@@ -49,9 +52,50 @@ class HomeViewModel @Inject constructor(
 
     // ── State flows ──────────────────────────────────────────────────────────
 
-    val booksState: StateFlow<UiState<List<BookPreview>>> = bookRepository.getAllBookPreviews()
-        .map { UiState.Success(it) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UiState.Loading)
+    private val _librarySearchQuery = MutableStateFlow("")
+    val librarySearchQuery: StateFlow<String> = _librarySearchQuery.asStateFlow()
+
+    private val _libraryFilterStatus = MutableStateFlow(LibraryFilterStatus.ALL)
+    val libraryFilterStatus: StateFlow<LibraryFilterStatus> = _libraryFilterStatus.asStateFlow()
+
+    val booksViewMode: StateFlow<LibraryViewMode> = userPreferencesRepository.booksViewMode
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LibraryViewMode.GRID)
+
+    val booksSortOption: StateFlow<LibrarySortOption> = userPreferencesRepository.booksSortOption
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LibrarySortOption.RECENT)
+
+    val booksState: StateFlow<UiState<List<BookPreview>>> = combine(
+        bookRepository.getAllBookPreviews(),
+        librarySearchQuery,
+        libraryFilterStatus,
+        booksSortOption,
+    ) { books, query, status, sort ->
+        val filtered = books.filter { book ->
+            val matchesSearch = if (query.isBlank()) true else {
+                book.title.contains(query, ignoreCase = true) ||
+                        (book.author?.contains(query, ignoreCase = true) ?: false)
+            }
+            val matchesStatus = when (status) {
+                LibraryFilterStatus.ALL -> true
+                LibraryFilterStatus.UNREAD -> book.readingProgress == 0
+                LibraryFilterStatus.IN_PROGRESS -> book.readingProgress in 1..99
+                LibraryFilterStatus.FINISHED -> book.readingProgress == 100
+            }
+            matchesSearch && matchesStatus
+        }
+
+        val sorted = when (sort) {
+            LibrarySortOption.RECENT -> filtered.sortedByDescending { it.lastOpenedAt ?: 0L }
+            LibrarySortOption.TITLE -> filtered.sortedBy { it.title.lowercase() }
+            LibrarySortOption.AUTHOR -> filtered.sortedBy {
+                it.author?.lowercase() ?: "zzzz"
+            }
+
+            LibrarySortOption.PROGRESS -> filtered.sortedByDescending { it.readingProgress }
+        }
+
+        UiState.Success(sorted)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UiState.Loading)
 
     // For compatibility with simple list consumers
     val books: StateFlow<List<BookPreview>> = booksState
@@ -78,12 +122,6 @@ class HomeViewModel @Inject constructor(
     val scanSources: StateFlow<List<ScanSource>> = scanSourceRepository.getAllSources()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val booksViewMode: StateFlow<LibraryViewMode> = userPreferencesRepository.booksViewMode
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LibraryViewMode.GRID)
-
-    val booksSortOption: StateFlow<LibrarySortOption> = userPreferencesRepository.booksSortOption
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LibrarySortOption.RECENT)
-
     val audiobooksViewMode: StateFlow<LibraryViewMode> =
         userPreferencesRepository.audiobooksViewMode
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LibraryViewMode.GRID)
@@ -108,6 +146,14 @@ class HomeViewModel @Inject constructor(
         ) {
             userPreferencesRepository.setBooksSortOption(option)
         }
+    }
+
+    fun setLibrarySearchQuery(query: String) {
+        _librarySearchQuery.value = query
+    }
+
+    fun setLibraryFilterStatus(status: LibraryFilterStatus) {
+        _libraryFilterStatus.value = status
     }
 
     fun setAudiobooksViewMode(mode: LibraryViewMode) {
@@ -220,7 +266,11 @@ class HomeViewModel @Inject constructor(
         launchSafely(
             actionName = "updateFullMetadata",
             dispatcher = Dispatchers.IO,
-            parameters = mapOf("bookId" to bookId, "title" to title, "hasCoverPath" to (coverPath != null)),
+            parameters = mapOf(
+                "bookId" to bookId,
+                "title" to title,
+                "hasCoverPath" to (coverPath != null)
+            ),
         ) {
             bookRepository.updateFullMetadata(bookId, title, author, coverPath, narrator)
         }
@@ -336,7 +386,11 @@ class HomeViewModel @Inject constructor(
             )
         } catch (e: Exception) {
             e.rethrowIfCancellation()
-            logger.recordError(e, "tryTakePersistablePermission", "Unable to persist read permission for uri=$uri")
+            logger.recordError(
+                e,
+                "tryTakePersistablePermission",
+                "Unable to persist read permission for uri=$uri"
+            )
         }
     }
 

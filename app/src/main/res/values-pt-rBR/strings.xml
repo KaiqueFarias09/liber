@@ -222,6 +222,10 @@
     <string name="sort_option_recent">Recente</string>
     <string name="sort_option_title">Título</string>
     <string name="sort_option_author">Autor</string>
+    <string name="filter_all">Todos</string>
+    <string name="filter_unread">Não lidos</string>
+    <string name="filter_in_progress">Em andamento</string>
+    <string name="filter_finished">Concluídos</string>
     <string name="reader_image_save_to_downloads">Salvar em Downloads</string>
     <string name="reader_image_saved">Imagem salva em Downloads</string>
     <string name="reader_share_excerpt_from">Trecho de: </string>

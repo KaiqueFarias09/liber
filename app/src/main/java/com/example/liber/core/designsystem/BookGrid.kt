@@ -35,7 +35,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -81,6 +80,8 @@ fun BookGrid(
                 compareByDescending<BookPreview> { it.lastOpenedAt != null }
                     .thenByDescending { it.lastOpenedAt }
             )
+
+            LibrarySortOption.PROGRESS -> books.sortedByDescending { it.readingProgress }
         }
     }
 
@@ -107,29 +108,13 @@ fun BookGrid(
                         verticalArrangement = Arrangement.spacedBy(32.dp),
                         modifier = Modifier.fillMaxSize(),
                     ) {
-                        item {
-                            LiberLibraryToolbar(
-                                countText = pluralStringResource(
-                                    R.plurals.label_books,
-                                    books.size,
-                                    books.size
-                                ),
-                                sortOption = sortOption,
-                                onSortChange = onSortOptionChange,
-                                viewMode = viewMode,
-                                onViewModeChange = onViewModeChange,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                            )
-                        }
                         items(chunkedBooks, key = { it.first().id }) { rowBooks ->
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(20.dp),
                                 verticalAlignment = Alignment.Bottom,
                             ) {
-                                rowBooks.forEach { book ->
+                                for (book in rowBooks) {
                                     BookGridItem(
                                         book = book,
                                         onClick = { onBookClick(book) },
@@ -164,22 +149,6 @@ fun BookGrid(
                         verticalArrangement = Arrangement.spacedBy(2.dp),
                         modifier = Modifier.fillMaxSize(),
                     ) {
-                        item {
-                            LiberLibraryToolbar(
-                                countText = pluralStringResource(
-                                    R.plurals.label_books,
-                                    books.size,
-                                    books.size
-                                ),
-                                sortOption = sortOption,
-                                onSortChange = onSortOptionChange,
-                                viewMode = viewMode,
-                                onViewModeChange = onViewModeChange,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                            )
-                        }
                         items(sortedBooks, key = { it.id }) { book ->
                             BookListItem(
                                 book = book,

@@ -32,6 +32,7 @@ import com.example.liber.core.designsystem.EmptyState
 import com.example.liber.core.designsystem.LiberContextMenuDivider
 import com.example.liber.core.designsystem.LiberContextMenuItem
 import com.example.liber.core.designsystem.LiberDropdownMenu
+import com.example.liber.core.designsystem.LiberLibraryToolbar
 import com.example.liber.core.designsystem.LiberScreen
 import com.example.liber.core.util.UiState
 import com.example.liber.core.util.UiText
@@ -66,6 +67,9 @@ fun CollectionDetailRoute(
         }
     }
 
+    var viewMode by remember { mutableStateOf(LibraryViewMode.GRID) }
+    var sortOption by remember { mutableStateOf(LibrarySortOption.RECENT) }
+
     CollectionDetailScreen(
         collectionState = collectionState,
         allBooks = allBooks,
@@ -82,6 +86,10 @@ fun CollectionDetailRoute(
         onToggleWantToRead = onToggleWantToRead,
         onToggleFinished = onToggleFinished,
         onShowDetails = { selectedBookForDetails = it },
+        viewMode = viewMode,
+        onViewModeChange = { viewMode = it },
+        sortOption = sortOption,
+        onSortOptionChange = { sortOption = it },
         activeAudiobookId = activeBookId,
         isAudiobookPlaying = isPlaying,
     )
@@ -244,6 +252,20 @@ private fun CollectionDetailContent(
                 )
             }
         } else {
+            LiberLibraryToolbar(
+                countText = androidx.compose.ui.res.pluralStringResource(
+                    R.plurals.label_books,
+                    collection.books.size,
+                    collection.books.size
+                ),
+                sortOption = sortOption,
+                onSortChange = onSortOptionChange,
+                viewMode = viewMode,
+                onViewModeChange = onViewModeChange,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 4.dp),
+            )
             BookGrid(
                 books = collection.books,
                 onBookClick = onOpenBook,
