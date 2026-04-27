@@ -49,6 +49,7 @@ import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.Headphones
 import com.example.liber.data.model.Book
+import com.example.liber.data.model.BookPreview
 import kotlin.math.roundToInt
 
 /**
@@ -64,9 +65,58 @@ fun BookCover(
     isActive: Boolean = false,
     isPlaying: Boolean = false,
 ) {
-    if (book.isAudiobook) {
+    BookCoverInternal(
+        isAudiobook = book.isAudiobook,
+        coverUri = book.coverUri,
+        title = book.title,
+        author = book.author,
+        modifier = modifier,
+        style = style,
+        fillBounds = fillBounds,
+        isActive = isActive,
+        isPlaying = isPlaying,
+    )
+}
+
+@Composable
+fun BookCover(
+    book: BookPreview,
+    modifier: Modifier = Modifier,
+    style: CoverStyle = CoverStyle.SMALL,
+    fillBounds: Boolean = false,
+    isActive: Boolean = false,
+    isPlaying: Boolean = false,
+) {
+    BookCoverInternal(
+        isAudiobook = book.isAudiobook,
+        coverUri = book.coverUri,
+        title = book.title,
+        author = book.author,
+        modifier = modifier,
+        style = style,
+        fillBounds = fillBounds,
+        isActive = isActive,
+        isPlaying = isPlaying,
+    )
+}
+
+@Composable
+private fun BookCoverInternal(
+    isAudiobook: Boolean,
+    coverUri: Uri?,
+    title: String,
+    author: String?,
+    modifier: Modifier = Modifier,
+    style: CoverStyle = CoverStyle.SMALL,
+    fillBounds: Boolean = false,
+    isActive: Boolean = false,
+    isPlaying: Boolean = false,
+) {
+    if (isAudiobook) {
         AudiobookCover(
-            book = book,
+            coverUri = coverUri,
+            title = title,
+            author = author,
             modifier = modifier,
             style = style,
             isActive = isActive,
@@ -74,8 +124,8 @@ fun BookCover(
         )
     } else {
         BookCover(
-            coverUri = book.coverUri,
-            title = book.title,
+            coverUri = coverUri,
+            title = title,
             modifier = modifier,
             style = style,
             fillBounds = fillBounds,
@@ -130,7 +180,11 @@ fun BookCover(
 
             Box(
                 modifier = Modifier
-                    .then(if (fillBounds) Modifier.fillMaxSize() else Modifier.fillMaxWidth().aspectRatio(2f / 3f))
+                    .then(
+                        if (fillBounds) Modifier.fillMaxSize() else Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(2f / 3f)
+                    )
                     .background(bgColor)
                     .padding(if (style == CoverStyle.SMALL) 8.dp else 16.dp),
                 contentAlignment = Alignment.Center
@@ -165,6 +219,27 @@ fun BookCover(
 @Composable
 fun AudiobookCover(
     book: Book,
+    modifier: Modifier = Modifier,
+    style: CoverStyle = CoverStyle.SMALL,
+    isActive: Boolean = false,
+    isPlaying: Boolean = false,
+) {
+    AudiobookCover(
+        coverUri = book.coverUri,
+        title = book.title,
+        author = book.author,
+        modifier = modifier,
+        style = style,
+        isActive = isActive,
+        isPlaying = isPlaying,
+    )
+}
+
+@Composable
+fun AudiobookCover(
+    coverUri: Uri?,
+    title: String,
+    author: String?,
     modifier: Modifier = Modifier,
     style: CoverStyle = CoverStyle.SMALL,
     isActive: Boolean = false,
@@ -282,7 +357,7 @@ fun AudiobookCover(
                 ) {
                     // Dimmed cover image on label
                     AsyncImage(
-                        model = book.coverUri,
+                        model = coverUri,
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
@@ -324,7 +399,7 @@ fun AudiobookCover(
                         )
 
                         Text(
-                            book.title.uppercase(),
+                            title.uppercase(),
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontSize = 5.sp,
                                 color = Color.White.copy(alpha = 0.8f),
@@ -354,8 +429,8 @@ fun AudiobookCover(
                 )
         ) {
             AsyncImage(
-                model = book.coverUri,
-                contentDescription = "Cover of ${book.title}",
+                model = coverUri,
+                contentDescription = "Cover of $title",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
@@ -390,7 +465,7 @@ fun AudiobookCover(
             )
 
             // Icons and Text on cover (matching React mock)
-            if (book.coverUri == null) {
+            if (coverUri == null) {
                 val fallbackColor = MaterialTheme.colorScheme.primaryContainer
                 val onFallbackColor = MaterialTheme.colorScheme.onPrimaryContainer
 
@@ -414,7 +489,7 @@ fun AudiobookCover(
 
                         Column {
                             Text(
-                                text = book.title,
+                                text = title,
                                 style = TextStyle(
                                     fontFamily = Gambetta,
                                     fontWeight = FontWeight.Medium,
@@ -426,7 +501,7 @@ fun AudiobookCover(
                             )
                             if (!isSmall) {
                                 Text(
-                                    text = book.author?.uppercase() ?: "UNKNOWN AUTHOR",
+                                    text = author?.uppercase() ?: "UNKNOWN AUTHOR",
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         color = onFallbackColor.copy(alpha = 0.7f),
                                         letterSpacing = 1.sp,

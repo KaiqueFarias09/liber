@@ -72,8 +72,8 @@ fun AddToCollectionDialog(
                             Text(
                                 text = pluralStringResource(
                                     R.plurals.label_books,
-                                    collection.books.size,
-                                    collection.books.size
+                                    collection.totalBooks,
+                                    collection.totalBooks
                                 ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,

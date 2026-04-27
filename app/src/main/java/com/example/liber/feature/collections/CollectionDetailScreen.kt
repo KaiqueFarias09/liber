@@ -9,7 +9,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -18,7 +17,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
@@ -92,7 +90,7 @@ fun CollectionDetailRoute(
 
 @Composable
 fun CollectionDetailScreen(
-    collectionState: UiState<CollectionUiState>,
+    collectionState: UiState<CollectionDetailUiState>,
     allBooks: List<Book>,
     onBack: () -> Unit,
     onRename: (String) -> Unit,
@@ -117,12 +115,14 @@ fun CollectionDetailScreen(
                 CircularProgressIndicator()
             }
         }
+
         is UiState.Error -> {
             AppErrorState(
                 title = collectionState.title,
                 message = collectionState.message,
             )
         }
+
         is UiState.Success -> {
             val collection = collectionState.data
             CollectionDetailContent(
@@ -151,7 +151,7 @@ fun CollectionDetailScreen(
 
 @Composable
 private fun CollectionDetailContent(
-    collection: CollectionUiState,
+    collection: CollectionDetailUiState,
     allBooks: List<Book>,
     onBack: () -> Unit,
     onRename: (String) -> Unit,

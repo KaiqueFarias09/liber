@@ -6,6 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import com.example.liber.data.model.BookCollection
+import com.example.liber.data.model.BookPreview
 import com.example.liber.data.model.Collection
 import kotlinx.coroutines.flow.Flow
 
@@ -15,6 +16,24 @@ interface CollectionDao {
     @Transaction
     @Query("SELECT * FROM collections ORDER BY createdAt DESC")
     fun getAllCollectionsWithBooks(): Flow<List<CollectionWithBooksRelation>>
+
+    @Transaction
+    @Query(
+        """
+        SELECT collections.*, books.*, 
+               (SELECT COUNT(*) FROM book_collections WHERE collectionId = collections.id) as totalBooks 
+        FROM collections 
+        LEFT JOIN book_collections ON collections.id = book_collections.collectionId
+        LEFT JOIN books ON book_collections.bookId = books.id
+        WHERE books.id IS NULL OR books.id IN (
+            SELECT bookId FROM book_collections
+            WHERE collectionId = collections.id
+            LIMIT 8
+        )
+        ORDER BY createdAt DESC
+    """
+    )
+    fun getAllCollectionsWithPreviews(): Flow<Map<CollectionWithCount, List<BookPreview>>>
 
     @Transaction
     @Query("SELECT * FROM collections WHERE id = :id")

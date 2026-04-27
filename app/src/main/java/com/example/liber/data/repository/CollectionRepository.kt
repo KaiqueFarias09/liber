@@ -4,7 +4,9 @@ import com.example.liber.core.logging.AppLogger
 import com.example.liber.core.logging.BaseRepository
 import com.example.liber.data.local.CollectionDao
 import com.example.liber.data.local.CollectionWithBooksRelation
+import com.example.liber.data.local.CollectionWithCount
 import com.example.liber.data.model.BookCollection
+import com.example.liber.data.model.BookPreview
 import com.example.liber.data.model.Collection
 import kotlinx.coroutines.flow.Flow
 
@@ -17,6 +19,12 @@ class CollectionRepository(
         "getAllCollectionsWithBooks",
         upstream = collectionDao.getAllCollectionsWithBooks(),
     )
+
+    fun getAllCollectionsWithPreviews(): Flow<Map<CollectionWithCount, List<BookPreview>>> =
+        observeOperation(
+            "getAllCollectionsWithPreviews",
+            upstream = collectionDao.getAllCollectionsWithPreviews(),
+        )
 
     fun getCollectionWithBooks(id: Long): Flow<CollectionWithBooksRelation?> = observeOperation(
         "getCollectionWithBooks",
@@ -45,7 +53,10 @@ class CollectionRepository(
 
     suspend fun addBookToCollection(bookCollection: BookCollection) = executeOperation(
         operationName = "addBookToCollection",
-        parameters = mapOf("collectionId" to bookCollection.collectionId, "bookId" to bookCollection.bookId),
+        parameters = mapOf(
+            "collectionId" to bookCollection.collectionId,
+            "bookId" to bookCollection.bookId
+        ),
     ) {
         collectionDao.addBookToCollection(bookCollection)
     }

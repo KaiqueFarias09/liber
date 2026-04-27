@@ -5,9 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.liber.core.logging.AppLogger
 import com.example.liber.core.logging.BaseAndroidViewModel
 import com.example.liber.core.util.UiState
-import com.example.liber.data.local.CollectionWithBooksRelation
-import com.example.liber.data.model.Book
 import com.example.liber.data.model.BookCollection
+import com.example.liber.data.model.BookPreview
 import com.example.liber.data.model.Collection
 import com.example.liber.data.repository.CollectionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,13 +15,13 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class CollectionUiState(
     val id: Long,
     val name: String,
-    val books: List<Book>,
+    val previews: List<BookPreview>,
+    val totalBooks: Int,
 )
 
 @HiltViewModel
@@ -33,9 +32,16 @@ class CollectionsViewModel @Inject constructor(
 ) : BaseAndroidViewModel(application, "CollectionsViewModel", appLogger) {
 
     val collectionsState: StateFlow<UiState<List<CollectionUiState>>> = collectionRepository
-        .getAllCollectionsWithBooks()
-        .map { relations ->
-            val data = relations.map { it.toUiState() }
+        .getAllCollectionsWithPreviews()
+        .map { map ->
+            val data = map.map { (withCount, previews) ->
+                CollectionUiState(
+                    id = withCount.collection.id,
+                    name = withCount.collection.name,
+                    previews = previews,
+                    totalBooks = withCount.totalBooks
+                )
+            }
             UiState.Success(data)
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UiState.Loading)
@@ -94,10 +100,4 @@ class CollectionsViewModel @Inject constructor(
             collectionRepository.removeBookFromCollection(collectionId, bookId)
         }
     }
-
-    private fun CollectionWithBooksRelation.toUiState() = CollectionUiState(
-        id = collection.id,
-        name = collection.name,
-        books = books,
-    )
 }

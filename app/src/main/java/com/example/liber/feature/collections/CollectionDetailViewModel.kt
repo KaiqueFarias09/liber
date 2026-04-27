@@ -15,11 +15,15 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
+
+data class CollectionDetailUiState(
+    val id: Long,
+    val name: String,
+    val books: List<Book>,
+)
 
 @HiltViewModel
 class CollectionDetailViewModel @Inject constructor(
@@ -32,12 +36,12 @@ class CollectionDetailViewModel @Inject constructor(
 
     private val collectionId: Long = checkNotNull(savedStateHandle["collectionId"])
 
-    val collectionState: StateFlow<UiState<CollectionUiState>> = collectionRepository
+    val collectionState: StateFlow<UiState<CollectionDetailUiState>> = collectionRepository
         .getCollectionWithBooks(collectionId)
         .map { relation ->
             if (relation != null) {
                 UiState.Success(
-                    CollectionUiState(
+                    CollectionDetailUiState(
                         id = relation.collection.id,
                         name = relation.collection.name,
                         books = relation.books,

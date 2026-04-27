@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -17,8 +18,9 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -49,7 +51,7 @@ import com.example.liber.core.designsystem.CoverStyle
 import com.example.liber.core.designsystem.EmptyState
 import com.example.liber.core.designsystem.LiberFAB
 import com.example.liber.core.util.UiText
-import com.example.liber.data.model.Book
+import com.example.liber.data.model.BookPreview
 import com.example.liber.feature.collections.components.CollectionNameDialog
 
 // ── List screen ───────────────────────────────────────────────────────────────
@@ -92,21 +94,31 @@ fun CollectionsListScreen(
                 )
             }
         } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    start = 24.dp,
-                    top = 8.dp, // Match BookGrid's top padding
-                    end = 24.dp,
-                    bottom = 80.dp + innerPadding.calculateBottomPadding()
-                ),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                items(collections, key = { it.id }) { collection ->
-                    CollectionShelfRow(
-                        collection = collection,
-                        onClick = { onCollectionClick(collection) },
-                    )
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val columns = when {
+                    maxWidth < 600.dp -> 1
+                    maxWidth < 840.dp -> 2
+                    else -> 3
+                }
+
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(columns),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        start = 24.dp,
+                        top = 8.dp, // Match BookGrid's top padding
+                        end = 24.dp,
+                        bottom = 80.dp + innerPadding.calculateBottomPadding()
+                    ),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    items(collections, key = { it.id }) { collection ->
+                        CollectionShelfRow(
+                            collection = collection,
+                            onClick = { onCollectionClick(collection) },
+                        )
+                    }
                 }
             }
         }
@@ -173,8 +185,8 @@ private fun CollectionShelfRow(
                     Text(
                         text = pluralStringResource(
                             R.plurals.label_books,
-                            collection.books.size,
-                            collection.books.size
+                            collection.totalBooks,
+                            collection.totalBooks
                         ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -198,7 +210,8 @@ private fun CollectionShelfRow(
 
             // Stacked covers
             StackedBookCovers(
-                books = collection.books,
+                previews = collection.previews,
+                totalBooks = collection.totalBooks,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -209,34 +222,29 @@ private fun CollectionShelfRow(
 
 @Composable
 private fun StackedBookCovers(
-    books: List<Book>,
+    previews: List<BookPreview>,
+    totalBooks: Int,
     modifier: Modifier = Modifier,
 ) {
-    val displayBooks = books.take(8)
-    val extraCount = (books.size - 8).coerceAtLeast(0)
-
-    if (displayBooks.isEmpty()) {
-        Box(
-            modifier = modifier
-                .height(40.dp) // Maintain some height for the card layout
-                .fillMaxWidth(),
-        )
-        return
-    }
-
+    val displayBooks = previews.take(8)
+    val extraCount = (totalBooks - 8).coerceAtLeast(0)
     val coverWidth = 72.dp
     val step = 42.dp
+    val shelfHeight = 108.dp // Height of a 2:3 book with 72dp width
 
     // contentAlignment = BottomStart so every cover's bottom edge sits at the shelf
     // floor. offset(x) shifts each cover rightward graphically. clipToBounds trims
     // any cover that is taller than shelfHeight at the top.
     Box(
-        modifier = modifier.clipToBounds(),
+        modifier = modifier
+            .height(shelfHeight)
+            .fillMaxWidth()
+            .clipToBounds(),
         contentAlignment = Alignment.BottomStart,
     ) {
-        displayBooks.forEachIndexed { index, book ->
+        displayBooks.forEachIndexed { index, preview ->
             BookCover(
-                book = book,
+                book = preview,
                 style = CoverStyle.SMALL,
                 isActive = false,
                 isPlaying = false,
@@ -250,7 +258,7 @@ private fun StackedBookCovers(
                 modifier = Modifier
                     .offset(x = step * displayBooks.size)
                     .width(coverWidth)
-                    .height(120.dp)
+                    .height(shelfHeight)
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center,
             ) {
