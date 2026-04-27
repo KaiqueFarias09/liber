@@ -71,6 +71,7 @@ import com.example.liber.core.designsystem.AudiobookCover
 import com.example.liber.core.designsystem.CoverStyle
 import com.example.liber.core.designsystem.LiberDialog
 import com.example.liber.core.designsystem.LiberModalBottomSheet
+import com.example.liber.core.designsystem.responsiveMaxWidth
 import com.example.liber.core.util.UiText
 import com.example.liber.core.util.toFormattedPlaybackTime
 import com.example.liber.data.model.Book
@@ -218,12 +219,16 @@ fun AudioPlayerScreen(
                     containerColor = Color.Transparent,
                     navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
                     actionIconContentColor = MaterialTheme.colorScheme.onSurface
-                )
+                ),
+                modifier = Modifier.fillMaxWidth()
             )
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.TopCenter
+        ) {
             // Background Glow
             Box(
                 modifier = Modifier
@@ -241,7 +246,8 @@ fun AudioPlayerScreen(
 
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxHeight()
+                    .responsiveMaxWidth()
                     .padding(padding)
                     .padding(horizontal = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally

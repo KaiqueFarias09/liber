@@ -52,16 +52,21 @@ fun LiberScreen(
     headerActions: (@Composable RowScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Column(
-        modifier = modifier.fillMaxSize()
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
     ) {
-        LiberHeader(
-            title = title,
-            onBack = onBack,
-            navigationIcon = navigationIcon,
-            actions = headerActions
-        )
-        content()
+        Column(
+            modifier = Modifier.responsiveMaxWidth()
+        ) {
+            LiberHeader(
+                title = title,
+                onBack = onBack,
+                navigationIcon = navigationIcon,
+                actions = headerActions
+            )
+            content()
+        }
     }
 }
 
@@ -78,19 +83,24 @@ fun LiberScrollableScreen(
     contentPadding: PaddingValues = PaddingValues(bottom = 24.dp),
     content: LazyListScope.() -> Unit
 ) {
-    LazyColumn(
+    Box(
         modifier = modifier.fillMaxSize(),
-        contentPadding = contentPadding
+        contentAlignment = Alignment.TopCenter
     ) {
-        item {
-            LiberHeader(
-                title = title,
-                onBack = onBack,
-                navigationIcon = navigationIcon,
-                actions = headerActions
-            )
+        LazyColumn(
+            modifier = Modifier.responsiveMaxWidth(),
+            contentPadding = contentPadding
+        ) {
+            item {
+                LiberHeader(
+                    title = title,
+                    onBack = onBack,
+                    navigationIcon = navigationIcon,
+                    actions = headerActions
+                )
+            }
+            content()
         }
-        content()
     }
 }
 
@@ -127,9 +137,10 @@ fun LiberCollapsingScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .nestedScroll(nestedScrollConnection)
+            .nestedScroll(nestedScrollConnection),
+        contentAlignment = Alignment.TopCenter
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.responsiveMaxWidth()) {
             Spacer(
                 Modifier
                     .fillMaxWidth()
@@ -146,7 +157,7 @@ fun LiberCollapsingScreen(
         // Header overlay
         Box(
             modifier = Modifier
-                .fillMaxWidth()
+                .responsiveMaxWidth()
                 .onSizeChanged { headerHeightState.intValue = it.height }
                 .graphicsLayer {
                     val scrolled = scrolledPxState.floatValue

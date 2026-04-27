@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.remember
@@ -15,6 +16,11 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
+/**
+ * Standard maximum width for screen content to ensure readability and better UI on large screens.
+ */
+val MaxContentWidth = 840.dp
+
 fun Modifier.noRippleClickable(onClick: () -> Unit): Modifier = composed {
     this.clickable(
         interactionSource = remember { MutableInteractionSource() },
@@ -22,6 +28,13 @@ fun Modifier.noRippleClickable(onClick: () -> Unit): Modifier = composed {
         onClick = onClick
     )
 }
+
+/**
+ * Limits the width of a component on large screens while filling it on smaller ones.
+ * Should be used in conjunction with centering.
+ */
+fun Modifier.responsiveMaxWidth(): Modifier = this
+    .widthIn(max = MaxContentWidth)
 
 /**
  * A reusable modifier to apply the standard Liber container style.

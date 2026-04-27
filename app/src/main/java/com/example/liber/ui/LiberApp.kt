@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -46,6 +47,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.liber.core.designsystem.LiberBottomNav
 import com.example.liber.core.designsystem.LiberNavRail
+import com.example.liber.core.designsystem.responsiveMaxWidth
 import com.example.liber.core.navigation.AppNavHost
 import com.example.liber.core.navigation.AppRoute
 import com.example.liber.core.navigation.AppTab
@@ -317,16 +319,23 @@ fun LiberApp(
                                 enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
                                 exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
                             ) {
-                                NowPlayingBar(
-                                    book = book!!,
-                                    isPlaying = playWhenReadyGlobal,
-                                    progress = playerProgress,
-                                    onTogglePlay = { audiobookPlayerViewModel.togglePlayPause() },
-                                    onRewind = { audiobookPlayerViewModel.skipBackward(15) },
-                                    onForward = { audiobookPlayerViewModel.skipForward(15) },
-                                    onClick = { liberAppViewModel.openReader() },
-                                    modifier = Modifier.padding(horizontal = 8.dp)
-                                )
+                                Box(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    NowPlayingBar(
+                                        book = book!!,
+                                        isPlaying = playWhenReadyGlobal,
+                                        progress = playerProgress,
+                                        onTogglePlay = { audiobookPlayerViewModel.togglePlayPause() },
+                                        onRewind = { audiobookPlayerViewModel.skipBackward(15) },
+                                        onForward = { audiobookPlayerViewModel.skipForward(15) },
+                                        onClick = { liberAppViewModel.openReader() },
+                                        modifier = Modifier
+                                            .responsiveMaxWidth()
+                                            .padding(horizontal = 8.dp)
+                                    )
+                                }
                                 Spacer(Modifier.height(4.dp))
                             }
                         }
