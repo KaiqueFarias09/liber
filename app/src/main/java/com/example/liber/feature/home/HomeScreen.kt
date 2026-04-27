@@ -1,6 +1,5 @@
 package com.example.liber.feature.home
 
-import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -33,14 +32,14 @@ import com.example.liber.core.designsystem.LiberScrollableScreen
 import com.example.liber.core.designsystem.LiberTheme
 import com.example.liber.core.designsystem.WantToReadCover
 import com.example.liber.core.util.UiText
-import com.example.liber.data.model.Book
+import com.example.liber.data.model.BookPreview
 
 @Composable
 fun HomeScreen(
-    continueBooks: List<Book>,
-    wantToReadBooks: List<Book>,
-    previousBooks: List<Book>,
-    onBookClick: (Book) -> Unit,
+    continueBooks: List<BookPreview>,
+    wantToReadBooks: List<BookPreview>,
+    previousBooks: List<BookPreview>,
+    onBookClick: (BookPreview) -> Unit,
     modifier: Modifier = Modifier,
     activeBookId: String? = null,
     isPlaying: Boolean = false,
@@ -146,7 +145,7 @@ fun HomeScreen(
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
-    onBookClick: (Book) -> Unit,
+    onBookClick: (BookPreview) -> Unit,
     liberAppViewModel: com.example.liber.ui.LiberAppViewModel,
     modifier: Modifier = Modifier,
 ) {
@@ -210,7 +209,7 @@ private fun SectionDivider() {
 }
 
 @Composable
-private fun ProgressText(book: Book) {
+private fun ProgressText(book: BookPreview) {
     val typeLabel = if (book.isAudiobook) stringResource(R.string.home_label_audiobook)
     else stringResource(R.string.home_label_book)
     Text(
@@ -222,7 +221,7 @@ private fun ProgressText(book: Book) {
 }
 
 @Composable
-private fun PreviousStatusContent(book: Book) {
+private fun PreviousStatusContent(book: BookPreview) {
     if (book.readingProgress >= 100) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -250,13 +249,13 @@ private fun PreviousStatusContent(book: Book) {
 // ── Previews ──────────────────────────────────────────────────────────────────
 
 private val previewBooks = listOf(
-    Book("1", "Lean UX", "Jeff Gothelf", null, Uri.EMPTY, readingProgress = 10),
-    Book(
+    BookPreview("1", "Lean UX", "Jeff Gothelf", null, "epub", readingProgress = 10),
+    BookPreview(
         "2",
         "100 Things Every Designer Needs to Know",
         "Susan Weinschenk",
         null,
-        Uri.EMPTY,
+        "epub",
         readingProgress = 19
     ),
 )

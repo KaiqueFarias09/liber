@@ -34,7 +34,7 @@ import com.example.liber.core.designsystem.LiberDialog
 import com.example.liber.core.designsystem.LiberTextField
 import com.example.liber.core.util.InputValidator
 import com.example.liber.core.util.UiText
-import com.example.liber.data.model.Book
+import com.example.liber.data.model.BookPreview
 
 @Composable
 fun CollectionNameDialog(
@@ -92,8 +92,8 @@ fun DeleteCollectionDialog(
 
 @Composable
 fun AddBooksDialog(
-    allBooks: List<Book>,
-    booksInCollection: List<Book>,
+    allBooks: List<BookPreview>,
+    booksInCollection: List<BookPreview>,
     onAddBook: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {

@@ -5,19 +5,21 @@ import com.example.liber.core.logging.AppLogger
 import com.example.liber.core.logging.BaseAndroidViewModel
 import com.example.liber.core.navigation.AppTab
 import com.example.liber.data.model.Book
+import com.example.liber.data.model.BookPreview
 import com.example.liber.data.model.ReadingSessionSource
+import com.example.liber.data.repository.BookRepository
 import com.example.liber.data.repository.ReadingSessionTracker
 import com.example.liber.data.repository.UserPreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class LiberAppViewModel @Inject constructor(
     application: Application,
     private val readingSessionTracker: ReadingSessionTracker,
+    private val bookRepository: BookRepository,
     val userPreferencesRepository: UserPreferencesRepository,
     appLogger: AppLogger,
 ) :
@@ -43,9 +45,29 @@ class LiberAppViewModel @Inject constructor(
         _libraryTabIndex.value = index
     }
 
+    fun openEpub(preview: BookPreview) {
+        launchSafely("openEpub", parameters = mapOf("id" to preview.id)) {
+            val book = bookRepository.getBookById(preview.id)
+            if (book != null) {
+                _activeBook.value = book
+                _isReaderOpen.value = true
+            }
+        }
+    }
+
     fun openEpub(book: Book) {
         _activeBook.value = book
         _isReaderOpen.value = true
+    }
+
+    fun openAudiobook(preview: BookPreview) {
+        launchSafely("openAudiobook", parameters = mapOf("id" to preview.id)) {
+            val book = bookRepository.getBookById(preview.id)
+            if (book != null) {
+                _activeBook.value = book
+                _isReaderOpen.value = true
+            }
+        }
     }
 
     fun openAudiobook(book: Book) {

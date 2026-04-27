@@ -39,6 +39,18 @@ interface CollectionDao {
     @Query("SELECT * FROM collections WHERE id = :id")
     fun getCollectionWithBooks(id: Long): Flow<CollectionWithBooksRelation?>
 
+    @Transaction
+    @Query(
+        """
+        SELECT collections.*, books.id, books.title, books.author, books.coverUri, books.mediaType, books.lastOpenedAt, books.wantToRead, books.readingProgress
+        FROM collections
+        LEFT JOIN book_collections ON collections.id = book_collections.collectionId
+        LEFT JOIN books ON book_collections.bookId = books.id
+        WHERE collections.id = :id
+    """
+    )
+    fun getCollectionWithPreviews(id: Long): Flow<Map<Collection, List<BookPreview>>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCollection(collection: Collection): Long
 

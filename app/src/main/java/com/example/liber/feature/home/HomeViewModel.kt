@@ -11,6 +11,7 @@ import com.example.liber.core.util.rethrowIfCancellation
 import com.example.liber.data.local.ScanStateHolder
 import com.example.liber.data.model.Annotation
 import com.example.liber.data.model.Book
+import com.example.liber.data.model.BookPreview
 import com.example.liber.data.model.Bookmark
 import com.example.liber.data.model.ScanSource
 import com.example.liber.data.model.ScanState
@@ -48,24 +49,24 @@ class HomeViewModel @Inject constructor(
 
     // ── State flows ──────────────────────────────────────────────────────────
 
-    val booksState: StateFlow<UiState<List<Book>>> = bookRepository.getAllBooks()
+    val booksState: StateFlow<UiState<List<BookPreview>>> = bookRepository.getAllBookPreviews()
         .map { UiState.Success(it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UiState.Loading)
 
     // For compatibility with simple list consumers
-    val books: StateFlow<List<Book>> = booksState
+    val books: StateFlow<List<BookPreview>> = booksState
         .map { (it as? UiState.Success)?.data ?: emptyList() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val continueReadingBooks: StateFlow<List<Book>> = bookRepository
-        .getContinueReadingBooks(System.currentTimeMillis() - sevenDaysMs)
+    val continueReadingBooks: StateFlow<List<BookPreview>> = bookRepository
+        .getContinueReadingBookPreviews(System.currentTimeMillis() - sevenDaysMs)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val wantToReadBooks: StateFlow<List<Book>> = bookRepository.getWantToReadBooks()
+    val wantToReadBooks: StateFlow<List<BookPreview>> = bookRepository.getWantToReadBookPreviews()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val previousBooks: StateFlow<List<Book>> = bookRepository
-        .getPreviousBooks(System.currentTimeMillis() - sevenDaysMs)
+    val previousBooks: StateFlow<List<BookPreview>> = bookRepository
+        .getPreviousBookPreviews(System.currentTimeMillis() - sevenDaysMs)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _isLoading = MutableStateFlow(false)

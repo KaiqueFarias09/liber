@@ -13,13 +13,13 @@ import com.adamglin.phosphoricons.regular.ShareNetwork
 import com.adamglin.phosphoricons.regular.Trash
 import com.example.liber.R
 import com.example.liber.core.util.UiText
-import com.example.liber.data.model.Book
+import com.example.liber.data.model.BookPreview
 import com.adamglin.phosphoricons.fill.Bookmark as BookmarkFill
 
 @Composable
 fun BookActionMenu(
     expanded: Boolean,
-    book: Book,
+    book: BookPreview,
     onDismiss: () -> Unit,
     onShare: () -> Unit,
     onToggleWantToRead: () -> Unit,

@@ -7,8 +7,8 @@ import com.example.liber.core.logging.AppLogger
 import com.example.liber.core.logging.BaseAndroidViewModel
 import com.example.liber.core.util.UiState
 import com.example.liber.core.util.UiText
-import com.example.liber.data.model.Book
 import com.example.liber.data.model.BookCollection
+import com.example.liber.data.model.BookPreview
 import com.example.liber.data.repository.BookRepository
 import com.example.liber.data.repository.CollectionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -22,7 +22,7 @@ import javax.inject.Inject
 data class CollectionDetailUiState(
     val id: Long,
     val name: String,
-    val books: List<Book>,
+    val books: List<BookPreview>,
 )
 
 @HiltViewModel
@@ -37,14 +37,15 @@ class CollectionDetailViewModel @Inject constructor(
     private val collectionId: Long = checkNotNull(savedStateHandle["collectionId"])
 
     val collectionState: StateFlow<UiState<CollectionDetailUiState>> = collectionRepository
-        .getCollectionWithBooks(collectionId)
-        .map { relation ->
-            if (relation != null) {
+        .getCollectionWithPreviews(collectionId)
+        .map { map ->
+            val collection = map.keys.firstOrNull()
+            if (collection != null) {
                 UiState.Success(
                     CollectionDetailUiState(
-                        id = relation.collection.id,
-                        name = relation.collection.name,
-                        books = relation.books,
+                        id = collection.id,
+                        name = collection.name,
+                        books = map[collection] ?: emptyList(),
                     )
                 )
             } else {
@@ -53,7 +54,7 @@ class CollectionDetailViewModel @Inject constructor(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UiState.Loading)
 
-    val allBooks: StateFlow<List<Book>> = bookRepository.getAllBooks()
+    val allBooks: StateFlow<List<BookPreview>> = bookRepository.getAllBookPreviews()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun renameCollection(name: String) {

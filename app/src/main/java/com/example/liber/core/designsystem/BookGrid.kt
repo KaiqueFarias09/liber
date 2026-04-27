@@ -44,7 +44,7 @@ import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.DotsThree
 import com.example.liber.R
 import com.example.liber.core.util.UiText
-import com.example.liber.data.model.Book
+import com.example.liber.data.model.BookPreview
 import com.example.liber.feature.collections.CollectionUiState
 import com.example.liber.feature.collections.components.AddToCollectionDialog
 import com.example.liber.feature.library.LibrarySortOption
@@ -52,19 +52,19 @@ import com.example.liber.feature.library.LibraryViewMode
 
 @Composable
 fun BookGrid(
-    books: List<Book>,
-    onBookClick: (Book) -> Unit,
-    onToggleWantToRead: (Book) -> Unit,
-    onToggleFinished: (Book) -> Unit,
-    onShowDetails: (Book) -> Unit,
-    onDeleteBook: (Book) -> Unit,
-    onShareBook: (Book) -> Unit,
+    books: List<BookPreview>,
+    onBookClick: (BookPreview) -> Unit,
+    onToggleWantToRead: (BookPreview) -> Unit,
+    onToggleFinished: (BookPreview) -> Unit,
+    onShowDetails: (BookPreview) -> Unit,
+    onDeleteBook: (BookPreview) -> Unit,
+    onShareBook: (BookPreview) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
     deleteLabel: UiText = UiText.StringResource(R.string.action_delete_ellipsis),
     confirmDelete: Boolean = true,
     showAddToCollection: Boolean = false,
-    onAddToCollection: (Book, Long) -> Unit = { _, _ -> },
+    onAddToCollection: (BookPreview, Long) -> Unit = { _, _ -> },
     collections: List<CollectionUiState> = emptyList(),
     viewMode: LibraryViewMode = LibraryViewMode.GRID,
     onViewModeChange: (LibraryViewMode) -> Unit = {},
@@ -78,7 +78,7 @@ fun BookGrid(
             LibrarySortOption.TITLE -> books.sortedBy { it.title.lowercase() }
             LibrarySortOption.AUTHOR -> books.sortedBy { it.author?.lowercase() ?: "" }
             LibrarySortOption.RECENT -> books.sortedWith(
-                compareByDescending<Book> { it.lastOpenedAt != null }
+                compareByDescending<BookPreview> { it.lastOpenedAt != null }
                     .thenByDescending { it.lastOpenedAt }
             )
         }
@@ -211,7 +211,7 @@ fun BookGrid(
 
 @Composable
 private fun BookListItem(
-    book: Book,
+    book: BookPreview,
     onClick: () -> Unit,
     onToggleWantToRead: () -> Unit,
     onToggleFinished: () -> Unit,
@@ -352,7 +352,7 @@ private fun BookListItem(
 
 @Composable
 fun BookGridItem(
-    book: Book,
+    book: BookPreview,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     onToggleWantToRead: () -> Unit,

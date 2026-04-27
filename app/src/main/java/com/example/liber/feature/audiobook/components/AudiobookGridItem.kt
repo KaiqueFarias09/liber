@@ -37,11 +37,11 @@ import com.example.liber.core.designsystem.BookCover
 import com.example.liber.core.designsystem.CoverStyle
 import com.example.liber.core.designsystem.DeleteBookConfirmationDialog
 import com.example.liber.core.util.UiText
-import com.example.liber.data.model.Book
+import com.example.liber.data.model.BookPreview
 
 @Composable
 fun AudiobookGridItem(
-    book: Book,
+    book: BookPreview,
     onClick: () -> Unit,
     onDeleteBook: () -> Unit,
     onShareBook: () -> Unit,

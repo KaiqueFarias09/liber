@@ -32,6 +32,13 @@ class CollectionRepository(
         upstream = collectionDao.getCollectionWithBooks(id),
     )
 
+    fun getCollectionWithPreviews(id: Long): Flow<Map<Collection, List<BookPreview>>> =
+        observeOperation(
+            "getCollectionWithPreviews",
+            parameters = mapOf("id" to id),
+            upstream = collectionDao.getCollectionWithPreviews(id),
+        )
+
     suspend fun insertCollection(collection: Collection): Long = executeOperation(
         operationName = "insertCollection",
         parameters = mapOf("name" to collection.name),

@@ -23,19 +23,19 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.unit.dp
 import com.example.liber.R
 import com.example.liber.core.designsystem.LiberLibraryToolbar
-import com.example.liber.data.model.Book
+import com.example.liber.data.model.BookPreview
 import com.example.liber.feature.library.LibrarySortOption
 import com.example.liber.feature.library.LibraryViewMode
 
 @Composable
 fun AudiobookGrid(
-    audiobooks: List<Book>,
-    onBookClick: (Book) -> Unit,
-    onDeleteBook: (Book) -> Unit,
-    onShareBook: (Book) -> Unit,
-    onToggleWantToRead: (Book) -> Unit,
-    onToggleFinished: (Book) -> Unit,
-    onShowDetails: (Book) -> Unit,
+    audiobooks: List<BookPreview>,
+    onBookClick: (BookPreview) -> Unit,
+    onDeleteBook: (BookPreview) -> Unit,
+    onShareBook: (BookPreview) -> Unit,
+    onToggleWantToRead: (BookPreview) -> Unit,
+    onToggleFinished: (BookPreview) -> Unit,
+    onShowDetails: (BookPreview) -> Unit,
     modifier: Modifier = Modifier,
     activeBookId: String? = null,
     isPlaying: Boolean = false,
@@ -49,7 +49,7 @@ fun AudiobookGrid(
             LibrarySortOption.TITLE -> audiobooks.sortedBy { it.title.lowercase() }
             LibrarySortOption.AUTHOR -> audiobooks.sortedBy { it.author?.lowercase() ?: "" }
             LibrarySortOption.RECENT -> audiobooks.sortedWith(
-                compareByDescending<Book> { it.lastOpenedAt != null }
+                compareByDescending<BookPreview> { it.lastOpenedAt != null }
                     .thenByDescending { it.lastOpenedAt }
             )
         }

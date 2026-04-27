@@ -49,7 +49,7 @@ import com.example.liber.core.designsystem.LiberNavRail
 import com.example.liber.core.navigation.AppNavHost
 import com.example.liber.core.navigation.AppRoute
 import com.example.liber.core.navigation.AppTab
-import com.example.liber.data.model.Book
+import com.example.liber.data.model.BookPreview
 import com.example.liber.data.model.ScanSource
 import com.example.liber.feature.audiobook.AudioPlayerScreen
 import com.example.liber.feature.audiobook.AudiobookPlayerViewModel
@@ -117,7 +117,9 @@ fun LiberApp(
 
     val isReaderOpen by liberAppViewModel.isReaderOpen.collectAsState()
     val book = remember(activeBook?.id, allBooks, isReaderOpen) {
-        allBooks.find { it.id == activeBook?.id } ?: activeBook
+        // activeBook in LiberAppViewModel is already a full Book.
+        // We always use that for immersive screens.
+        activeBook
     }
     val isPlayingGlobal by liberAppViewModel.isPlaying.collectAsState()
     val playWhenReadyGlobal by liberAppViewModel.playWhenReady.collectAsState()
@@ -129,14 +131,16 @@ fun LiberApp(
     val playerDurationMs by audiobookPlayerViewModel.durationMs.collectAsState()
 
     LaunchedEffect(book?.id) {
-        if (book != null && book.isAudiobook) {
-            audiobookPlayerViewModel.loadBook(book)
+        val currentBook = book
+        if (currentBook != null && currentBook.isAudiobook) {
+            audiobookPlayerViewModel.loadBook(currentBook)
         }
     }
 
     LaunchedEffect(book?.title, book?.author, book?.coverUri, book?.narrator) {
-        if (book != null && book.isAudiobook) {
-            audiobookPlayerViewModel.updateMetadataIfLoaded(book)
+        val currentBook = book
+        if (currentBook != null && currentBook.isAudiobook) {
+            audiobookPlayerViewModel.updateMetadataIfLoaded(currentBook)
         }
     }
 
@@ -239,14 +243,20 @@ fun LiberApp(
         }
     }
 
-    val onOpenBook: (Book) -> Unit = { bookToOpen ->
-        if (bookToOpen.isAudiobook) {
-            liberAppViewModel.openAudiobook(bookToOpen)
-            scope.launch { homeViewModel.openBook(bookToOpen) }
+    val onOpenBook: (BookPreview) -> Unit = { previewToOpen ->
+        if (previewToOpen.isAudiobook) {
+            liberAppViewModel.openAudiobook(previewToOpen)
+            scope.launch {
+                val fullBook = homeViewModel.bookRepository.getBookById(previewToOpen.id)
+                fullBook?.let { homeViewModel.openBook(it) }
+            }
         } else {
             scope.launch {
-                homeViewModel.openBook(bookToOpen)
-                liberAppViewModel.openEpub(bookToOpen)
+                val fullBook = homeViewModel.bookRepository.getBookById(previewToOpen.id)
+                fullBook?.let {
+                    homeViewModel.openBook(it)
+                    liberAppViewModel.openEpub(it)
+                }
             }
         }
     }
@@ -272,20 +282,21 @@ fun LiberApp(
     // ── Root layout ──────────────────────────────────────────────────────────
     Box(modifier = Modifier.fillMaxSize()) {
         if (showEpubReader) {
+            val currentBook = book!!
             ReaderScreen(
-                bookUri = book.fileUri,
-                bookTitle = book.title,
-                bookId = book.id,
-                bookLanguage = book.language,
+                bookUri = currentBook.fileUri,
+                bookTitle = currentBook.title,
+                bookId = currentBook.id,
+                bookLanguage = currentBook.language,
                 dictionaryViewModel = dictionaryViewModel,
                 userPreferencesRepository = userPreferencesRepository,
-                initialXPointer = book.lastLocator,
+                initialXPointer = currentBook.lastLocator,
                 annotations = annotations,
                 bookmarks = bookmarks,
                 pendingAnnotationRequest = pendingAnnotationRequest,
                 onRequestAnnotation = { request -> homeViewModel.requestAnnotation(request) },
                 onSaveLocator = { xpointer, progress ->
-                    homeViewModel.saveLocator(book.id, xpointer, progress)
+                    homeViewModel.saveLocator(currentBook.id, xpointer, progress)
                 },
                 onSaveAnnotation = { annotation -> homeViewModel.saveAnnotation(annotation) },
                 onDeleteAnnotation = { annotationId -> homeViewModel.deleteAnnotation(annotationId) },
@@ -307,7 +318,7 @@ fun LiberApp(
                                 exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
                             ) {
                                 NowPlayingBar(
-                                    book = book,
+                                    book = book!!,
                                     isPlaying = playWhenReadyGlobal,
                                     progress = playerProgress,
                                     onTogglePlay = { audiobookPlayerViewModel.togglePlayPause() },
@@ -364,18 +375,24 @@ fun LiberApp(
                                 dictionaryViewModel = dictionaryViewModel,
                                 onOpenBook = onOpenBook,
                                 onAddBooks = onAddBooks,
-                                onShareBook = { bookToShare ->
-                                    val intent = Intent(Intent.ACTION_SEND).apply {
-                                        type = "application/epub+zip"
-                                        putExtra(Intent.EXTRA_STREAM, bookToShare.fileUri)
-                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                onShareBook = { previewToShare ->
+                                    scope.launch {
+                                        val fullBook =
+                                            homeViewModel.bookRepository.getBookById(previewToShare.id)
+                                        fullBook?.let { bookToShare ->
+                                            val intent = Intent(Intent.ACTION_SEND).apply {
+                                                type = "application/epub+zip"
+                                                putExtra(Intent.EXTRA_STREAM, bookToShare.fileUri)
+                                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                            }
+                                            context.startActivity(
+                                                Intent.createChooser(
+                                                    intent,
+                                                    "Share Book"
+                                                )
+                                            )
+                                        }
                                     }
-                                    context.startActivity(
-                                        Intent.createChooser(
-                                            intent,
-                                            "Share Book"
-                                        )
-                                    )
                                 },
                                 onScanFolder = onScanFolder,
                                 onRescanFolder = onRescanFolder,
@@ -392,7 +409,7 @@ fun LiberApp(
             }
         }
 
-        val isAudiobookOverlay = book != null && (book.isAudiobook)
+        val isAudiobookOverlay = book != null && (book!!.isAudiobook)
         if (isAudiobookOverlay) {
             AnimatedVisibility(
                 visible = isReaderOpen,
@@ -406,7 +423,7 @@ fun LiberApp(
                 ) + fadeOut(),
             ) {
                 AudioPlayerScreen(
-                    book = book,
+                    book = book!!,
                     liberAppViewModel = liberAppViewModel,
                     homeViewModel = homeViewModel,
                     audiobookPlayerViewModel = audiobookPlayerViewModel,

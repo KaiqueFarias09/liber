@@ -10,7 +10,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.example.liber.data.model.Book
+import com.example.liber.data.model.BookPreview
 import com.example.liber.data.model.ScanSource
 import com.example.liber.feature.collections.CollectionDetailRoute
 import com.example.liber.feature.collections.CollectionDetailViewModel
@@ -52,9 +52,9 @@ fun AppNavHost(
     liberAppViewModel: LiberAppViewModel,
     settingsViewModel: SettingsViewModel,
     dictionaryViewModel: DictionaryViewModel,
-    onOpenBook: (Book) -> Unit,
+    onOpenBook: (BookPreview) -> Unit,
     onAddBooks: () -> Unit,
-    onShareBook: (Book) -> Unit,
+    onShareBook: (BookPreview) -> Unit,
     onScanFolder: () -> Unit,
     onRescanFolder: (ScanSource) -> Unit,
     onRemoveScanFolder: (ScanSource) -> Unit,
@@ -152,8 +152,18 @@ fun AppNavHost(
                 onBack = { navController.popBackStack() },
                 onOpenBook = onOpenBook,
                 onShareBook = onShareBook,
-                onToggleWantToRead = { book -> homeViewModel.toggleWantToRead(book.id, book.wantToRead) },
-                onToggleFinished = { book -> homeViewModel.toggleFinished(book.id, book.readingProgress == 100) },
+                onToggleWantToRead = { book ->
+                    homeViewModel.toggleWantToRead(
+                        book.id,
+                        book.wantToRead
+                    )
+                },
+                onToggleFinished = { book ->
+                    homeViewModel.toggleFinished(
+                        book.id,
+                        book.readingProgress == 100
+                    )
+                },
                 homeViewModel = homeViewModel,
                 activeBookId = activeBook?.id,
                 isPlaying = isPlaying,

@@ -29,6 +29,7 @@ import com.example.liber.core.designsystem.ScanProgressBanner
 import com.example.liber.core.util.UiState
 import com.example.liber.core.util.UiText
 import com.example.liber.data.model.Book
+import com.example.liber.data.model.BookPreview
 import com.example.liber.data.model.ScanState
 import com.example.liber.feature.audiobook.components.AudiobookGrid
 import com.example.liber.feature.collections.CollectionUiState
@@ -40,18 +41,18 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun LibraryScreen(
-    booksState: UiState<List<Book>>,
-    onBookClick: (Book) -> Unit,
+    booksState: UiState<List<BookPreview>>,
+    onBookClick: (BookPreview) -> Unit,
     onAddBooks: () -> Unit,
-    onToggleWantToRead: (Book) -> Unit,
-    onToggleFinished: (Book) -> Unit,
-    onShowDetails: (Book) -> Unit,
-    onDeleteBook: (Book) -> Unit,
-    onShareBook: (Book) -> Unit,
+    onToggleWantToRead: (BookPreview) -> Unit,
+    onToggleFinished: (BookPreview) -> Unit,
+    onShowDetails: (BookPreview) -> Unit,
+    onDeleteBook: (BookPreview) -> Unit,
+    onShareBook: (BookPreview) -> Unit,
     modifier: Modifier = Modifier,
     scanState: ScanState = ScanState.Idle,
     onDismissScanBanner: () -> Unit = {},
-    onAddToCollection: (Book, Long) -> Unit = { _, _ -> },
+    onAddToCollection: (BookPreview, Long) -> Unit = { _, _ -> },
     collectionsState: UiState<List<CollectionUiState>> = UiState.Loading,
     onCreateCollection: (String) -> Unit = {},
     onCollectionClick: (Long?) -> Unit = {},
@@ -178,16 +179,16 @@ fun LibraryScreen(
 
 @Composable
 private fun LibraryBooksTab(
-    booksState: UiState<List<Book>>,
+    booksState: UiState<List<BookPreview>>,
     isAudiobook: Boolean,
-    onBookClick: (Book) -> Unit,
+    onBookClick: (BookPreview) -> Unit,
     onAddBooks: () -> Unit,
-    onToggleWantToRead: (Book) -> Unit,
-    onToggleFinished: (Book) -> Unit,
-    onShowDetails: (Book) -> Unit,
-    onDeleteBook: (Book) -> Unit,
-    onShareBook: (Book) -> Unit,
-    onAddToCollection: (Book, Long) -> Unit,
+    onToggleWantToRead: (BookPreview) -> Unit,
+    onToggleFinished: (BookPreview) -> Unit,
+    onShowDetails: (BookPreview) -> Unit,
+    onDeleteBook: (BookPreview) -> Unit,
+    onShareBook: (BookPreview) -> Unit,
+    onAddToCollection: (BookPreview, Long) -> Unit,
     collections: List<CollectionUiState>,
     viewMode: LibraryViewMode,
     onViewModeChange: (LibraryViewMode) -> Unit,
@@ -274,9 +275,9 @@ private fun LoadingState() {
 @Composable
 fun LibraryScreen(
     viewModel: HomeViewModel,
-    onBookClick: (Book) -> Unit,
+    onBookClick: (BookPreview) -> Unit,
     onAddBooks: () -> Unit,
-    onShareBook: (Book) -> Unit,
+    onShareBook: (BookPreview) -> Unit,
     collectionsViewModel: CollectionsViewModel,
     liberAppViewModel: com.example.liber.ui.LiberAppViewModel,
     onCollectionClick: (Long?) -> Unit,
@@ -294,7 +295,14 @@ fun LibraryScreen(
     val isPlaying by liberAppViewModel.isPlaying.collectAsState()
     val selectedTabIndex by liberAppViewModel.libraryTabIndex.collectAsState()
 
-    var selectedBookForDetails by remember { mutableStateOf<Book?>(null) }
+    var selectedBookForDetails by remember { mutableStateOf<BookPreview?>(null) }
+    var fullBookDetail by remember { mutableStateOf<Book?>(null) }
+
+    LaunchedEffect(selectedBookForDetails) {
+        selectedBookForDetails?.let { preview ->
+            fullBookDetail = viewModel.bookRepository.getBookById(preview.id)
+        }
+    }
 
     LibraryScreen(
         booksState = booksState,
@@ -330,13 +338,20 @@ fun LibraryScreen(
         isPlaying = isPlaying,
     )
 
-    selectedBookForDetails?.let { book ->
+    fullBookDetail?.let { book ->
         BookDetailsBottomSheet(
             book = book,
             homeViewModel = viewModel,
-            onDismiss = { selectedBookForDetails = null },
-            onDelete = { viewModel.deleteBook(book.id) },
-            onShare = { onShareBook(book) },
+            onDismiss = {
+                selectedBookForDetails = null
+                fullBookDetail = null
+            },
+            onDelete = {
+                viewModel.deleteBook(book.id)
+                selectedBookForDetails = null
+                fullBookDetail = null
+            },
+            onShare = { onShareBook(selectedBookForDetails!!) },
         )
     }
 }

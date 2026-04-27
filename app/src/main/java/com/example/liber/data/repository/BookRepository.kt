@@ -5,6 +5,7 @@ import com.example.liber.core.logging.BaseRepository
 import com.example.liber.data.local.BookDao
 import com.example.liber.data.model.Annotation
 import com.example.liber.data.model.Book
+import com.example.liber.data.model.BookPreview
 import com.example.liber.data.model.Bookmark
 import kotlinx.coroutines.flow.Flow
 
@@ -15,21 +16,31 @@ class BookRepository(
 
     fun getAllBooks(): Flow<List<Book>> = observeOperation("getAllBooks", upstream = bookDao.getAllBooks())
 
-    fun getContinueReadingBooks(threshold: Long): Flow<List<Book>> = observeOperation(
-        operationName = "getContinueReadingBooks",
-        parameters = mapOf("threshold" to threshold),
-        upstream = bookDao.getContinueReadingBooks(threshold),
+    fun getAllBookPreviews(): Flow<List<BookPreview>> = observeOperation(
+        "getAllBookPreviews",
+        upstream = bookDao.getAllBookPreviews(),
     )
 
-    fun getPreviousBooks(threshold: Long): Flow<List<Book>> = observeOperation(
-        operationName = "getPreviousBooks",
+    suspend fun getBookById(id: String): Book? = executeOperation(
+        operationName = "getBookById",
+        parameters = mapOf("id" to id),
+    ) { bookDao.getBookById(id) }
+
+    fun getContinueReadingBookPreviews(threshold: Long): Flow<List<BookPreview>> = observeOperation(
+        operationName = "getContinueReadingBookPreviews",
         parameters = mapOf("threshold" to threshold),
-        upstream = bookDao.getPreviousBooks(threshold),
+        upstream = bookDao.getContinueReadingBookPreviews(threshold),
     )
 
-    fun getWantToReadBooks(): Flow<List<Book>> = observeOperation(
-        "getWantToReadBooks",
-        upstream = bookDao.getWantToReadBooks(),
+    fun getPreviousBookPreviews(threshold: Long): Flow<List<BookPreview>> = observeOperation(
+        operationName = "getPreviousBookPreviews",
+        parameters = mapOf("threshold" to threshold),
+        upstream = bookDao.getPreviousBookPreviews(threshold),
+    )
+
+    fun getWantToReadBookPreviews(): Flow<List<BookPreview>> = observeOperation(
+        "getWantToReadBookPreviews",
+        upstream = bookDao.getWantToReadBookPreviews(),
     )
 
     suspend fun getBookByFileUri(fileUri: String): Book? = executeOperation(

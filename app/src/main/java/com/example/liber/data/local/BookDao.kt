@@ -6,6 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.example.liber.data.model.Annotation
 import com.example.liber.data.model.Book
+import com.example.liber.data.model.BookPreview
 import com.example.liber.data.model.Bookmark
 import kotlinx.coroutines.flow.Flow
 
@@ -14,17 +15,23 @@ interface BookDao {
     @Query("SELECT * FROM books ORDER BY title ASC")
     fun getAllBooks(): Flow<List<Book>>
 
+    @Query("SELECT id, title, author, coverUri, mediaType, lastOpenedAt, wantToRead, readingProgress, durationMillis FROM books ORDER BY title ASC")
+    fun getAllBookPreviews(): Flow<List<BookPreview>>
+
+    @Query("SELECT * FROM books WHERE id = :id")
+    suspend fun getBookById(id: String): Book?
+
     @Query("SELECT * FROM books ORDER BY title ASC")
     suspend fun getAllBooksList(): List<Book>
 
-    @Query("SELECT * FROM books WHERE wantToRead = 0 AND lastOpenedAt IS NOT NULL AND lastOpenedAt >= :threshold ORDER BY lastOpenedAt DESC")
-    fun getContinueReadingBooks(threshold: Long): Flow<List<Book>>
+    @Query("SELECT id, title, author, coverUri, mediaType, lastOpenedAt, wantToRead, readingProgress, durationMillis FROM books WHERE wantToRead = 0 AND lastOpenedAt IS NOT NULL AND lastOpenedAt >= :threshold ORDER BY lastOpenedAt DESC")
+    fun getContinueReadingBookPreviews(threshold: Long): Flow<List<BookPreview>>
 
-    @Query("SELECT * FROM books WHERE lastOpenedAt IS NOT NULL AND lastOpenedAt < :threshold ORDER BY lastOpenedAt DESC")
-    fun getPreviousBooks(threshold: Long): Flow<List<Book>>
+    @Query("SELECT id, title, author, coverUri, mediaType, lastOpenedAt, wantToRead, readingProgress, durationMillis FROM books WHERE lastOpenedAt IS NOT NULL AND lastOpenedAt < :threshold ORDER BY lastOpenedAt DESC")
+    fun getPreviousBookPreviews(threshold: Long): Flow<List<BookPreview>>
 
-    @Query("SELECT * FROM books WHERE wantToRead = 1 ORDER BY title ASC")
-    fun getWantToReadBooks(): Flow<List<Book>>
+    @Query("SELECT id, title, author, coverUri, mediaType, lastOpenedAt, wantToRead, readingProgress, durationMillis FROM books WHERE wantToRead = 1 ORDER BY title ASC")
+    fun getWantToReadBookPreviews(): Flow<List<BookPreview>>
 
     @Query("SELECT * FROM books WHERE fileUri = :fileUri LIMIT 1")
     suspend fun getBookByFileUri(fileUri: String): Book?

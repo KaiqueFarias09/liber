@@ -10,6 +10,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,6 +36,7 @@ import com.example.liber.core.designsystem.LiberScreen
 import com.example.liber.core.util.UiState
 import com.example.liber.core.util.UiText
 import com.example.liber.data.model.Book
+import com.example.liber.data.model.BookPreview
 import com.example.liber.feature.collections.components.AddBooksDialog
 import com.example.liber.feature.collections.components.CollectionNameDialog
 import com.example.liber.feature.collections.components.DeleteCollectionDialog
@@ -45,17 +47,24 @@ import com.example.liber.feature.library.LibraryViewMode
 fun CollectionDetailRoute(
     viewModel: CollectionDetailViewModel,
     onBack: () -> Unit,
-    onOpenBook: (Book) -> Unit,
-    onShareBook: (Book) -> Unit,
-    onToggleWantToRead: (Book) -> Unit,
-    onToggleFinished: (Book) -> Unit,
+    onOpenBook: (BookPreview) -> Unit,
+    onShareBook: (BookPreview) -> Unit,
+    onToggleWantToRead: (BookPreview) -> Unit,
+    onToggleFinished: (BookPreview) -> Unit,
     homeViewModel: com.example.liber.feature.home.HomeViewModel,
     activeBookId: String? = null,
     isPlaying: Boolean = false,
 ) {
     val collectionState by viewModel.collectionState.collectAsState()
     val allBooks by viewModel.allBooks.collectAsState()
-    var selectedBookForDetails by remember { mutableStateOf<Book?>(null) }
+    var selectedBookForDetails by remember { mutableStateOf<BookPreview?>(null) }
+    var fullBookDetail by remember { mutableStateOf<Book?>(null) }
+
+    LaunchedEffect(selectedBookForDetails) {
+        selectedBookForDetails?.let { preview ->
+            fullBookDetail = homeViewModel.bookRepository.getBookById(preview.id)
+        }
+    }
 
     CollectionDetailScreen(
         collectionState = collectionState,
@@ -77,13 +86,20 @@ fun CollectionDetailRoute(
         isAudiobookPlaying = isPlaying,
     )
 
-    selectedBookForDetails?.let { book ->
+    fullBookDetail?.let { book ->
         com.example.liber.feature.home.components.BookDetailsBottomSheet(
             book = book,
             homeViewModel = homeViewModel,
-            onDismiss = { selectedBookForDetails = null },
-            onDelete = { homeViewModel.deleteBook(book.id) },
-            onShare = { onShareBook(book) },
+            onDismiss = {
+                selectedBookForDetails = null
+                fullBookDetail = null
+            },
+            onDelete = {
+                homeViewModel.deleteBook(book.id)
+                selectedBookForDetails = null
+                fullBookDetail = null
+            },
+            onShare = { onShareBook(selectedBookForDetails!!) },
         )
     }
 }
@@ -91,17 +107,17 @@ fun CollectionDetailRoute(
 @Composable
 fun CollectionDetailScreen(
     collectionState: UiState<CollectionDetailUiState>,
-    allBooks: List<Book>,
+    allBooks: List<BookPreview>,
     onBack: () -> Unit,
     onRename: (String) -> Unit,
     onDelete: () -> Unit,
     onAddBook: (String) -> Unit,
     onRemoveBook: (String) -> Unit,
-    onOpenBook: (Book) -> Unit,
-    onShareBook: (Book) -> Unit,
-    onToggleWantToRead: (Book) -> Unit,
-    onToggleFinished: (Book) -> Unit,
-    onShowDetails: (Book) -> Unit,
+    onOpenBook: (BookPreview) -> Unit,
+    onShareBook: (BookPreview) -> Unit,
+    onToggleWantToRead: (BookPreview) -> Unit,
+    onToggleFinished: (BookPreview) -> Unit,
+    onShowDetails: (BookPreview) -> Unit,
     viewMode: LibraryViewMode = LibraryViewMode.GRID,
     onViewModeChange: (LibraryViewMode) -> Unit = {},
     sortOption: LibrarySortOption = LibrarySortOption.RECENT,
@@ -152,17 +168,17 @@ fun CollectionDetailScreen(
 @Composable
 private fun CollectionDetailContent(
     collection: CollectionDetailUiState,
-    allBooks: List<Book>,
+    allBooks: List<BookPreview>,
     onBack: () -> Unit,
     onRename: (String) -> Unit,
     onDelete: () -> Unit,
     onAddBook: (String) -> Unit,
     onRemoveBook: (String) -> Unit,
-    onOpenBook: (Book) -> Unit,
-    onShareBook: (Book) -> Unit,
-    onToggleWantToRead: (Book) -> Unit,
-    onToggleFinished: (Book) -> Unit,
-    onShowDetails: (Book) -> Unit,
+    onOpenBook: (BookPreview) -> Unit,
+    onShareBook: (BookPreview) -> Unit,
+    onToggleWantToRead: (BookPreview) -> Unit,
+    onToggleFinished: (BookPreview) -> Unit,
+    onShowDetails: (BookPreview) -> Unit,
     viewMode: LibraryViewMode,
     onViewModeChange: (LibraryViewMode) -> Unit,
     sortOption: LibrarySortOption,
