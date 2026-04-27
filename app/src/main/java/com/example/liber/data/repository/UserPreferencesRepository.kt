@@ -1,6 +1,5 @@
 package com.example.liber.data.repository
 
-import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -8,7 +7,6 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import com.example.liber.core.logging.AppLogger
 import com.example.liber.core.logging.BaseRepository
 import com.example.liber.feature.library.LibrarySortOption
@@ -43,8 +41,11 @@ class UserPreferencesRepository(
         val AUDIOBOOKS_SORT_OPTION = stringPreferencesKey("audiobooks_sort_option")
         val READING_GOAL_MINUTES = intPreferencesKey("reading_goal_minutes")
         val DICTIONARY_HISTORY_ENABLED = booleanPreferencesKey("dictionary_history_enabled")
-        val DICTIONARY_HISTORY_RETENTION_DAYS = intPreferencesKey("dictionary_history_retention_days")
-        val SMART_RECOGNITION_INFO_DISMISSED = booleanPreferencesKey("smart_recognition_info_dismissed")
+        val DICTIONARY_HISTORY_RETENTION_DAYS =
+            intPreferencesKey("dictionary_history_retention_days")
+        val SMART_RECOGNITION_INFO_DISMISSED =
+            booleanPreferencesKey("smart_recognition_info_dismissed")
+        val AUTO_COLLECTIONS_ENABLED = booleanPreferencesKey("auto_collections_enabled")
     }
 
     val themeMode: Flow<ThemeMode> = dataStore.data
@@ -222,6 +223,9 @@ class UserPreferencesRepository(
     val smartRecognitionInfoDismissed: Flow<Boolean> = dataStore.data
         .map { it[PreferencesKeys.SMART_RECOGNITION_INFO_DISMISSED] ?: false }
 
+    val autoCollectionsEnabled: Flow<Boolean> = dataStore.data
+        .map { it[PreferencesKeys.AUTO_COLLECTIONS_ENABLED] ?: true }
+
     suspend fun setAudiobooksSortOption(option: LibrarySortOption) = executeOperation(
         operationName = "setAudiobooksSortOption",
         parameters = mapOf("option" to option.name),
@@ -255,6 +259,13 @@ class UserPreferencesRepository(
         parameters = mapOf("dismissed" to dismissed),
     ) {
         dataStore.edit { it[PreferencesKeys.SMART_RECOGNITION_INFO_DISMISSED] = dismissed }
+    }
+
+    suspend fun setAutoCollectionsEnabled(enabled: Boolean) = executeOperation(
+        operationName = "setAutoCollectionsEnabled",
+        parameters = mapOf("enabled" to enabled),
+    ) {
+        dataStore.edit { it[PreferencesKeys.AUTO_COLLECTIONS_ENABLED] = enabled }
     }
 
     suspend fun resetReaderSettings() = executeOperation("resetReaderSettings") {

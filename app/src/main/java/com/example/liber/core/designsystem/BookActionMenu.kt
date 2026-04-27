@@ -26,7 +26,7 @@ fun BookActionMenu(
     onToggleFinished: () -> Unit,
     onShowDetails: () -> Unit,
     onDelete: () -> Unit,
-    deleteLabel: UiText = UiText.StringResource(R.string.action_remove_ellipsis),
+    deleteLabel: UiText? = UiText.StringResource(R.string.action_remove_ellipsis),
     showAddToCollection: Boolean = false,
     onAddToCollection: (() -> Unit)? = null,
 ) {
@@ -65,12 +65,14 @@ fun BookActionMenu(
             icon = PhosphorIcons.Regular.PencilSimple,
             onClick = { onShowDetails(); onDismiss() },
         )
-        LiberContextMenuDivider()
-        LiberContextMenuItem(
-            label = deleteLabel,
-            icon = PhosphorIcons.Regular.Trash,
-            destructive = true,
-            onClick = { onDelete(); onDismiss() },
-        )
+        if (deleteLabel != null) {
+            LiberContextMenuDivider()
+            LiberContextMenuItem(
+                label = deleteLabel,
+                icon = PhosphorIcons.Regular.Trash,
+                destructive = true,
+                onClick = { onDelete(); onDismiss() },
+            )
+        }
     }
 }

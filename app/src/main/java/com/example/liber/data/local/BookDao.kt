@@ -15,7 +15,7 @@ interface BookDao {
     @Query("SELECT * FROM books ORDER BY title ASC")
     fun getAllBooks(): Flow<List<Book>>
 
-    @Query("SELECT id, title, author, coverUri, mediaType, lastOpenedAt, wantToRead, readingProgress, durationMillis FROM books ORDER BY title ASC")
+    @Query("SELECT id, title, author, coverUri, mediaType, lastOpenedAt, wantToRead, readingProgress, durationMillis, addedAt, finishedAt FROM books ORDER BY title ASC")
     fun getAllBookPreviews(): Flow<List<BookPreview>>
 
     @Query("SELECT * FROM books WHERE id = :id")
@@ -24,13 +24,13 @@ interface BookDao {
     @Query("SELECT * FROM books ORDER BY title ASC")
     suspend fun getAllBooksList(): List<Book>
 
-    @Query("SELECT id, title, author, coverUri, mediaType, lastOpenedAt, wantToRead, readingProgress, durationMillis FROM books WHERE wantToRead = 0 AND lastOpenedAt IS NOT NULL AND lastOpenedAt >= :threshold ORDER BY lastOpenedAt DESC")
+    @Query("SELECT id, title, author, coverUri, mediaType, lastOpenedAt, wantToRead, readingProgress, durationMillis, addedAt, finishedAt FROM books WHERE wantToRead = 0 AND lastOpenedAt IS NOT NULL AND lastOpenedAt >= :threshold ORDER BY lastOpenedAt DESC")
     fun getContinueReadingBookPreviews(threshold: Long): Flow<List<BookPreview>>
 
-    @Query("SELECT id, title, author, coverUri, mediaType, lastOpenedAt, wantToRead, readingProgress, durationMillis FROM books WHERE lastOpenedAt IS NOT NULL AND lastOpenedAt < :threshold ORDER BY lastOpenedAt DESC")
+    @Query("SELECT id, title, author, coverUri, mediaType, lastOpenedAt, wantToRead, readingProgress, durationMillis, addedAt, finishedAt FROM books WHERE lastOpenedAt IS NOT NULL AND lastOpenedAt < :threshold ORDER BY lastOpenedAt DESC")
     fun getPreviousBookPreviews(threshold: Long): Flow<List<BookPreview>>
 
-    @Query("SELECT id, title, author, coverUri, mediaType, lastOpenedAt, wantToRead, readingProgress, durationMillis FROM books WHERE wantToRead = 1 ORDER BY title ASC")
+    @Query("SELECT id, title, author, coverUri, mediaType, lastOpenedAt, wantToRead, readingProgress, durationMillis, addedAt, finishedAt FROM books WHERE wantToRead = 1 ORDER BY title ASC")
     fun getWantToReadBookPreviews(): Flow<List<BookPreview>>
 
     @Query("SELECT * FROM books WHERE fileUri = :fileUri LIMIT 1")
@@ -65,6 +65,9 @@ interface BookDao {
 
     @Query("UPDATE books SET lastLocator = :locator, readingProgress = :progress WHERE id = :id")
     suspend fun updateLastLocator(id: String, locator: String?, progress: Int)
+
+    @Query("UPDATE books SET finishedAt = :finishedAt WHERE id = :id")
+    suspend fun updateFinishedAt(id: String, finishedAt: Long?)
 
     @Query("UPDATE books SET durationMillis = :duration WHERE id = :id")
     suspend fun updateDuration(id: String, duration: Long)

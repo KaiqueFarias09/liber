@@ -12,6 +12,8 @@ data class BookPreview(
     val wantToRead: Boolean = false,
     val readingProgress: Int = 0,
     val durationMillis: Long? = null,
+    val addedAt: Long = 0,
+    val finishedAt: Long? = null,
 ) {
     val isAudiobook: Boolean
         get() = mediaType == "audio/mpeg" || mediaType == "audiobook"

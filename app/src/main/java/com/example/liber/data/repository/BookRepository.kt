@@ -14,7 +14,8 @@ class BookRepository(
     appLogger: AppLogger,
 ) : BaseRepository("BookRepository", appLogger) {
 
-    fun getAllBooks(): Flow<List<Book>> = observeOperation("getAllBooks", upstream = bookDao.getAllBooks())
+    fun getAllBooks(): Flow<List<Book>> =
+        observeOperation("getAllBooks", upstream = bookDao.getAllBooks())
 
     fun getAllBookPreviews(): Flow<List<BookPreview>> = observeOperation(
         "getAllBookPreviews",
@@ -67,10 +68,15 @@ class BookRepository(
     suspend fun updateMetadata(id: String, title: String, author: String?, narrator: String?) =
         executeOperation(
             operationName = "updateMetadata",
-            parameters = mapOf("id" to id, "title" to title, "author" to author, "narrator" to narrator),
+            parameters = mapOf(
+                "id" to id,
+                "title" to title,
+                "author" to author,
+                "narrator" to narrator
+            ),
         ) {
-        bookDao.updateMetadata(id, title, author, narrator)
-    }
+            bookDao.updateMetadata(id, title, author, narrator)
+        }
 
     suspend fun updateFullMetadata(
         id: String,
@@ -80,7 +86,13 @@ class BookRepository(
         narrator: String?
     ) = executeOperation(
         operationName = "updateFullMetadata",
-        parameters = mapOf("id" to id, "title" to title, "author" to author, "hasCover" to (coverPath != null), "narrator" to narrator),
+        parameters = mapOf(
+            "id" to id,
+            "title" to title,
+            "author" to author,
+            "hasCover" to (coverPath != null),
+            "narrator" to narrator
+        ),
     ) {
         bookDao.updateFullMetadata(id, title, author, coverPath, narrator)
     }
@@ -118,15 +130,27 @@ class BookRepository(
         parameters = mapOf("id" to id, "hasLocator" to (locator != null), "progress" to progress),
     ) {
         bookDao.updateLastLocator(id, locator, progress)
+        if (progress == 100) {
+            bookDao.updateFinishedAt(id, System.currentTimeMillis())
+        } else {
+            bookDao.updateFinishedAt(id, null)
+        }
     }
 
     suspend fun updateLastLocatorQuietly(id: String, locator: String?, progress: Int) =
         executeOperation(
             operationName = "updateLastLocatorQuietly",
-            parameters = mapOf("id" to id, "hasLocator" to (locator != null), "progress" to progress),
+            parameters = mapOf(
+                "id" to id,
+                "hasLocator" to (locator != null),
+                "progress" to progress
+            ),
         ) {
-        bookDao.updateLastLocator(id, locator, progress)
-    }
+            bookDao.updateLastLocator(id, locator, progress)
+            if (progress == 100) {
+                bookDao.updateFinishedAt(id, System.currentTimeMillis())
+            }
+        }
 
     suspend fun updateDuration(id: String, duration: Long) = executeOperation(
         operationName = "updateDuration",

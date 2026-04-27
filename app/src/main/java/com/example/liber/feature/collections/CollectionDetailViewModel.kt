@@ -17,12 +17,14 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import java.util.Calendar
 import javax.inject.Inject
 
 data class CollectionDetailUiState(
     val id: Long,
     val name: String,
     val books: List<BookPreview>,
+    val isSmart: Boolean = false,
 )
 
 @HiltViewModel
@@ -36,26 +38,72 @@ class CollectionDetailViewModel @Inject constructor(
 
     private val collectionId: Long = checkNotNull(savedStateHandle["collectionId"])
 
-    val collectionState: StateFlow<UiState<CollectionDetailUiState>> = collectionRepository
-        .getCollectionWithPreviews(collectionId)
-        .map { map ->
-            val withCount = map.keys.firstOrNull()
-            if (withCount != null) {
-                UiState.Success(
-                    CollectionDetailUiState(
-                        id = withCount.collection.id,
-                        name = withCount.collection.name,
-                        books = map[withCount] ?: emptyList(),
-                    )
-                )
-            } else {
-                UiState.Error(UiText.DynamicString("Collection not found"))
-            }
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UiState.Loading)
-
     val allBooks: StateFlow<List<BookPreview>> = bookRepository.getAllBookPreviews()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val collectionState: StateFlow<UiState<CollectionDetailUiState>> = if (collectionId < 0) {
+        // Smart Collection
+        allBooks.map { books ->
+            val (name, filteredBooks) = when {
+                collectionId == -1L -> {
+                    val sevenDaysAgo = System.currentTimeMillis() - (7 * 24 * 60 * 60 * 1000L)
+                    "Recently Added" to books.filter { it.addedAt >= sevenDaysAgo }
+                        .sortedByDescending { it.addedAt }
+                }
+
+                collectionId == -2L -> {
+                    val thirtyDaysAgo = System.currentTimeMillis() - (30 * 24 * 60 * 60 * 1000L)
+                    "Abandoned" to books.filter {
+                        it.readingProgress in 1..99 && (it.lastOpenedAt ?: 0L) < thirtyDaysAgo
+                    }.sortedByDescending { it.lastOpenedAt }
+                }
+
+                collectionId <= -100L -> {
+                    val year = (-collectionId - 100).toInt()
+                    val calendar = Calendar.getInstance()
+                    "Finished $year" to books.filter {
+                        val finishedAt =
+                            it.finishedAt ?: (if (it.readingProgress == 100) it.lastOpenedAt
+                                ?: it.addedAt else null)
+                        if (finishedAt != null) {
+                            calendar.timeInMillis = finishedAt
+                            calendar.get(Calendar.YEAR) == year
+                        } else false
+                    }.sortedByDescending { it.finishedAt ?: it.lastOpenedAt }
+                }
+
+                else -> "Unknown" to emptyList<BookPreview>()
+            }
+
+            UiState.Success(
+                CollectionDetailUiState(
+                    id = collectionId,
+                    name = name,
+                    books = filteredBooks,
+                    isSmart = true
+                )
+            )
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UiState.Loading)
+    } else {
+        // Normal Collection
+        collectionRepository
+            .getCollectionWithPreviews(collectionId)
+            .map { map ->
+                val withCount = map.keys.firstOrNull()
+                if (withCount != null) {
+                    UiState.Success(
+                        CollectionDetailUiState(
+                            id = withCount.collection.id,
+                            name = withCount.collection.name,
+                            books = map[withCount] ?: emptyList(),
+                        )
+                    )
+                } else {
+                    UiState.Error(UiText.DynamicString("Collection not found"))
+                }
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UiState.Loading)
+    }
 
     fun renameCollection(name: String) {
         launchSafely(

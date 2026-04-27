@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.CaretRight
+import com.adamglin.phosphoricons.regular.MagicWand
 import com.adamglin.phosphoricons.regular.Plus
 import com.example.liber.R
 import com.example.liber.core.designsystem.BookCover
@@ -174,13 +175,25 @@ private fun CollectionShelfRow(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = collection.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (collection.isSmart) {
+                            Icon(
+                                imageVector = PhosphorIcons.Regular.MagicWand,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .padding(end = 6.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        Text(
+                            text = collection.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                     Text(
                         text = pluralStringResource(
                             R.plurals.label_books,

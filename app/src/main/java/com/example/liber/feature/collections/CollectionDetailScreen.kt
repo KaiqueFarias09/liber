@@ -203,35 +203,37 @@ private fun CollectionDetailContent(
         title = UiText.DynamicString(collection.name),
         onBack = onBack,
         headerActions = {
-            Box {
-                IconButton(onClick = { showMenu = true }) {
-                    Icon(
-                        imageVector = PhosphorIcons.Regular.DotsThreeVertical,
-                        contentDescription = "More options",
-                        tint = MaterialTheme.colorScheme.onBackground,
-                    )
-                }
-                LiberDropdownMenu(
-                    expanded = showMenu,
-                    onDismissRequest = { showMenu = false },
-                ) {
-                    LiberContextMenuItem(
-                        label = UiText.StringResource(R.string.action_add_books),
-                        icon = PhosphorIcons.Regular.Plus,
-                        onClick = { showMenu = false; showAddBooksSheet = true },
-                    )
-                    LiberContextMenuItem(
-                        label = UiText.StringResource(R.string.action_rename),
-                        icon = PhosphorIcons.Regular.PencilSimple,
-                        onClick = { showMenu = false; showRenameDialog = true },
-                    )
-                    LiberContextMenuDivider()
-                    LiberContextMenuItem(
-                        label = UiText.StringResource(R.string.action_delete_collection),
-                        icon = PhosphorIcons.Regular.Trash,
-                        destructive = true,
-                        onClick = { showMenu = false; showDeleteDialog = true },
-                    )
+            if (!collection.isSmart) {
+                Box {
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(
+                            imageVector = PhosphorIcons.Regular.DotsThreeVertical,
+                            contentDescription = "More options",
+                            tint = MaterialTheme.colorScheme.onBackground,
+                        )
+                    }
+                    LiberDropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false },
+                    ) {
+                        LiberContextMenuItem(
+                            label = UiText.StringResource(R.string.action_add_books),
+                            icon = PhosphorIcons.Regular.Plus,
+                            onClick = { showMenu = false; showAddBooksSheet = true },
+                        )
+                        LiberContextMenuItem(
+                            label = UiText.StringResource(R.string.action_rename),
+                            icon = PhosphorIcons.Regular.PencilSimple,
+                            onClick = { showMenu = false; showRenameDialog = true },
+                        )
+                        LiberContextMenuDivider()
+                        LiberContextMenuItem(
+                            label = UiText.StringResource(R.string.action_delete_collection),
+                            icon = PhosphorIcons.Regular.Trash,
+                            destructive = true,
+                            onClick = { showMenu = false; showDeleteDialog = true },
+                        )
+                    }
                 }
             }
         }
@@ -244,11 +246,13 @@ private fun CollectionDetailContent(
                 contentAlignment = Alignment.Center,
             ) {
                 EmptyState(
-                    title = UiText.StringResource(R.string.empty_collection_detail_title),
-                    subtitle = UiText.StringResource(R.string.empty_collection_detail_subtitle),
+                    title = if (collection.isSmart) UiText.StringResource(R.string.error_no_results)
+                    else UiText.StringResource(R.string.empty_collection_detail_title),
+                    subtitle = if (collection.isSmart) UiText.DynamicString("No books match this smart collection's criteria.")
+                    else UiText.StringResource(R.string.empty_collection_detail_subtitle),
                     image = R.drawable.collections_empty,
-                    actionLabel = UiText.StringResource(R.string.empty_collection_detail_action),
-                    onAction = { showAddBooksSheet = true },
+                    actionLabel = if (collection.isSmart) null else UiText.StringResource(R.string.empty_collection_detail_action),
+                    onAction = { if (!collection.isSmart) showAddBooksSheet = true },
                 )
             }
         } else {
@@ -272,13 +276,13 @@ private fun CollectionDetailContent(
                 onToggleWantToRead = onToggleWantToRead,
                 onToggleFinished = onToggleFinished,
                 onShowDetails = onShowDetails,
-                onDeleteBook = { onRemoveBook(it.id) },
+                onDeleteBook = { if (!collection.isSmart) onRemoveBook(it.id) },
                 onShareBook = onShareBook,
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
-                deleteLabel = UiText.StringResource(R.string.action_remove_from_collection),
+                deleteLabel = if (collection.isSmart) null else UiText.StringResource(R.string.action_remove_from_collection),
                 confirmDelete = false,
-                showAddToCollection = false,
+                showAddToCollection = true, // Still allow adding to other collections
                 viewMode = viewMode,
                 onViewModeChange = onViewModeChange,
                 sortOption = sortOption,

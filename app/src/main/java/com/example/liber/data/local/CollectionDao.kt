@@ -33,6 +33,8 @@ interface CollectionDao {
             b.wantToRead AS wantToRead,
             b.readingProgress AS readingProgress,
             b.durationMillis AS durationMillis,
+            b.addedAt AS addedAt,
+            b.finishedAt AS finishedAt,
             (SELECT COUNT(*) FROM book_collections WHERE collectionId = c.id) as totalBooks 
         FROM collections AS c
         LEFT JOIN book_collections ON c.id = book_collections.collectionId
@@ -66,6 +68,9 @@ interface CollectionDao {
             b.lastOpenedAt AS lastOpenedAt, 
             b.wantToRead AS wantToRead, 
             b.readingProgress AS readingProgress,
+            b.durationMillis AS durationMillis,
+            b.addedAt AS addedAt,
+            b.finishedAt AS finishedAt,
             (SELECT COUNT(*) FROM book_collections WHERE collectionId = c.id) as totalBooks
         FROM collections AS c
         LEFT JOIN book_collections ON c.id = book_collections.collectionId

@@ -60,7 +60,7 @@ fun BookGrid(
     onShareBook: (BookPreview) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
-    deleteLabel: UiText = UiText.StringResource(R.string.action_delete_ellipsis),
+    deleteLabel: UiText? = UiText.StringResource(R.string.action_delete_ellipsis),
     confirmDelete: Boolean = true,
     showAddToCollection: Boolean = false,
     onAddToCollection: (BookPreview, Long) -> Unit = { _, _ -> },
@@ -187,7 +187,7 @@ private fun BookListItem(
     onShowDetails: () -> Unit,
     onDeleteBook: () -> Unit,
     onShareBook: () -> Unit,
-    deleteLabel: UiText = UiText.StringResource(R.string.action_delete_ellipsis),
+    deleteLabel: UiText? = UiText.StringResource(R.string.action_delete_ellipsis),
     confirmDelete: Boolean = true,
     showAddToCollection: Boolean = false,
     onAddToCollection: (Long) -> Unit = {},
@@ -280,7 +280,7 @@ private fun BookListItem(
                 onToggleFinished = onToggleFinished,
                 onShowDetails = onShowDetails,
                 onDelete = {
-                    if (confirmDelete) {
+                    if (confirmDelete && deleteLabel != null) {
                         showDeleteDialog = true
                     } else {
                         onDeleteBook()
@@ -304,7 +304,7 @@ private fun BookListItem(
         )
     }
 
-    if (showDeleteDialog) {
+    if (showDeleteDialog && deleteLabel != null) {
         DeleteBookConfirmationDialog(
             bookTitle = book.title,
             action = deleteLabel,
@@ -329,7 +329,7 @@ fun BookGridItem(
     onShowDetails: () -> Unit,
     onDeleteBook: () -> Unit,
     onShareBook: () -> Unit,
-    deleteLabel: UiText = UiText.StringResource(R.string.action_delete_ellipsis),
+    deleteLabel: UiText? = UiText.StringResource(R.string.action_delete_ellipsis),
     confirmDelete: Boolean = true,
     showAddToCollection: Boolean = false,
     onAddToCollection: (Long) -> Unit = {},
@@ -410,7 +410,7 @@ fun BookGridItem(
                     onToggleFinished = onToggleFinished,
                     onShowDetails = onShowDetails,
                     onDelete = {
-                        if (confirmDelete) {
+                        if (confirmDelete && deleteLabel != null) {
                             showDeleteDialog = true
                         } else {
                             onDeleteBook()
@@ -435,7 +435,7 @@ fun BookGridItem(
         )
     }
 
-    if (showDeleteDialog) {
+    if (showDeleteDialog && deleteLabel != null) {
         DeleteBookConfirmationDialog(
             bookTitle = book.title,
             action = deleteLabel,

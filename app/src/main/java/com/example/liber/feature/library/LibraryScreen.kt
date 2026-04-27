@@ -120,6 +120,8 @@ fun LibraryScreen(
     onSearchQueryChange: (String) -> Unit = {},
     filterStatus: LibraryFilterStatus = LibraryFilterStatus.ALL,
     onFilterStatusChange: (LibraryFilterStatus) -> Unit = {},
+    autoCollectionsEnabled: Boolean = true,
+    onAutoCollectionsToggle: (Boolean) -> Unit = {},
     selectedTabIndex: Int = 0,
     onTabSelected: (Int) -> Unit = {},
     activeBookId: String? = null,
@@ -196,7 +198,9 @@ fun LibraryScreen(
                 audiobooksSortOption = audiobooksSortOption,
                 onAudiobooksSortOptionChange = onAudiobooksSortOptionChange,
                 audiobooksViewMode = audiobooksViewMode,
-                onAudiobooksViewModeChange = onAudiobooksViewModeChange
+                onAudiobooksViewModeChange = onAudiobooksViewModeChange,
+                autoCollectionsEnabled = autoCollectionsEnabled,
+                onAutoCollectionsToggle = onAutoCollectionsToggle
             )
 
             HorizontalPager(
@@ -301,16 +305,9 @@ private fun LibraryFilterAndSortRow(
     onAudiobooksSortOptionChange: (LibrarySortOption) -> Unit,
     audiobooksViewMode: LibraryViewMode,
     onAudiobooksViewModeChange: (LibraryViewMode) -> Unit,
+    autoCollectionsEnabled: Boolean,
+    onAutoCollectionsToggle: (Boolean) -> Unit,
 ) {
-    if (currentTabIndex == 2) return // No filters for collections tab for now
-
-    val sortOption = if (currentTabIndex == 0) booksSortOption else audiobooksSortOption
-    val currentOnSortOptionChange =
-        if (currentTabIndex == 0) onBooksSortOptionChange else onAudiobooksSortOptionChange
-    val viewMode = if (currentTabIndex == 0) booksViewMode else audiobooksViewMode
-    val currentOnViewModeChange =
-        if (currentTabIndex == 0) onBooksViewModeChange else onAudiobooksViewModeChange
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -318,6 +315,41 @@ private fun LibraryFilterAndSortRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
+        if (currentTabIndex == 2) {
+            // Smart Collections Toggle for Collections Tab
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .clickable { onAutoCollectionsToggle(!autoCollectionsEnabled) }
+                    .padding(vertical = 4.dp)
+            ) {
+                Text(
+                    text = "Smart Collections ",
+                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = Gambetta),
+                    color = if (autoCollectionsEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = if (autoCollectionsEnabled) "On" else "Off",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    ),
+                    color = if (autoCollectionsEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                        alpha = 0.5f
+                    )
+                )
+            }
+            return@Row
+        }
+
+        val sortOption = if (currentTabIndex == 0) booksSortOption else audiobooksSortOption
+        val currentOnSortOptionChange =
+            if (currentTabIndex == 0) onBooksSortOptionChange else onAudiobooksSortOptionChange
+        val viewMode = if (currentTabIndex == 0) booksViewMode else audiobooksViewMode
+        val currentOnViewModeChange =
+            if (currentTabIndex == 0) onBooksViewModeChange else onAudiobooksViewModeChange
+
         // Sentence Filter
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -875,6 +907,7 @@ fun LibraryScreen(
     val scanState by viewModel.scanState.collectAsState()
     val searchQuery by viewModel.librarySearchQuery.collectAsState()
     val filterStatus by viewModel.libraryFilterStatus.collectAsState()
+    val autoCollectionsEnabled by collectionsViewModel.autoCollectionsEnabled.collectAsState()
 
     val activeBook by liberAppViewModel.activeBook.collectAsState()
     val isPlaying by liberAppViewModel.isPlaying.collectAsState()
@@ -930,6 +963,8 @@ fun LibraryScreen(
         onSearchQueryChange = { viewModel.setLibrarySearchQuery(it) },
         filterStatus = filterStatus,
         onFilterStatusChange = { viewModel.setLibraryFilterStatus(it) },
+        autoCollectionsEnabled = autoCollectionsEnabled,
+        onAutoCollectionsToggle = { collectionsViewModel.setAutoCollectionsEnabled(it) },
     )
 
     fullBookDetail?.let { book ->
