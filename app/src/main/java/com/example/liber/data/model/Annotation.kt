@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import kotlinx.serialization.Serializable
 
 @Entity(
     tableName = "annotations",
@@ -17,6 +18,7 @@ import androidx.room.PrimaryKey
     ],
     indices = [Index("bookId")]
 )
+@Serializable
 data class Annotation(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val bookId: String,
@@ -29,6 +31,7 @@ data class Annotation(
     val createdAt: Long = System.currentTimeMillis()
 )
 
+@Serializable
 enum class AnnotationType {
     HIGHLIGHT, NOTE
 }

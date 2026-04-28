@@ -3,6 +3,7 @@ package com.example.liber.data.model
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
+import kotlinx.serialization.Serializable
 
 @Entity(
     tableName = "book_collections",
@@ -23,6 +24,7 @@ import androidx.room.Index
     ],
     indices = [Index("collectionId"), Index("bookId")],
 )
+@Serializable
 data class BookCollection(
     val collectionId: Long,
     val bookId: String,
