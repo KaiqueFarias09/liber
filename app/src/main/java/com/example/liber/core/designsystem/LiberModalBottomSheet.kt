@@ -2,14 +2,15 @@ package com.example.liber.core.designsystem
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -31,6 +32,7 @@ fun LiberModalBottomSheet(
     title: UiText,
     modifier: Modifier = Modifier,
     skipPartiallyExpanded: Boolean = true,
+    actions: @Composable () -> Unit = {},
     content: @Composable ColumnScope.() -> Unit
 ) {
     ModalBottomSheet(
@@ -44,7 +46,6 @@ fun LiberModalBottomSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -52,7 +53,13 @@ fun LiberModalBottomSheet(
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f)
             )
+
+            actions()
+
+            Spacer(Modifier.width(12.dp))
+
             Box(
                 modifier = Modifier
                     .size(28.dp)

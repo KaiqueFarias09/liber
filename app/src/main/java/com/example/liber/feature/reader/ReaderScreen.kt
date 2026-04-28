@@ -38,6 +38,8 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -82,6 +84,7 @@ import com.adamglin.phosphoricons.regular.Bookmark
 import com.adamglin.phosphoricons.regular.List
 import com.adamglin.phosphoricons.regular.MagnifyingGlass
 import com.adamglin.phosphoricons.regular.NotePencil
+import com.adamglin.phosphoricons.regular.ShareNetwork
 import com.adamglin.phosphoricons.regular.TextAa
 import com.example.liber.R
 import com.example.liber.core.logging.AndroidAppLogger
@@ -173,8 +176,6 @@ fun ReaderScreen(
     val characterSpacing by viewModel.characterSpacing.collectAsState()
     val wordSpacing by viewModel.wordSpacing.collectAsState()
     val margins by viewModel.margins.collectAsState()
-    val columnCount by viewModel.columnCount.collectAsState()
-    val justifyText by viewModel.justifyText.collectAsState()
     val selectionActive by viewModel.selectionActive.collectAsState()
     val showSelectionMenu by viewModel.showSelectionMenu.collectAsState()
     val highlightRects by viewModel.highlightRects.collectAsState()
@@ -310,6 +311,7 @@ fun ReaderScreen(
     BackHandler(onBack = handleBack)
 
     // ── Root layout ──────────────────────────────────────────────────────────
+    val exportScope = rememberCoroutineScope()
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -963,9 +965,81 @@ fun ReaderScreen(
 
     // ── Notebook ──────────────────────────────────────────────────────────────
     if (showNotebook) {
+        var showExportMenu by remember { mutableStateOf(false) }
         com.example.liber.core.designsystem.LiberModalBottomSheet(
             onDismissRequest = { showNotebook = false },
             title = UiText.StringResource(R.string.reader_nav_notebook),
+            actions = {
+                if (annotations.isNotEmpty()) {
+                    Box {
+                        IconButton(onClick = { showExportMenu = true }) {
+                            Icon(
+                                PhosphorIcons.Regular.ShareNetwork,
+                                contentDescription = "Export",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showExportMenu,
+                            onDismissRequest = { showExportMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Markdown (.md)") },
+                                onClick = {
+                                    showExportMenu = false
+                                    exportAnnotations(
+                                        context,
+                                        exportScope,
+                                        bookTitle,
+                                        annotations,
+                                        "markdown"
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Plain Text (.txt)") },
+                                onClick = {
+                                    showExportMenu = false
+                                    exportAnnotations(
+                                        context,
+                                        exportScope,
+                                        bookTitle,
+                                        annotations,
+                                        "text"
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("JSON (.json)") },
+                                onClick = {
+                                    showExportMenu = false
+                                    exportAnnotations(
+                                        context,
+                                        exportScope,
+                                        bookTitle,
+                                        annotations,
+                                        "json"
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("HTML (.html)") },
+                                onClick = {
+                                    showExportMenu = false
+                                    exportAnnotations(
+                                        context,
+                                        exportScope,
+                                        bookTitle,
+                                        annotations,
+                                        "html"
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
+            }
         ) {
             NotebookView(
                 bookmarks = bookmarks,
@@ -1128,6 +1202,114 @@ fun ReaderScreen(
                     viewModel.dismissAnnotationMenu()
                 },
             )
+        }
+    }
+}
+
+// ── Export Annotations ───────────────────────────────────────────────────────
+
+private fun exportAnnotations(
+    context: android.content.Context,
+    scope: kotlinx.coroutines.CoroutineScope,
+    bookTitle: String,
+    annotations: List<Annotation>,
+    format: String = "markdown"
+) {
+    if (annotations.isEmpty()) return
+
+    scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+        val content = when (format) {
+            "markdown" -> buildString {
+                append("# $bookTitle\n\n")
+                append("## Annotations\n\n")
+                annotations.sortedBy { it.createdAt }.forEach { annotation ->
+                    if (!annotation.text.isNullOrBlank()) {
+                        append("> ${annotation.text}\n\n")
+                    }
+                    if (!annotation.note.isNullOrBlank()) {
+                        append("${annotation.note}\n\n")
+                    }
+                    append("---\n\n")
+                }
+            }
+
+            "json" -> {
+                val items = annotations.map { annotation ->
+                    val text = annotation.text?.replace("\"", "\\\"")?.replace("\n", "\\n") ?: ""
+                    val note = annotation.note?.replace("\"", "\\\"")?.replace("\n", "\\n") ?: ""
+                    "{\"text\":\"$text\",\"note\":\"$note\",\"type\":\"${annotation.type}\"}"
+                }
+                "[\n  ${items.joinToString(",\n  ")}\n]"
+            }
+
+            "html" -> buildString {
+                append("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>$bookTitle - Annotations</title>")
+                append("<style>body{font-family:sans-serif;max-width:800px;margin:40px auto;padding:0 20px;line-height:1.6;}")
+                append("blockquote{border-left:4px solid #ccc;padding-left:16px;margin:20px 0;font-style:italic;}")
+                append("hr{border:0;border-top:1px solid #eee;margin:40px 0;}</style></head><body>")
+                append("<h1>$bookTitle</h1>")
+                annotations.sortedBy { it.createdAt }.forEach { annotation ->
+                    if (!annotation.text.isNullOrBlank()) {
+                        append("<blockquote>${annotation.text}</blockquote>")
+                    }
+                    if (!annotation.note.isNullOrBlank()) {
+                        append("<p>${annotation.note}</p>")
+                    }
+                    append("<hr>")
+                }
+                append("</body></html>")
+            }
+
+            else -> buildString { // txt
+                append("$bookTitle - Annotations\n\n")
+                annotations.sortedBy { it.createdAt }.forEach { annotation ->
+                    if (!annotation.text.isNullOrBlank()) {
+                        append("\"${annotation.text}\"\n")
+                    }
+                    if (!annotation.note.isNullOrBlank()) {
+                        append("Note: ${annotation.note}\n")
+                    }
+                    append("\n-------------------\n\n")
+                }
+            }
+        }
+
+        val extension = when (format) {
+            "markdown" -> "md"
+            "json" -> "json"
+            "html" -> "html"
+            else -> "txt"
+        }
+        val mimeType = when (format) {
+            "markdown" -> "text/markdown"
+            "json" -> "application/json"
+            "html" -> "text/html"
+            else -> "text/plain"
+        }
+
+        val fileName = "${bookTitle.replace(Regex("[^a-zA-Z0-9.-]"), "_")}_annotations.$extension"
+        val file = java.io.File(context.cacheDir, fileName)
+        try {
+            file.writeText(content)
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                context, "${context.packageName}.fileprovider", file
+            )
+
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = mimeType
+                putExtra(Intent.EXTRA_SUBJECT, "$bookTitle - Annotations")
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(Intent.createChooser(intent, "Export Annotations"))
+        } catch (e: Exception) {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                android.widget.Toast.makeText(
+                    context,
+                    "Failed to export: ${e.message}",
+                    android.widget.Toast.LENGTH_LONG
+                ).show()
+            }
         }
     }
 }
