@@ -6,6 +6,9 @@ import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.viewModelScope
 import com.example.liber.core.logging.AppLogger
 import com.example.liber.core.logging.BaseAndroidViewModel
+import com.example.liber.core.util.UiState
+import com.example.liber.core.util.UiText
+import com.example.liber.data.repository.BackupRepository
 import com.example.liber.data.repository.ThemeMode
 import com.example.liber.data.repository.UserPreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,6 +24,7 @@ import javax.inject.Inject
 class SettingsViewModel @Inject constructor(
     application: Application,
     private val repository: UserPreferencesRepository,
+    private val backupRepository: BackupRepository,
     appLogger: AppLogger,
 ) : BaseAndroidViewModel(application, "SettingsViewModel", appLogger) {
 
@@ -32,6 +36,9 @@ class SettingsViewModel @Inject constructor(
 
     private val _currentLanguage = MutableStateFlow(getCurrentLanguageCode())
     val currentLanguage: StateFlow<String> = _currentLanguage.asStateFlow()
+
+    private val _backupState = MutableStateFlow<UiState<Unit>>(UiState.Success(Unit))
+    val backupState: StateFlow<UiState<Unit>> = _backupState.asStateFlow()
 
     private fun getCurrentLanguageCode(): String {
         val locales = AppCompatDelegate.getApplicationLocales()
@@ -58,6 +65,29 @@ class SettingsViewModel @Inject constructor(
             parameters = mapOf("mode" to mode.name),
         ) {
             repository.setThemeMode(mode)
+        }
+    }
+
+    fun exportBackup(onJsonReady: (String) -> Unit) {
+        _backupState.value = UiState.Loading
+        launchSafely(
+            actionName = "exportBackup",
+            onError = { _backupState.value = UiState.Error(UiText.DynamicString(it.message ?: "Export failed")) }
+        ) {
+            val json = backupRepository.createBackupJson()
+            _backupState.value = UiState.Success(Unit)
+            onJsonReady(json)
+        }
+    }
+
+    fun importBackup(jsonString: String) {
+        _backupState.value = UiState.Loading
+        launchSafely(
+            actionName = "importBackup",
+            onError = { _backupState.value = UiState.Error(UiText.DynamicString(it.message ?: "Import failed")) }
+        ) {
+            backupRepository.restoreFromBackupJson(jsonString)
+            _backupState.value = UiState.Success(Unit)
         }
     }
 }

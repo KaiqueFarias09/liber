@@ -1,16 +1,23 @@
 package com.example.liber.feature.settings
 
 import android.text.format.DateUtils
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -20,16 +27,20 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -40,6 +51,8 @@ import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.CaretRight
 import com.adamglin.phosphoricons.regular.ChartBar
 import com.adamglin.phosphoricons.regular.Check
+import com.adamglin.phosphoricons.regular.DownloadSimple
+import com.adamglin.phosphoricons.regular.Export
 import com.adamglin.phosphoricons.regular.FilePlus
 import com.adamglin.phosphoricons.regular.FolderOpen
 import com.adamglin.phosphoricons.regular.Globe
@@ -52,9 +65,13 @@ import com.example.liber.R
 import com.example.liber.core.designsystem.Gambetta
 import com.example.liber.core.designsystem.LiberModalBottomSheet
 import com.example.liber.core.designsystem.LiberScreen
+import com.example.liber.core.util.UiState
 import com.example.liber.core.util.UiText
 import com.example.liber.data.model.ScanSource
 import com.example.liber.data.repository.ThemeMode
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun SettingsScreen(
@@ -68,62 +85,181 @@ fun SettingsScreen(
     onRemoveFolder: (ScanSource) -> Unit = {},
     onOpenDictionaryManager: () -> Unit = {},
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val themeMode by viewModel.themeMode.collectAsState()
     val currentLanguage by viewModel.currentLanguage.collectAsState()
+    val backupState by viewModel.backupState.collectAsState()
+
+    var showRestoreConfirm by remember { mutableStateOf(false) }
+    var pendingImportJson by remember { mutableStateOf<String?>(null) }
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        uri?.let {
+            viewModel.exportBackup { json ->
+                scope.launch(Dispatchers.IO) {
+                    try {
+                        context.contentResolver.openOutputStream(uri)?.use {
+                            it.write(json.toByteArray())
+                        }
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(context, R.string.settings_backup_success, Toast.LENGTH_SHORT).show()
+                        }
+                    } catch (e: Exception) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(context, "Export failed: ${e.message}", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri?.let {
+            scope.launch(Dispatchers.IO) {
+                try {
+                    context.contentResolver.openInputStream(uri)?.bufferedReader()?.use {
+                        val json = it.readText()
+                        withContext(Dispatchers.Main) {
+                            pendingImportJson = json
+                            showRestoreConfirm = true
+                        }
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "Failed to read backup: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        }
+    }
+
+    if (showRestoreConfirm) {
+        AlertDialog(
+            onDismissRequest = { showRestoreConfirm = false },
+            title = { Text(stringResource(R.string.settings_restore_confirm_title)) },
+            text = { Text(stringResource(R.string.settings_restore_confirm_message)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingImportJson?.let { viewModel.importBackup(it) }
+                    showRestoreConfirm = false
+                    pendingImportJson = null
+                }) {
+                    Text(stringResource(R.string.action_save))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRestoreConfirm = false }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            }
+        )
+    }
+
+    LaunchedEffect(backupState) {
+        if (backupState is UiState.Error) {
+            Toast.makeText(context, (backupState as UiState.Error).message.asString(context), Toast.LENGTH_LONG).show()
+        } else if (backupState is UiState.Success && pendingImportJson == null) {
+            // Restore was successful if it's Success and we just finished an import
+            // (Actually we can just show a toast if we want)
+        }
+    }
 
     LiberScreen(
         title = UiText.StringResource(R.string.tab_settings),
         modifier = modifier,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 32.dp),
-        ) {
-            // APPEARANCE SECTION
-            SettingsSection(title = UiText.StringResource(R.string.settings_section_appearance)) {
-                ThemeSetting(
-                    currentMode = themeMode,
-                    onModeSelected = { viewModel.setThemeMode(it) }
-                )
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 32.dp),
+            ) {
+                // APPEARANCE SECTION
+                SettingsSection(title = UiText.StringResource(R.string.settings_section_appearance)) {
+                    ThemeSetting(
+                        currentMode = themeMode,
+                        onModeSelected = { viewModel.setThemeMode(it) }
+                    )
+                }
+
+                // GENERAL SECTION
+                SettingsSection(title = UiText.StringResource(R.string.settings_section_general)) {
+                    SettingsRow(
+                        icon = PhosphorIcons.Regular.ChartBar,
+                        label = stringResource(R.string.settings_reading_insights_title),
+                        onClick = onOpenReadingInsights,
+                        showDivider = true,
+                    )
+                    LanguageSetting(
+                        currentLanguageTag = currentLanguage,
+                        supportedLanguages = viewModel.supportedLanguages,
+                        onLanguageSelected = { viewModel.setLanguage(it) }
+                    )
+                }
+
+                // LIBRARY SECTION
+                SettingsSection(title = UiText.StringResource(R.string.settings_section_library)) {
+                    LibrarySection(
+                        scanSources = scanSources,
+                        onAddBooks = onAddBooks,
+                        onAddScanFolder = onAddScanFolder,
+                        onOpenDictionaryManager = onOpenDictionaryManager,
+                    )
+                }
+
+                // DATA SECTION
+                SettingsSection(title = UiText.StringResource(R.string.settings_section_data)) {
+                    SettingsRow(
+                        icon = PhosphorIcons.Regular.Export,
+                        label = stringResource(R.string.settings_backup_title),
+                        subtitle = stringResource(R.string.settings_backup_subtitle),
+                        onClick = {
+                            val fileName = "liber_backup_${System.currentTimeMillis()}.json"
+                            exportLauncher.launch(fileName)
+                        },
+                        showDivider = true,
+                        showChevron = false,
+                    )
+                    SettingsRow(
+                        icon = PhosphorIcons.Regular.DownloadSimple,
+                        label = stringResource(R.string.settings_restore_title),
+                        subtitle = stringResource(R.string.settings_restore_subtitle),
+                        onClick = {
+                            importLauncher.launch(arrayOf("application/json"))
+                        },
+                        showChevron = false,
+                    )
+                }
+
+                // ABOUT SECTION
+                SettingsSection(title = UiText.StringResource(R.string.settings_section_about)) {
+                    SettingsRow(
+                        icon = PhosphorIcons.Regular.Info,
+                        label = stringResource(R.string.settings_label_about_liber),
+                        value = stringResource(R.string.settings_label_version, "1.0.4"),
+                        onClick = { /* No-op */ },
+                        showChevron = false
+                    )
+                }
             }
 
-            // GENERAL SECTION
-            SettingsSection(title = UiText.StringResource(R.string.settings_section_general)) {
-                SettingsRow(
-                    icon = PhosphorIcons.Regular.ChartBar,
-                    label = stringResource(R.string.settings_reading_insights_title),
-                    onClick = onOpenReadingInsights,
-                    showDivider = true,
-                )
-                LanguageSetting(
-                    currentLanguageTag = currentLanguage,
-                    supportedLanguages = viewModel.supportedLanguages,
-                    onLanguageSelected = { viewModel.setLanguage(it) }
-                )
-            }
-
-            // LIBRARY SECTION
-            SettingsSection(title = UiText.StringResource(R.string.settings_section_library)) {
-                LibrarySection(
-                    scanSources = scanSources,
-                    onAddBooks = onAddBooks,
-                    onAddScanFolder = onAddScanFolder,
-                    onOpenDictionaryManager = onOpenDictionaryManager,
-                )
-            }
-
-            // ABOUT SECTION
-            SettingsSection(title = UiText.StringResource(R.string.settings_section_about)) {
-                SettingsRow(
-                    icon = PhosphorIcons.Regular.Info,
-                    label = stringResource(R.string.settings_label_about_liber),
-                    value = stringResource(R.string.settings_label_version, "1.0.4"),
-                    onClick = { /* No-op */ },
-                    showChevron = false
-                )
+            if (backupState is UiState.Loading) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = Color.Black.copy(alpha = 0.2f)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                }
             }
         }
     }

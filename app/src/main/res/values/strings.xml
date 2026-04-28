@@ -297,4 +297,13 @@
     <string name="scan_folders_add_action">Add another folder</string>
     <string name="scan_folders_scan_now">Scan Now</string>
     <string name="scan_folders_scanning">Scanning…</string>
+    <string name="settings_section_data">Data &amp; Backup</string>
+    <string name="settings_backup_title">Backup Library Data</string>
+    <string name="settings_backup_subtitle">Export highlights, notes, and reading progress to a JSON file.</string>
+    <string name="settings_restore_title">Restore Data</string>
+    <string name="settings_restore_subtitle">Import your data from a previously exported backup file.</string>
+    <string name="settings_backup_success">Backup exported successfully</string>
+    <string name="settings_restore_success">Data restored successfully</string>
+    <string name="settings_restore_confirm_title">Restore Data?</string>
+    <string name="settings_restore_confirm_message">This will overwrite your current progress, notes, and bookmarks if they match the imported data. Existing books not in the backup will remain. Proceed?</string>
 </resources>
