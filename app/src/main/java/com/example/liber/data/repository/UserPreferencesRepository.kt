@@ -46,6 +46,7 @@ class UserPreferencesRepository(
         val SMART_RECOGNITION_INFO_DISMISSED =
             booleanPreferencesKey("smart_recognition_info_dismissed")
         val AUTO_COLLECTIONS_ENABLED = booleanPreferencesKey("auto_collections_enabled")
+        val RECENT_SEARCHES = stringPreferencesKey("recent_searches")
     }
 
     val themeMode: Flow<ThemeMode> = dataStore.data
@@ -225,6 +226,30 @@ class UserPreferencesRepository(
 
     val autoCollectionsEnabled: Flow<Boolean> = dataStore.data
         .map { it[PreferencesKeys.AUTO_COLLECTIONS_ENABLED] ?: true }
+
+    val recentSearches: Flow<List<String>> = dataStore.data
+        .map { preferences ->
+            val searches = preferences[PreferencesKeys.RECENT_SEARCHES] ?: ""
+            if (searches.isBlank()) emptyList() else searches.split("|")
+        }
+
+    suspend fun addRecentSearch(query: String) = executeOperation(
+        operationName = "addRecentSearch",
+        parameters = mapOf("query" to query),
+    ) {
+        if (query.isBlank()) return@executeOperation
+        dataStore.edit { preferences ->
+            val currentSearches = preferences[PreferencesKeys.RECENT_SEARCHES]
+                ?.split("|")
+                ?.toMutableList() ?: mutableListOf()
+
+            currentSearches.remove(query)
+            currentSearches.add(0, query)
+
+            val limitedSearches = currentSearches.take(5)
+            preferences[PreferencesKeys.RECENT_SEARCHES] = limitedSearches.joinToString("|")
+        }
+    }
 
     suspend fun setAudiobooksSortOption(option: LibrarySortOption) = executeOperation(
         operationName = "setAudiobooksSortOption",

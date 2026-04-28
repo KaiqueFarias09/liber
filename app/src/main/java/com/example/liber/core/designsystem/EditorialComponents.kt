@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -38,13 +40,17 @@ import androidx.compose.ui.unit.dp
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.MagnifyingGlass
+import com.adamglin.phosphoricons.regular.XCircle
 
 @Composable
 fun EditorialSearchField(
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClear: (() -> Unit)? = null,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
@@ -108,9 +114,24 @@ fun EditorialSearchField(
                         color = MaterialTheme.colorScheme.onSurface
                     ),
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                    keyboardOptions = keyboardOptions,
+                    keyboardActions = keyboardActions,
+                    singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
                         .focusRequester(focusRequester)
+                )
+            }
+
+            if (onClear != null && value.isNotEmpty()) {
+                Spacer(Modifier.width(8.dp))
+                Icon(
+                    imageVector = PhosphorIcons.Regular.XCircle,
+                    contentDescription = "Clear",
+                    modifier = Modifier
+                        .size(18.dp)
+                        .clickable { onClear() },
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                 )
             }
         }

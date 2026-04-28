@@ -18,3 +18,7 @@ enum class LibraryFilterStatus(val label: UiText) {
 }
 
 enum class LibraryViewMode { GRID, LIST }
+
+enum class SearchType {
+    ALL, BOOKS, AUDIOBOOKS, DICTIONARY
+}

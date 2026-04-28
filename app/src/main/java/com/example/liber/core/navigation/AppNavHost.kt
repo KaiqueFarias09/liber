@@ -80,12 +80,14 @@ fun AppNavHost(
                 onAddBooks = onAddBooks,
                 onShareBook = onShareBook,
                 collectionsViewModel = collectionsViewModel,
+                dictionaryViewModel = dictionaryViewModel,
                 liberAppViewModel = liberAppViewModel,
                 onCollectionClick = { id ->
                     if (id != null) {
                         navController.navigate(AppRoute.collectionDetail(id))
                     }
                 },
+                onOpenDictionaryManager = { navController.navigate(AppRoute.DICTIONARIES) },
                 modifier = modifier,
             )
         }

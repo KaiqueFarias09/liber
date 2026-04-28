@@ -22,6 +22,7 @@ import com.example.liber.data.repository.UserPreferencesRepository
 import com.example.liber.feature.library.LibraryFilterStatus
 import com.example.liber.feature.library.LibrarySortOption
 import com.example.liber.feature.library.LibraryViewMode
+import com.example.liber.feature.library.SearchType
 import com.example.liber.feature.reader.AnnotationRequest
 import com.example.liber.service.BookImportService
 import com.example.liber.ui.LiberAppViewModel
@@ -55,6 +56,12 @@ class HomeViewModel @Inject constructor(
     private val _librarySearchQuery = MutableStateFlow("")
     val librarySearchQuery: StateFlow<String> = _librarySearchQuery.asStateFlow()
 
+    private val _librarySearchType = MutableStateFlow(SearchType.ALL)
+    val librarySearchType: StateFlow<SearchType> = _librarySearchType.asStateFlow()
+
+    private val _isLibrarySearchOpen = MutableStateFlow(false)
+    val isLibrarySearchOpen: StateFlow<Boolean> = _isLibrarySearchOpen.asStateFlow()
+
     private val _libraryFilterStatus = MutableStateFlow(LibraryFilterStatus.ALL)
     val libraryFilterStatus: StateFlow<LibraryFilterStatus> = _libraryFilterStatus.asStateFlow()
 
@@ -67,10 +74,19 @@ class HomeViewModel @Inject constructor(
     val booksState: StateFlow<UiState<List<BookPreview>>> = combine(
         bookRepository.getAllBookPreviews(),
         librarySearchQuery,
+        librarySearchType,
         libraryFilterStatus,
         booksSortOption,
-    ) { books, query, status, sort ->
+    ) { books: List<BookPreview>, query: String, searchType: SearchType, status: LibraryFilterStatus, sort: LibrarySortOption ->
         val filtered = books.filter { book ->
+            if (searchType == SearchType.DICTIONARY) return@filter false
+
+            val matchesType = when (searchType) {
+                SearchType.BOOKS -> !book.isAudiobook
+                SearchType.AUDIOBOOKS -> book.isAudiobook
+                else -> true
+            }
+
             val matchesSearch = if (query.isBlank()) true else {
                 book.title.contains(query, ignoreCase = true) ||
                         (book.author?.contains(query, ignoreCase = true) ?: false)
@@ -81,7 +97,7 @@ class HomeViewModel @Inject constructor(
                 LibraryFilterStatus.IN_PROGRESS -> book.readingProgress in 1..99
                 LibraryFilterStatus.FINISHED -> book.readingProgress == 100
             }
-            matchesSearch && matchesStatus
+            matchesType && matchesSearch && matchesStatus
         }
 
         val sorted = when (sort) {
@@ -130,6 +146,9 @@ class HomeViewModel @Inject constructor(
         userPreferencesRepository.audiobooksSortOption
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LibrarySortOption.RECENT)
 
+    val recentSearches: StateFlow<List<String>> = userPreferencesRepository.recentSearches
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     fun setBooksViewMode(mode: LibraryViewMode) {
         launchSafely(
             actionName = "setBooksViewMode",
@@ -150,6 +169,23 @@ class HomeViewModel @Inject constructor(
 
     fun setLibrarySearchQuery(query: String) {
         _librarySearchQuery.value = query
+    }
+
+    fun setLibrarySearchType(type: SearchType) {
+        _librarySearchType.value = type
+    }
+
+    fun setLibrarySearchOpen(isOpen: Boolean) {
+        _isLibrarySearchOpen.value = isOpen
+    }
+
+    fun addRecentSearch(query: String) {
+        launchSafely(
+            actionName = "addRecentSearch",
+            parameters = mapOf("query" to query),
+        ) {
+            userPreferencesRepository.addRecentSearch(query)
+        }
     }
 
     fun setLibraryFilterStatus(status: LibraryFilterStatus) {

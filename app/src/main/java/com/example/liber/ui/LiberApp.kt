@@ -116,6 +116,7 @@ fun LiberApp(
     // ── App state ────────────────────────────────────────────────────────────
     val activeBook by liberAppViewModel.activeBook.collectAsState()
     val allBooks by homeViewModel.books.collectAsState()
+    val isLibrarySearchOpen by homeViewModel.isLibrarySearchOpen.collectAsState()
 
     val isReaderOpen by liberAppViewModel.isReaderOpen.collectAsState()
     val book = remember(activeBook?.id, allBooks, isReaderOpen) {
@@ -339,7 +340,7 @@ fun LiberApp(
                                 Spacer(Modifier.height(4.dp))
                             }
                         }
-                        if (!showNavRail && isTopLevelRoute) {
+                        if (!showNavRail && isTopLevelRoute && !isLibrarySearchOpen) {
                             LiberBottomNav(
                                 activeTab = activeTab,
                                 onTabChange = onTabChange,
