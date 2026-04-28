@@ -11,6 +11,7 @@ import com.example.liber.data.local.DictionaryDao
 import com.example.liber.data.local.ReadingSessionDao
 import com.example.liber.data.local.ScanSourceDao
 import com.example.liber.data.local.WordLemmaDao
+import com.example.liber.data.repository.BackupRepository
 import com.example.liber.data.repository.BookImporter
 import com.example.liber.data.repository.BookRepository
 import com.example.liber.data.repository.CollectionRepository
@@ -104,4 +105,11 @@ object RepositoryModule {
         readingSessionDao: ReadingSessionDao,
         appLogger: AppLogger,
     ): ReadingInsightsRepository = ReadingInsightsRepository(readingSessionDao, appLogger)
+
+    @Provides
+    @Singleton
+    fun provideBackupRepository(
+        bookDao: BookDao,
+        collectionDao: CollectionDao,
+    ): BackupRepository = BackupRepository(bookDao, collectionDao)
 }
