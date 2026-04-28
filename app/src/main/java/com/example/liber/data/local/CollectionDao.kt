@@ -80,6 +80,18 @@ interface CollectionDao {
     )
     fun getCollectionWithPreviews(id: Long): Flow<Map<CollectionWithCount, List<BookPreview>>>
 
+    @Query("SELECT * FROM collections ORDER BY createdAt DESC")
+    suspend fun getAllCollectionsList(): List<Collection>
+
+    @Query("SELECT * FROM book_collections")
+    suspend fun getAllBookCollectionsList(): List<BookCollection>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCollections(collections: List<Collection>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertBookCollections(bookCollections: List<BookCollection>)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCollection(collection: Collection): Long
 

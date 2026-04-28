@@ -24,6 +24,21 @@ interface BookDao {
     @Query("SELECT * FROM books ORDER BY title ASC")
     suspend fun getAllBooksList(): List<Book>
 
+    @Query("SELECT * FROM annotations ORDER BY createdAt DESC")
+    suspend fun getAllAnnotationsList(): List<Annotation>
+
+    @Query("SELECT * FROM bookmarks ORDER BY createdAt DESC")
+    suspend fun getAllBookmarksList(): List<Bookmark>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertBooks(books: List<Book>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAnnotations(annotations: List<Annotation>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertBookmarks(bookmarks: List<Bookmark>)
+
     @Query("SELECT id, title, author, coverUri, mediaType, lastOpenedAt, wantToRead, readingProgress, durationMillis, addedAt, finishedAt FROM books WHERE wantToRead = 0 AND lastOpenedAt IS NOT NULL AND lastOpenedAt >= :threshold ORDER BY lastOpenedAt DESC")
     fun getContinueReadingBookPreviews(threshold: Long): Flow<List<BookPreview>>
 
