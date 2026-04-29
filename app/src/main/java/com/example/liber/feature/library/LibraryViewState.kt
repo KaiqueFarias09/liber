@@ -10,6 +10,12 @@ enum class LibrarySortOption(val label: UiText) {
     PROGRESS(UiText.StringResource(R.string.sort_option_progress)),
 }
 
+enum class CollectionSortOption(val label: UiText) {
+    ALPHABETICAL(UiText.StringResource(R.string.sort_option_alphabetical)),
+    BOOK_COUNT(UiText.StringResource(R.string.sort_option_book_count)),
+    RECENT(UiText.StringResource(R.string.sort_option_recent)),
+}
+
 enum class LibraryFilterStatus(val label: UiText) {
     ALL(UiText.StringResource(R.string.filter_all)),
     UNREAD(UiText.StringResource(R.string.filter_unread)),

@@ -219,9 +219,16 @@
         <item quantity="many">%1$d audiolivros</item>
         <item quantity="other">%1$d audiolivros</item>
     </plurals>
+    <plurals name="label_collections">
+        <item quantity="one">%1$d coleção</item>
+        <item quantity="many">%1$d coleções</item>
+        <item quantity="other">%1$d coleções</item>
+    </plurals>
     <string name="sort_option_recent">Recente</string>
     <string name="sort_option_title">Título</string>
     <string name="sort_option_author">Autor</string>
+    <string name="sort_option_alphabetical">Alfabética</string>
+    <string name="sort_option_book_count">Número de livros</string>
     <string name="filter_all">Todos</string>
     <string name="filter_unread">Não lidos</string>
     <string name="filter_in_progress">Em andamento</string>

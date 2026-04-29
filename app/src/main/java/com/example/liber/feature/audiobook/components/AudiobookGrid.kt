@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
@@ -37,6 +38,7 @@ fun AudiobookGrid(
     onViewModeChange: (LibraryViewMode) -> Unit = {},
     sortOption: LibrarySortOption = LibrarySortOption.RECENT,
     onSortOptionChange: (LibrarySortOption) -> Unit = {},
+    header: @Composable () -> Unit = {},
 ) {
     val sortedAudiobooks = remember(audiobooks, sortOption) {
         when (sortOption) {
@@ -71,6 +73,9 @@ fun AudiobookGrid(
                     verticalArrangement = Arrangement.spacedBy(24.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        header()
+                    }
                     items(sortedAudiobooks, key = { it.id }) { book ->
                         AudiobookGridItem(
                             book = book,
@@ -91,6 +96,9 @@ fun AudiobookGrid(
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
+                    item {
+                        header()
+                    }
                     items(sortedAudiobooks, key = { it.id }) { book ->
                         AudiobookListItem(
                             book = book,

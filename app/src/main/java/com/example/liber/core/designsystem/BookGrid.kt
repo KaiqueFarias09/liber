@@ -71,6 +71,7 @@ fun BookGrid(
     onSortOptionChange: (LibrarySortOption) -> Unit = {},
     activeAudiobookId: String? = null,
     isAudiobookPlaying: Boolean = false,
+    header: @Composable () -> Unit = {},
 ) {
     val sortedBooks = remember(books, sortOption) {
         when (sortOption) {
@@ -108,6 +109,9 @@ fun BookGrid(
                         verticalArrangement = Arrangement.spacedBy(32.dp),
                         modifier = Modifier.fillMaxSize(),
                     ) {
+                        item {
+                            header()
+                        }
                         items(chunkedBooks, key = { it.first().id }) { rowBooks ->
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -149,6 +153,9 @@ fun BookGrid(
                         verticalArrangement = Arrangement.spacedBy(2.dp),
                         modifier = Modifier.fillMaxSize(),
                     ) {
+                        item {
+                            header()
+                        }
                         items(sortedBooks, key = { it.id }) { book ->
                             BookListItem(
                                 book = book,

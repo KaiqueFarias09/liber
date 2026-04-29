@@ -33,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -90,6 +91,8 @@ fun LibraryScreen(
     onAudiobooksViewModeChange: (LibraryViewMode) -> Unit = {},
     audiobooksSortOption: LibrarySortOption = LibrarySortOption.RECENT,
     onAudiobooksSortOptionChange: (LibrarySortOption) -> Unit = {},
+    collectionsSortOption: CollectionSortOption = CollectionSortOption.RECENT,
+    onCollectionsSortOptionChange: (CollectionSortOption) -> Unit = {},
     searchQuery: String = "",
     onSearchQueryChange: (String) -> Unit = {},
     onSearch: (String) -> Unit = {},
@@ -184,6 +187,8 @@ fun LibraryScreen(
                 onAudiobooksSortOptionChange = onAudiobooksSortOptionChange,
                 audiobooksViewMode = audiobooksViewMode,
                 onAudiobooksViewModeChange = onAudiobooksViewModeChange,
+                collectionsSortOption = collectionsSortOption,
+                onCollectionsSortOptionChange = onCollectionsSortOptionChange,
                 autoCollectionsEnabled = autoCollectionsEnabled,
                 onAutoCollectionsToggle = onAutoCollectionsToggle
             )
@@ -255,6 +260,27 @@ fun LibraryScreen(
                                     collections = collectionsState.data,
                                     onCollectionClick = { onCollectionClick(it.id) },
                                     onCreateCollection = onCreateCollection,
+                                    sortOption = collectionsSortOption,
+                                    header = {
+                                        if (collectionsState.data.isNotEmpty()) {
+                                            Text(
+                                                text = pluralStringResource(
+                                                    R.plurals.label_collections,
+                                                    collectionsState.data.size,
+                                                    collectionsState.data.size
+                                                ),
+                                                style = MaterialTheme.typography.labelSmall.copy(
+                                                    fontWeight = FontWeight.Bold,
+                                                    letterSpacing = 1.5.sp,
+                                                    fontSize = 9.sp
+                                                ),
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                                    alpha = 0.4f
+                                                ),
+                                                modifier = Modifier.padding(vertical = 8.dp)
+                                            )
+                                        }
+                                    }
                                 )
                             }
                         }
@@ -302,6 +328,8 @@ private fun LibraryFilterAndSortRow(
     onAudiobooksSortOptionChange: (LibrarySortOption) -> Unit,
     audiobooksViewMode: LibraryViewMode,
     onAudiobooksViewModeChange: (LibraryViewMode) -> Unit,
+    collectionsSortOption: CollectionSortOption,
+    onCollectionsSortOptionChange: (CollectionSortOption) -> Unit,
     autoCollectionsEnabled: Boolean,
     onAutoCollectionsToggle: (Boolean) -> Unit,
 ) {
@@ -335,6 +363,27 @@ private fun LibraryFilterAndSortRow(
                     color = if (autoCollectionsEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(
                         alpha = 0.5f
                     )
+                )
+            }
+
+            // Sort Dropdown for Collections
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "Sort: ",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
+                        fontSize = 9.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                )
+                EditorialDropdown(
+                    value = collectionsSortOption.name,
+                    onValueChange = { onCollectionsSortOptionChange(CollectionSortOption.valueOf(it)) },
+                    options = CollectionSortOption.entries.map { it.name },
+                    labelProvider = { sortName ->
+                        CollectionSortOption.valueOf(sortName).label.asString()
+                    }
                 )
             }
             return@Row
@@ -469,20 +518,26 @@ private fun LibraryBooksTab(
 
         is UiState.Success -> {
             val books = booksState.data.filter { it.isAudiobook == isAudiobook }
-            Column(modifier = Modifier.fillMaxSize()) {
+            val header = @Composable {
                 if (books.isNotEmpty()) {
                     Text(
-                        text = "${books.size} ${if (isAudiobook) "audiobooks" else "books"}",
+                        text = if (isAudiobook) pluralStringResource(
+                            R.plurals.label_audiobooks,
+                            books.size,
+                            books.size
+                        ) else pluralStringResource(R.plurals.label_books, books.size, books.size),
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.5.sp,
                             fontSize = 9.sp
                         ),
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+                        modifier = Modifier.padding(vertical = 8.dp)
                     )
                 }
+            }
 
+            Column(modifier = Modifier.fillMaxSize()) {
                 if (books.isEmpty()) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
@@ -527,6 +582,7 @@ private fun LibraryBooksTab(
                             onViewModeChange = onViewModeChange,
                             sortOption = sortOption,
                             onSortOptionChange = onSortOptionChange,
+                            header = header
                         )
                     } else {
                         BookGrid(
@@ -546,6 +602,7 @@ private fun LibraryBooksTab(
                             onSortOptionChange = onSortOptionChange,
                             activeAudiobookId = activeBookId,
                             isAudiobookPlaying = isPlaying,
+                            header = header
                         )
                     }
                 }
@@ -580,6 +637,7 @@ fun LibraryScreen(
     val booksSortOption by viewModel.booksSortOption.collectAsState()
     val audiobooksViewMode by viewModel.audiobooksViewMode.collectAsState()
     val audiobooksSortOption by viewModel.audiobooksSortOption.collectAsState()
+    val collectionsSortOption by collectionsViewModel.collectionsSortOption.collectAsState()
     val scanState by viewModel.scanState.collectAsState()
     val searchQuery by viewModel.librarySearchQuery.collectAsState()
     val filterStatus by viewModel.libraryFilterStatus.collectAsState()
@@ -638,6 +696,8 @@ fun LibraryScreen(
         onAudiobooksViewModeChange = { viewModel.setAudiobooksViewMode(it) },
         audiobooksSortOption = audiobooksSortOption,
         onAudiobooksSortOptionChange = { viewModel.setAudiobooksSortOption(it) },
+        collectionsSortOption = collectionsSortOption,
+        onCollectionsSortOptionChange = { collectionsViewModel.setCollectionsSortOption(it) },
         modifier = modifier,
         scanState = scanState,
         onDismissScanBanner = { viewModel.dismissScanBanner() },

@@ -139,7 +139,7 @@ fun LibrarySearchOverlay(
                                     .padding(start = 16.dp, top = if (isTablet) 16.dp else 8.dp)
                                     .size(40.dp)
                                     .background(
-                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                        Color.Transparent,
                                         CircleShape
                                     )
                             ) {

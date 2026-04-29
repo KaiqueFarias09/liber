@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -54,6 +55,7 @@ import com.example.liber.core.designsystem.LiberFAB
 import com.example.liber.core.util.UiText
 import com.example.liber.data.model.BookPreview
 import com.example.liber.feature.collections.components.CollectionNameDialog
+import com.example.liber.feature.library.CollectionSortOption
 
 // ── List screen ───────────────────────────────────────────────────────────────
 
@@ -62,8 +64,18 @@ fun CollectionsListScreen(
     collections: List<CollectionUiState>,
     onCollectionClick: (CollectionUiState) -> Unit,
     onCreateCollection: (String) -> Unit,
+    sortOption: CollectionSortOption = CollectionSortOption.RECENT,
+    header: @Composable () -> Unit = {},
 ) {
     var showCreateDialog by remember { mutableStateOf(false) }
+
+    val sortedCollections = remember(collections, sortOption) {
+        when (sortOption) {
+            CollectionSortOption.ALPHABETICAL -> collections.sortedBy { it.name.lowercase() }
+            CollectionSortOption.BOOK_COUNT -> collections.sortedByDescending { it.totalBooks }
+            CollectionSortOption.RECENT -> collections.sortedByDescending { it.id }
+        }
+    }
 
     Scaffold(
         containerColor = Color.Transparent,
@@ -113,7 +125,10 @@ fun CollectionsListScreen(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    items(collections, key = { "collection_${it.id}" }) { collection ->
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        header()
+                    }
+                    items(sortedCollections, key = { "collection_${it.id}" }) { collection ->
                         CollectionShelfRow(
                             collection = collection,
                             onClick = { onCollectionClick(collection) },

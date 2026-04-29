@@ -11,6 +11,7 @@ import com.example.liber.data.model.Collection
 import com.example.liber.data.repository.BookRepository
 import com.example.liber.data.repository.CollectionRepository
 import com.example.liber.data.repository.UserPreferencesRepository
+import com.example.liber.feature.library.CollectionSortOption
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
@@ -54,6 +55,23 @@ class CollectionsViewModel @Inject constructor(
     val autoCollectionsEnabled: StateFlow<Boolean> =
         userPreferencesRepository.autoCollectionsEnabled
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val collectionsSortOption: StateFlow<CollectionSortOption> =
+        userPreferencesRepository.collectionsSortOption
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5000),
+                CollectionSortOption.RECENT
+            )
+
+    fun setCollectionsSortOption(option: CollectionSortOption) {
+        launchSafely(
+            actionName = "setCollectionsSortOption",
+            parameters = mapOf("option" to option.name),
+        ) {
+            userPreferencesRepository.setCollectionsSortOption(option)
+        }
+    }
 
     val collectionsState: StateFlow<UiState<List<CollectionUiState>>> = combine(
         userCollections,

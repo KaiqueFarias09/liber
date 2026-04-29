@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.example.liber.core.logging.AppLogger
 import com.example.liber.core.logging.BaseRepository
+import com.example.liber.feature.library.CollectionSortOption
 import com.example.liber.feature.library.LibrarySortOption
 import com.example.liber.feature.library.LibraryViewMode
 import kotlinx.coroutines.flow.Flow
@@ -46,6 +47,7 @@ class UserPreferencesRepository(
         val SMART_RECOGNITION_INFO_DISMISSED =
             booleanPreferencesKey("smart_recognition_info_dismissed")
         val AUTO_COLLECTIONS_ENABLED = booleanPreferencesKey("auto_collections_enabled")
+        val COLLECTIONS_SORT_OPTION = stringPreferencesKey("collections_sort_option")
         val RECENT_SEARCHES = stringPreferencesKey("recent_searches")
     }
 
@@ -226,6 +228,20 @@ class UserPreferencesRepository(
 
     val autoCollectionsEnabled: Flow<Boolean> = dataStore.data
         .map { it[PreferencesKeys.AUTO_COLLECTIONS_ENABLED] ?: true }
+
+    val collectionsSortOption: Flow<CollectionSortOption> = dataStore.data
+        .map { preferences ->
+            val name = preferences[PreferencesKeys.COLLECTIONS_SORT_OPTION]
+                ?: CollectionSortOption.RECENT.name
+            CollectionSortOption.valueOf(name)
+        }
+
+    suspend fun setCollectionsSortOption(option: CollectionSortOption) = executeOperation(
+        operationName = "setCollectionsSortOption",
+        parameters = mapOf("option" to option.name),
+    ) {
+        dataStore.edit { it[PreferencesKeys.COLLECTIONS_SORT_OPTION] = option.name }
+    }
 
     val recentSearches: Flow<List<String>> = dataStore.data
         .map { preferences ->

@@ -212,10 +212,16 @@
         <item quantity="one">%1$d audiobook</item>
         <item quantity="other">%1$d audiobooks</item>
     </plurals>
+    <plurals name="label_collections">
+        <item quantity="one">%1$d collection</item>
+        <item quantity="other">%1$d collections</item>
+    </plurals>
     <string name="sort_option_recent">Recent</string>
     <string name="sort_option_title">Title</string>
     <string name="sort_option_author">Author</string>
     <string name="sort_option_progress">Progress</string>
+    <string name="sort_option_alphabetical">Alphabetical</string>
+    <string name="sort_option_book_count">Number of books</string>
     <string name="filter_all">All</string>
     <string name="filter_unread">Unread</string>
     <string name="filter_in_progress">Reading</string>
