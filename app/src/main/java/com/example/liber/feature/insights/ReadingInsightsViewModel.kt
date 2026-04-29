@@ -7,6 +7,8 @@ import com.example.liber.core.util.UiState
 import com.example.liber.data.model.Book
 import com.example.liber.data.model.ReadingSession
 import com.example.liber.data.repository.BookRepository
+import com.example.liber.data.repository.CollectionRepository
+import com.example.liber.data.repository.DictionaryRepository
 import com.example.liber.data.repository.ReadingInsightsRepository
 import com.example.liber.data.repository.UserPreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -33,6 +35,8 @@ data class ReadingInsightsUiModel(
     val averageSessionMinutes: Int,
     val profileTitle: String,
     val profileSubtitle: String,
+    val vocabularyCount: Int,
+    val obsession: String?,
     val readingNow: List<Book>,
     val finishedThisYear: List<Book>,
     val finishedThisYearCount: Int,
@@ -49,21 +53,28 @@ class ReadingInsightsViewModel @Inject constructor(
     bookRepository: BookRepository,
     readingInsightsRepository: ReadingInsightsRepository,
     userPreferencesRepository: UserPreferencesRepository,
+    dictionaryRepository: DictionaryRepository,
+    collectionRepository: CollectionRepository,
     appLogger: AppLogger,
 ) : BaseViewModel("ReadingInsightsViewModel", appLogger) {
 
     private val zoneId = ZoneId.systemDefault()
     private val sessionLookbackThreshold = System.currentTimeMillis() - SESSION_LOOKBACK_MILLIS
+    private val weekThreshold = System.currentTimeMillis() - (7 * 24 * 60 * 60 * 1000L)
 
     val insightsState: StateFlow<UiState<ReadingInsightsUiModel>> = combine(
         bookRepository.getAllBooks(),
         readingInsightsRepository.getSessionsSince(sessionLookbackThreshold),
         userPreferencesRepository.readingGoalMinutes,
-    ) { books, sessions, dailyGoalMinutes ->
+        dictionaryRepository.getLookupCountSince(weekThreshold),
+        collectionRepository.getAllCollectionsWithBooks(),
+    ) { books, sessions, dailyGoalMinutes, vocabularyCount, collections ->
         buildUiModel(
             books = books,
             sessions = sessions,
             dailyGoalMinutes = dailyGoalMinutes,
+            vocabularyCount = vocabularyCount,
+            collections = collections,
         )
     }
         .map<ReadingInsightsUiModel, UiState<ReadingInsightsUiModel>> { UiState.Success(it) }
@@ -77,6 +88,8 @@ class ReadingInsightsViewModel @Inject constructor(
         books: List<Book>,
         sessions: List<ReadingSession>,
         dailyGoalMinutes: Int,
+        vocabularyCount: Int,
+        collections: List<com.example.liber.data.local.CollectionWithBooksRelation>,
     ): ReadingInsightsUiModel {
         val today = LocalDate.now(zoneId)
         val weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
@@ -132,6 +145,8 @@ class ReadingInsightsViewModel @Inject constructor(
             }
             .sortedByDescending { it.lastOpenedAt ?: 0L }
 
+        val obsession = calculateObsession(readingNow, collections)
+
         val finishedThisYear = books
             .filter { book ->
                 book.readingProgress >= 100 &&
@@ -149,10 +164,29 @@ class ReadingInsightsViewModel @Inject constructor(
             averageSessionMinutes = averageSessionMinutes,
             profileTitle = profileTitle,
             profileSubtitle = profileSubtitle,
+            vocabularyCount = vocabularyCount,
+            obsession = obsession,
             readingNow = readingNow,
             finishedThisYear = finishedThisYear,
             finishedThisYearCount = finishedThisYear.size,
         )
+    }
+
+    private fun calculateObsession(
+        readingNow: List<Book>,
+        collections: List<com.example.liber.data.local.CollectionWithBooksRelation>,
+    ): String? {
+        if (readingNow.isEmpty()) return null
+
+        val recentBookIds = readingNow.take(5).map { it.id }.toSet()
+        val relevantCollections = collections.filter { relation ->
+            relation.books.any { it.id in recentBookIds }
+        }
+
+        return relevantCollections
+            .maxByOrNull { relation ->
+                relation.books.count { it.id in recentBookIds }
+            }?.collection?.name
     }
 
     private fun buildReaderProfile(sessions: List<ReadingSession>): Pair<String, String> {

@@ -297,6 +297,15 @@
     </plurals>
     <string name="settings_reading_insights_habits">Hábitos y perfil</string>
     <string name="settings_reading_insights_avg_session">Sesión promedio</string>
+    <string name="settings_reading_insights_avg_session_desc">Un ritmo constante es mejor que un sprint.</string>
+    <string name="settings_reading_insights_vocabulary_title">Vocabulario</string>
+    <string name="settings_reading_insights_vocabulary_label">Palabras</string>
+    <string name="settings_reading_insights_vocabulary_desc">Mente curiosa. Palabras buscadas en el diccionario local esta semana.</string>
+    <string name="settings_reading_insights_obsession_title">Obsesión</string>
+    <string name="settings_reading_insights_obsession_desc">Por dónde ha estado viajando tu mente últimamente.</string>
+    <string name="settings_reading_insights_profile_label">Perfil</string>
+    <string name="settings_reading_insights_hero_quote">\"Leemos para saber que no estamos solos.\"</string>
+    <string name="settings_reading_insights_hero_subtitle">Tu viaje a través de las páginas esta semana.</string>
     <string name="settings_reading_insights_profile">Perfil</string>
     <string name="settings_reading_insights_minutes_value">%1$d min</string>
     <string name="settings_reading_insights_finished_title">Terminado en %1$d</string>

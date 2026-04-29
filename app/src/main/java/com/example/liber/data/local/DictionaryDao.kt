@@ -140,6 +140,9 @@ interface DictionaryDao {
     @Query("SELECT * FROM dictionary_lookup_history ORDER BY lookedUpAt DESC LIMIT :limit")
     fun getLookupHistory(limit: Int = 100): Flow<List<DictionaryLookupHistory>>
 
+    @Query("SELECT COUNT(*) FROM dictionary_lookup_history WHERE lookedUpAt >= :threshold")
+    fun getLookupCountSince(threshold: Long): Flow<Int>
+
     @Query("DELETE FROM dictionary_lookup_history WHERE id = :id")
     suspend fun deleteLookupHistory(id: Long)
 

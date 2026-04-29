@@ -84,6 +84,12 @@ class DictionaryRepository(
             upstream = dictionaryDao.getLookupHistory(limit),
         )
 
+    fun getLookupCountSince(threshold: Long): Flow<Int> = observeOperation(
+        operationName = "getLookupCountSince",
+        parameters = mapOf("threshold" to threshold),
+        upstream = dictionaryDao.getLookupCountSince(threshold),
+    )
+
     suspend fun createManualDictionary(
         displayName: String,
         sourceLanguageTag: String,

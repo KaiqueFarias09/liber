@@ -1,9 +1,11 @@
 package com.example.liber.feature.insights
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -32,8 +34,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -41,8 +46,11 @@ import androidx.compose.ui.unit.sp
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.BookBookmark
+import com.adamglin.phosphoricons.regular.BookOpen
 import com.adamglin.phosphoricons.regular.Clock
+import com.adamglin.phosphoricons.regular.Compass
 import com.adamglin.phosphoricons.regular.Fire
+import com.adamglin.phosphoricons.regular.Moon
 import com.adamglin.phosphoricons.regular.MoonStars
 import com.adamglin.phosphoricons.regular.SunHorizon
 import com.adamglin.phosphoricons.regular.Target
@@ -52,11 +60,14 @@ import com.example.liber.core.designsystem.BookCover
 import com.example.liber.core.designsystem.CoverStyle
 import com.example.liber.core.designsystem.Gambetta
 import com.example.liber.core.designsystem.LiberScreen
+import com.example.liber.core.designsystem.MaxContentWidth
+import com.example.liber.core.designsystem.liberHorizontalDivider
 import com.example.liber.core.designsystem.liberOutlinedContainer
 import com.example.liber.core.util.UiState
 import com.example.liber.core.util.UiText
 import com.example.liber.data.model.Book
 import java.time.Year
+import java.util.Locale
 
 @Composable
 fun ReadingInsightsScreen(
@@ -66,33 +77,37 @@ fun ReadingInsightsScreen(
 ) {
     val insightsState by viewModel.insightsState.collectAsState()
 
-    LiberScreen(
-        title = UiText.StringResource(R.string.settings_reading_insights_title),
-        modifier = modifier,
-        onBack = onBack,
-    ) {
-        when (val state = insightsState) {
-            is UiState.Loading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator()
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val isTablet = maxWidth >= MaxContentWidth
+
+        LiberScreen(
+            title = UiText.StringResource(R.string.settings_reading_insights_title),
+            onBack = onBack,
+        ) {
+            when (val state = insightsState) {
+                is UiState.Loading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator()
+                    }
                 }
-            }
 
-            is UiState.Error -> {
-                AppErrorState(
-                    title = state.title,
-                    message = state.message,
-                )
-            }
+                is UiState.Error -> {
+                    AppErrorState(
+                        title = state.title,
+                        message = state.message,
+                    )
+                }
 
-            is UiState.Success -> {
-                ReadingInsightsContent(
-                    uiModel = state.data,
-                    modifier = Modifier.fillMaxSize(),
-                )
+                is UiState.Success -> {
+                    ReadingInsightsContent(
+                        uiModel = state.data,
+                        isTablet = isTablet,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
             }
         }
     }
@@ -101,6 +116,7 @@ fun ReadingInsightsScreen(
 @Composable
 private fun ReadingInsightsContent(
     uiModel: ReadingInsightsUiModel,
+    isTablet: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val scrollState = rememberScrollState()
@@ -108,67 +124,20 @@ private fun ReadingInsightsContent(
     Column(
         modifier = modifier
             .verticalScroll(scrollState)
-            .padding(horizontal = 24.dp)
+            .padding(horizontal = if (isTablet) 48.dp else 24.dp)
             .padding(bottom = 32.dp),
     ) {
-        Spacer(modifier = Modifier.height(8.dp))
+        if (isTablet) {
+            TabletHeroSection(uiModel.weeklyDurationMillis)
+        } else {
+            Spacer(modifier = Modifier.height(8.dp))
+            HeroReadingTime(uiModel.weeklyDurationMillis)
+        }
 
-        HeroReadingTime(
-            weeklyDurationMillis = uiModel.weeklyDurationMillis,
-        )
-
-        GoalCard(
-            currentMinutes = (uiModel.todayDurationMillis / 60_000L).toInt(),
-            goalMinutes = uiModel.dailyGoalMinutes,
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        StreakCard(
-            streakDays = uiModel.streakDays,
-            bestStreakDays = uiModel.bestStreakDays,
-            heatmapCells = uiModel.heatmapCells,
-        )
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Text(
-            text = stringResource(R.string.settings_reading_insights_habits),
-            style = MaterialTheme.typography.titleLarge.copy(fontFamily = Gambetta),
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(IntrinsicSize.Max),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            InsightMiniCard(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight(),
-                icon = PhosphorIcons.Regular.Clock,
-                label = stringResource(R.string.settings_reading_insights_avg_session),
-                value = stringResource(
-                    R.string.settings_reading_insights_minutes_value,
-                    uiModel.averageSessionMinutes
-                ),
-            )
-            InsightMiniCard(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight(),
-                icon = if (uiModel.profileTitle.contains("Morning")) {
-                    PhosphorIcons.Regular.SunHorizon
-                } else {
-                    PhosphorIcons.Regular.MoonStars
-                },
-                label = stringResource(R.string.settings_reading_insights_profile),
-                value = uiModel.profileTitle,
-                supporting = uiModel.profileSubtitle,
-            )
+        if (isTablet) {
+            TabletBentoGrid(uiModel)
+        } else {
+            MobileContent(uiModel)
         }
 
         if (uiModel.readingNow.isNotEmpty()) {
@@ -183,6 +152,204 @@ private fun ReadingInsightsContent(
                 count = uiModel.finishedThisYearCount,
             )
         }
+    }
+}
+
+@Composable
+private fun MobileContent(uiModel: ReadingInsightsUiModel) {
+    GoalCard(
+        currentMinutes = (uiModel.todayDurationMillis / 60_000L).toInt(),
+        goalMinutes = uiModel.dailyGoalMinutes,
+    )
+
+    Spacer(modifier = Modifier.height(16.dp))
+
+    StreakCard(
+        streakDays = uiModel.streakDays,
+        bestStreakDays = uiModel.bestStreakDays,
+        heatmapCells = uiModel.heatmapCells,
+    )
+
+    Spacer(modifier = Modifier.height(16.dp))
+
+    VocabularyCard(count = uiModel.vocabularyCount)
+
+    Spacer(modifier = Modifier.height(16.dp))
+
+    ObsessionCard(obsession = uiModel.obsession ?: "General")
+
+    Spacer(modifier = Modifier.height(20.dp))
+
+    Text(
+        text = stringResource(R.string.settings_reading_insights_habits),
+        style = MaterialTheme.typography.titleLarge.copy(fontFamily = Gambetta),
+    )
+
+    Spacer(modifier = Modifier.height(12.dp))
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Max),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        InsightMiniCard(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight(),
+            icon = PhosphorIcons.Regular.Clock,
+            label = stringResource(R.string.settings_reading_insights_avg_session),
+            value = stringResource(
+                R.string.settings_reading_insights_minutes_value,
+                uiModel.averageSessionMinutes,
+            ),
+        )
+        InsightMiniCard(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight(),
+            icon = if (uiModel.profileTitle.contains("Morning")) {
+                PhosphorIcons.Regular.SunHorizon
+            } else {
+                PhosphorIcons.Regular.MoonStars
+            },
+            label = stringResource(R.string.settings_reading_insights_profile),
+            value = uiModel.profileTitle,
+            supporting = uiModel.profileSubtitle,
+        )
+    }
+}
+
+@Composable
+private fun TabletHeroSection(weeklyDurationMillis: Long) {
+    val hours = weeklyDurationMillis / 3_600_000L
+    val minutes = (weeklyDurationMillis / 60_000L) % 60L
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 32.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Bottom
+        ) {
+            Column {
+                Text(
+                    text = stringResource(R.string.settings_reading_insights_weekly_label),
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontFamily = Gambetta,
+                        fontStyle = FontStyle.Italic
+                    ),
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        text = hours.toString(),
+                        style = MaterialTheme.typography.displayLarge.copy(
+                            fontFamily = Gambetta,
+                            fontSize = 72.sp,
+                            color = MaterialTheme.colorScheme.primary,
+                        ),
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_reading_insights_hours_short),
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(start = 4.dp, end = 12.dp, bottom = 12.dp),
+                    )
+                    Text(
+                        text = minutes.toString(),
+                        style = MaterialTheme.typography.displayLarge.copy(
+                            fontFamily = Gambetta,
+                            fontSize = 72.sp,
+                            color = MaterialTheme.colorScheme.primary,
+                        ),
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_reading_insights_minutes_short),
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(start = 4.dp, bottom = 12.dp),
+                    )
+                }
+            }
+
+            Column(
+                horizontalAlignment = Alignment.End,
+                modifier = Modifier.width(280.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.settings_reading_insights_hero_quote),
+                    style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic),
+                    textAlign = TextAlign.End,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = stringResource(R.string.settings_reading_insights_hero_subtitle),
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.End,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(24.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .liberHorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        )
+    }
+}
+
+@Composable
+private fun TabletBentoGrid(uiModel: ReadingInsightsUiModel) {
+    Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+        // Row 1: Goal & Vocabulary
+        Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            GoalCard(
+                currentMinutes = (uiModel.todayDurationMillis / 60_000L).toInt(),
+                goalMinutes = uiModel.dailyGoalMinutes,
+                modifier = Modifier.weight(1f)
+            )
+            VocabularyCard(
+                count = uiModel.vocabularyCount,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        // Row 2: Streak (Horizontal)
+        StreakCard(
+            streakDays = uiModel.streakDays,
+            bestStreakDays = uiModel.bestStreakDays,
+            heatmapCells = uiModel.heatmapCells,
+            isHorizontal = true
+        )
+
+        // Row 3: Obsession & Avg Session
+        Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            ObsessionCard(
+                obsession = uiModel.obsession ?: "General",
+                modifier = Modifier.weight(1f)
+            )
+            InsightMiniCard(
+                icon = PhosphorIcons.Regular.Clock,
+                label = stringResource(R.string.settings_reading_insights_avg_session),
+                value = stringResource(
+                    R.string.settings_reading_insights_minutes_value,
+                    uiModel.averageSessionMinutes
+                ),
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        // Row 4: Profile (Horizontal)
+        ProfileCard(
+            title = uiModel.profileTitle,
+            subtitle = uiModel.profileSubtitle
+        )
     }
 }
 
@@ -239,15 +406,184 @@ private fun HeroReadingTime(
 }
 
 @Composable
+private fun VocabularyCard(count: Int, modifier: Modifier = Modifier) {
+    InsightCard(modifier = modifier) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = PhosphorIcons.Regular.BookOpen,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                    modifier = Modifier.size(20.dp),
+                )
+                Text(
+                    text = stringResource(R.string.settings_reading_insights_vocabulary_title),
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                )
+            }
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    text = count.toString(),
+                    style = MaterialTheme.typography.headlineLarge.copy(fontFamily = Gambetta),
+                )
+                Text(
+                    text = stringResource(R.string.settings_reading_insights_vocabulary_label).uppercase(
+                        Locale.ROOT
+                    ),
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 2.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = stringResource(R.string.settings_reading_insights_vocabulary_desc),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            lineHeight = 18.sp
+        )
+    }
+}
+
+@Composable
+private fun ObsessionCard(obsession: String, modifier: Modifier = Modifier) {
+    InsightCard(modifier = modifier) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = PhosphorIcons.Regular.Compass,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                    modifier = Modifier.size(20.dp),
+                )
+                Text(
+                    text = stringResource(R.string.settings_reading_insights_obsession_title),
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = obsession,
+            style = MaterialTheme.typography.headlineMedium.copy(
+                fontFamily = Gambetta,
+                fontStyle = FontStyle.Italic,
+                color = MaterialTheme.colorScheme.primary
+            ),
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = stringResource(R.string.settings_reading_insights_obsession_desc),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            lineHeight = 18.sp
+        )
+    }
+}
+
+@Composable
+private fun ProfileCard(title: String, subtitle: String, modifier: Modifier = Modifier) {
+    InsightCard(modifier = modifier) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1.3f)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(999.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        color = MaterialTheme.colorScheme.surface
+                    ) {
+                        Icon(
+                            imageVector = PhosphorIcons.Regular.Moon,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .padding(8.dp)
+                                .size(20.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Text(
+                        text = stringResource(R.string.settings_reading_insights_profile_label).uppercase(
+                            Locale.ROOT
+                        ),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 2.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    )
+                }
+
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.displaySmall.copy(
+                        fontFamily = Gambetta,
+                        fontSize = 36.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 22.sp
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .weight(0.7f)
+                    .padding(start = 24.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Icon(
+                    imageVector = PhosphorIcons.Regular.Moon,
+                    contentDescription = null,
+                    modifier = Modifier.size(120.dp),
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun GoalCard(
     currentMinutes: Int,
     goalMinutes: Int,
+    modifier: Modifier = Modifier,
 ) {
     val progress =
         if (goalMinutes == 0) 0f else (currentMinutes / goalMinutes.toFloat()).coerceIn(0f, 1f)
     val remainingMinutes = (goalMinutes - currentMinutes).coerceAtLeast(0)
 
-    InsightCard {
+    InsightCard(modifier = modifier) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -313,79 +649,160 @@ private fun StreakCard(
     streakDays: Int,
     bestStreakDays: Int,
     heatmapCells: List<HeatmapCellUiModel>,
+    isHorizontal: Boolean = false,
 ) {
     InsightCard {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = PhosphorIcons.Regular.Fire,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                        modifier = Modifier.size(18.dp),
-                    )
+        if (isHorizontal) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = PhosphorIcons.Regular.Fire,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(32.dp),
+                        )
+                        Text(
+                            text = pluralStringResource(
+                                R.plurals.settings_reading_insights_streak_title,
+                                streakDays,
+                                streakDays
+                            ),
+                            style = MaterialTheme.typography.displaySmall.copy(fontFamily = Gambetta),
+                        )
+                    }
                     Text(
                         text = pluralStringResource(
-                            R.plurals.settings_reading_insights_streak_title,
-                            streakDays,
-                            streakDays
+                            R.plurals.settings_reading_insights_streak_best,
+                            bestStreakDays,
+                            bestStreakDays
                         ),
-                        style = MaterialTheme.typography.titleLarge.copy(fontFamily = Gambetta),
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontFamily = Gambetta,
+                            fontStyle = FontStyle.Italic
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 44.dp)
                     )
                 }
-                Text(
-                    text = pluralStringResource(
-                        R.plurals.settings_reading_insights_streak_best,
-                        bestStreakDays,
-                        bestStreakDays
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+
+                Column(modifier = Modifier.width(300.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        listOf("M", "T", "W", "T", "F", "S", "S").forEach { label ->
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                modifier = Modifier.width(20.dp),
+                                textAlign = TextAlign.Center,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    heatmapCells.chunked(7).forEach { row ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            row.forEach { cell ->
+                                Box(
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(heatmapColor(cell.intensity))
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                    }
+                }
             }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            listOf("M", "T", "W", "T", "F", "S", "S").forEach { label ->
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.width(20.dp),
-                    textAlign = TextAlign.Center,
-                )
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = PhosphorIcons.Regular.Fire,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Text(
+                            text = pluralStringResource(
+                                R.plurals.settings_reading_insights_streak_title,
+                                streakDays,
+                                streakDays
+                            ),
+                            style = MaterialTheme.typography.titleLarge.copy(fontFamily = Gambetta),
+                        )
+                    }
+                    Text(
+                        text = pluralStringResource(
+                            R.plurals.settings_reading_insights_streak_best,
+                            bestStreakDays,
+                            bestStreakDays
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
-        }
 
-        Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        heatmapCells.chunked(7).forEach { row ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                row.forEach { cell ->
-                    Box(
-                        modifier = Modifier
-                            .size(20.dp)
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(heatmapColor(cell.intensity))
+                listOf("M", "T", "W", "T", "F", "S", "S").forEach { label ->
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.width(20.dp),
+                        textAlign = TextAlign.Center,
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(6.dp))
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            heatmapCells.chunked(7).forEach { row ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    row.forEach { cell ->
+                        Box(
+                            modifier = Modifier
+                                .size(20.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(heatmapColor(cell.intensity))
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+            }
         }
     }
 }
@@ -584,7 +1001,7 @@ private fun InsightCard(
 }
 
 @Composable
-private fun heatmapColor(intensity: Int): androidx.compose.ui.graphics.Color {
+private fun heatmapColor(intensity: Int): Color {
     val primary = MaterialTheme.colorScheme.primary
     val surface = MaterialTheme.colorScheme.surfaceVariant
     return when (intensity) {

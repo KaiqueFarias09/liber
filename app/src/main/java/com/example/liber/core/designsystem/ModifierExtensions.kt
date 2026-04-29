@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -63,6 +65,22 @@ fun Modifier.liberContainer(
             .background(finalBgColor, shape)
             .border(borderWidth, finalBorderColor, shape)
             .clip(shape)
+    )
+}
+
+/**
+ * A reusable modifier to apply a horizontal divider line at the bottom of a component.
+ */
+fun Modifier.liberHorizontalDivider(
+    color: Color? = null,
+    thickness: Dp = 1.dp,
+): Modifier = composed {
+    val finalColor = color ?: MaterialTheme.colorScheme.outlineVariant
+    this.then(
+        Modifier
+            .background(finalColor)
+            .fillMaxWidth()
+            .height(thickness)
     )
 }
 
