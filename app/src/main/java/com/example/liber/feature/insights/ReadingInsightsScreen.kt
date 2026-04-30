@@ -52,6 +52,8 @@ import com.adamglin.phosphoricons.regular.Compass
 import com.adamglin.phosphoricons.regular.Fire
 import com.adamglin.phosphoricons.regular.Moon
 import com.adamglin.phosphoricons.regular.MoonStars
+import com.adamglin.phosphoricons.regular.Sparkle
+import com.adamglin.phosphoricons.regular.Sun
 import com.adamglin.phosphoricons.regular.SunHorizon
 import com.adamglin.phosphoricons.regular.Target
 import com.example.liber.R
@@ -60,7 +62,6 @@ import com.example.liber.core.designsystem.BookCover
 import com.example.liber.core.designsystem.CoverStyle
 import com.example.liber.core.designsystem.Gambetta
 import com.example.liber.core.designsystem.LiberScreen
-import com.example.liber.core.designsystem.MaxContentWidth
 import com.example.liber.core.designsystem.liberHorizontalDivider
 import com.example.liber.core.designsystem.liberOutlinedContainer
 import com.example.liber.core.util.UiState
@@ -78,7 +79,7 @@ fun ReadingInsightsScreen(
     val insightsState by viewModel.insightsState.collectAsState()
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val isTablet = maxWidth >= MaxContentWidth
+        val isTablet = maxWidth >= 600.dp
 
         LiberScreen(
             title = UiText.StringResource(R.string.settings_reading_insights_title),
@@ -208,10 +209,11 @@ private fun MobileContent(uiModel: ReadingInsightsUiModel) {
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight(),
-            icon = if (uiModel.profileTitle.contains("Morning")) {
-                PhosphorIcons.Regular.SunHorizon
-            } else {
-                PhosphorIcons.Regular.MoonStars
+            icon = when {
+                uiModel.profileTitle.contains("Morning") -> PhosphorIcons.Regular.SunHorizon
+                uiModel.profileTitle.contains("Afternoon") -> PhosphorIcons.Regular.Sun
+                uiModel.profileTitle.contains("Night") -> PhosphorIcons.Regular.MoonStars
+                else -> PhosphorIcons.Regular.Sparkle
             },
             label = stringResource(R.string.settings_reading_insights_profile),
             value = uiModel.profileTitle,
@@ -308,15 +310,24 @@ private fun TabletHeroSection(weeklyDurationMillis: Long) {
 private fun TabletBentoGrid(uiModel: ReadingInsightsUiModel) {
     Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
         // Row 1: Goal & Vocabulary
-        Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Max),
+            horizontalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
             GoalCard(
                 currentMinutes = (uiModel.todayDurationMillis / 60_000L).toInt(),
                 goalMinutes = uiModel.dailyGoalMinutes,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
             )
             VocabularyCard(
                 count = uiModel.vocabularyCount,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
             )
         }
 
@@ -329,10 +340,17 @@ private fun TabletBentoGrid(uiModel: ReadingInsightsUiModel) {
         )
 
         // Row 3: Obsession & Avg Session
-        Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Max),
+            horizontalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
             ObsessionCard(
                 obsession = uiModel.obsession ?: "General",
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
             )
             InsightMiniCard(
                 icon = PhosphorIcons.Regular.Clock,
@@ -341,7 +359,9 @@ private fun TabletBentoGrid(uiModel: ReadingInsightsUiModel) {
                     R.string.settings_reading_insights_minutes_value,
                     uiModel.averageSessionMinutes
                 ),
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
             )
         }
 
@@ -501,6 +521,13 @@ private fun ObsessionCard(obsession: String, modifier: Modifier = Modifier) {
 
 @Composable
 private fun ProfileCard(title: String, subtitle: String, modifier: Modifier = Modifier) {
+    val icon = when {
+        title.contains("Morning") -> PhosphorIcons.Regular.SunHorizon
+        title.contains("Afternoon") -> PhosphorIcons.Regular.Sun
+        title.contains("Night") -> PhosphorIcons.Regular.Moon
+        else -> PhosphorIcons.Regular.Sparkle
+    }
+
     InsightCard(modifier = modifier) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -519,7 +546,7 @@ private fun ProfileCard(title: String, subtitle: String, modifier: Modifier = Mo
                         color = MaterialTheme.colorScheme.surface
                     ) {
                         Icon(
-                            imageVector = PhosphorIcons.Regular.Moon,
+                            imageVector = icon,
                             contentDescription = null,
                             modifier = Modifier
                                 .padding(8.dp)
@@ -563,7 +590,7 @@ private fun ProfileCard(title: String, subtitle: String, modifier: Modifier = Mo
                 contentAlignment = Alignment.CenterEnd
             ) {
                 Icon(
-                    imageVector = PhosphorIcons.Regular.Moon,
+                    imageVector = icon,
                     contentDescription = null,
                     modifier = Modifier.size(120.dp),
                     tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
@@ -991,10 +1018,10 @@ private fun InsightCard(
         modifier = modifier
             .liberOutlinedContainer(
                 shape = RoundedCornerShape(24.dp)
-            )
-            .padding(20.dp),
+            ),
     ) {
         Column(
+            modifier = Modifier.padding(20.dp),
             content = content,
         )
     }
