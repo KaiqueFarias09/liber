@@ -16,6 +16,7 @@ import com.example.liber.data.repository.BookImporter
 import com.example.liber.data.repository.BookRepository
 import com.example.liber.data.repository.CollectionRepository
 import com.example.liber.data.repository.DictionaryRepository
+import com.example.liber.data.repository.LemmatizationManager
 import com.example.liber.data.repository.ReadingInsightsRepository
 import com.example.liber.data.repository.ScanSourceRepository
 import com.example.liber.data.repository.StarDictIndexer
@@ -25,9 +26,9 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.serialization.json.Json
+import okhttp3.MediaType.Companion.toMediaType
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
-import okhttp3.MediaType.Companion.toMediaType
 import javax.inject.Singleton
 
 @Module
@@ -75,11 +76,20 @@ object RepositoryModule {
 
     @Provides
     @Singleton
+    fun provideLemmatizationManager(
+        wordLemmaDao: WordLemmaDao,
+        application: Application,
+        appLogger: AppLogger,
+    ): LemmatizationManager = LemmatizationManager(wordLemmaDao, application, appLogger)
+
+    @Provides
+    @Singleton
     fun provideDictionaryRepository(
         dictionaryDao: DictionaryDao,
         wordLemmaDao: WordLemmaDao,
         freeDictApi: FreeDictApi,
         starDictIndexer: StarDictIndexer,
+        lemmatizationManager: LemmatizationManager,
         application: Application,
         appLogger: AppLogger,
     ): DictionaryRepository =
@@ -88,6 +98,7 @@ object RepositoryModule {
             wordLemmaDao,
             freeDictApi,
             starDictIndexer,
+            lemmatizationManager,
             application,
             appLogger
         )

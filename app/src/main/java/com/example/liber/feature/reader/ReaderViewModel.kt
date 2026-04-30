@@ -40,19 +40,6 @@ private const val TAG = "LiberSelection"
 // Default annotation colour — yellow at 50 % opacity
 private val DEFAULT_ANNOTATION_COLOR = 0x80FFD60A.toInt()
 
-/** Screen-pixel rectangle for a single highlight line segment, with its ARGB color. */
-data class HighlightRect(
-    val left: Int,
-    val top: Int,
-    val right: Int,
-    val bottom: Int,
-    val color: Int,
-    val annotationId: Long,
-)
-
-/** Screen-pixel position for a draggable selection handle. */
-data class SelectionAnchor(val x: Float, val y: Float)
-
 private const val DEFAULT_LINE_SPACING = 1.4f
 private const val DEFAULT_CHAR_SPACING = 0.0f
 private const val DEFAULT_WORD_SPACING = 0.0f

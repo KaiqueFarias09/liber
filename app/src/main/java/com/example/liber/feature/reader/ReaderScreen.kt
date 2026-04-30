@@ -11,13 +11,10 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
 import androidx.compose.foundation.gestures.awaitTouchSlopOrCancellation
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -58,7 +55,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -69,12 +65,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.adamglin.PhosphorIcons
@@ -98,11 +91,14 @@ import com.example.liber.feature.reader.components.AnnotationActionsSheet
 import com.example.liber.feature.reader.components.CreateAnnotationSheet
 import com.example.liber.feature.reader.components.HighlightColorPicker
 import com.example.liber.feature.reader.components.NotebookView
+import com.example.liber.feature.reader.components.ProgressScrubber
+import com.example.liber.feature.reader.components.ReaderNavItem
 import com.example.liber.feature.reader.components.SearchView
 import com.example.liber.feature.reader.components.SelectionActionsMenu
+import com.example.liber.feature.reader.components.SelectionHandle
 import com.example.liber.feature.reader.components.ThemesSheet
+import com.example.liber.feature.reader.components.TocItemRow
 import kotlinx.coroutines.launch
-import org.coolreader.crengine.TOCItem
 import kotlin.math.abs
 import com.example.liber.data.model.Bookmark as BookmarkModel
 
@@ -1207,286 +1203,3 @@ fun ReaderScreen(
 }
 
 // ── Export Annotations ───────────────────────────────────────────────────────
-
-private fun exportAnnotations(
-    context: android.content.Context,
-    scope: kotlinx.coroutines.CoroutineScope,
-    bookTitle: String,
-    annotations: List<Annotation>,
-    format: String = "markdown"
-) {
-    if (annotations.isEmpty()) return
-
-    scope.launch(kotlinx.coroutines.Dispatchers.IO) {
-        val content = when (format) {
-            "markdown" -> buildString {
-                append("# $bookTitle\n\n")
-                append("## Annotations\n\n")
-                annotations.sortedBy { it.createdAt }.forEach { annotation ->
-                    if (!annotation.text.isNullOrBlank()) {
-                        append("> ${annotation.text}\n\n")
-                    }
-                    if (!annotation.note.isNullOrBlank()) {
-                        append("${annotation.note}\n\n")
-                    }
-                    append("---\n\n")
-                }
-            }
-
-            "json" -> {
-                val items = annotations.map { annotation ->
-                    val text = annotation.text?.replace("\"", "\\\"")?.replace("\n", "\\n") ?: ""
-                    val note = annotation.note?.replace("\"", "\\\"")?.replace("\n", "\\n") ?: ""
-                    "{\"text\":\"$text\",\"note\":\"$note\",\"type\":\"${annotation.type}\"}"
-                }
-                "[\n  ${items.joinToString(",\n  ")}\n]"
-            }
-
-            "html" -> buildString {
-                append("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>$bookTitle - Annotations</title>")
-                append("<style>body{font-family:sans-serif;max-width:800px;margin:40px auto;padding:0 20px;line-height:1.6;}")
-                append("blockquote{border-left:4px solid #ccc;padding-left:16px;margin:20px 0;font-style:italic;}")
-                append("hr{border:0;border-top:1px solid #eee;margin:40px 0;}</style></head><body>")
-                append("<h1>$bookTitle</h1>")
-                annotations.sortedBy { it.createdAt }.forEach { annotation ->
-                    if (!annotation.text.isNullOrBlank()) {
-                        append("<blockquote>${annotation.text}</blockquote>")
-                    }
-                    if (!annotation.note.isNullOrBlank()) {
-                        append("<p>${annotation.note}</p>")
-                    }
-                    append("<hr>")
-                }
-                append("</body></html>")
-            }
-
-            else -> buildString { // txt
-                append("$bookTitle - Annotations\n\n")
-                annotations.sortedBy { it.createdAt }.forEach { annotation ->
-                    if (!annotation.text.isNullOrBlank()) {
-                        append("\"${annotation.text}\"\n")
-                    }
-                    if (!annotation.note.isNullOrBlank()) {
-                        append("Note: ${annotation.note}\n")
-                    }
-                    append("\n-------------------\n\n")
-                }
-            }
-        }
-
-        val extension = when (format) {
-            "markdown" -> "md"
-            "json" -> "json"
-            "html" -> "html"
-            else -> "txt"
-        }
-        val mimeType = when (format) {
-            "markdown" -> "text/markdown"
-            "json" -> "application/json"
-            "html" -> "text/html"
-            else -> "text/plain"
-        }
-
-        val fileName = "${bookTitle.replace(Regex("[^a-zA-Z0-9.-]"), "_")}_annotations.$extension"
-        val file = java.io.File(context.cacheDir, fileName)
-        try {
-            file.writeText(content)
-            val uri = androidx.core.content.FileProvider.getUriForFile(
-                context, "${context.packageName}.fileprovider", file
-            )
-
-            val intent = Intent(Intent.ACTION_SEND).apply {
-                type = mimeType
-                putExtra(Intent.EXTRA_SUBJECT, "$bookTitle - Annotations")
-                putExtra(Intent.EXTRA_STREAM, uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-            context.startActivity(Intent.createChooser(intent, "Export Annotations"))
-        } catch (e: Exception) {
-            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                android.widget.Toast.makeText(
-                    context,
-                    "Failed to export: ${e.message}",
-                    android.widget.Toast.LENGTH_LONG
-                ).show()
-            }
-        }
-    }
-}
-
-// ── TOC row ───────────────────────────────────────────────────────────────────
-
-@Composable
-private fun TocItemRow(item: TOCItem, onClick: () -> Unit) {
-    val depth = (item.mLevel - 1).coerceAtLeast(0)
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(
-                start = (depth * 20 + 4).dp,
-                end = 4.dp,
-                top = 12.dp,
-                bottom = 12.dp,
-            ),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = item.mName ?: stringResource(R.string.reader_label_untitled),
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = if (depth == 0) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (depth == 0) MaterialTheme.colorScheme.onSurface
-            else MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(1f),
-        )
-    }
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(0.5.dp)
-            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-    )
-}
-
-// ── Progress Scrubber ─────────────────────────────────────────────────────────
-
-@Composable
-private fun ProgressScrubber(
-    progress: Float,
-    onProgressChange: (Float) -> Unit,
-    trackColor: Color,
-    progressColor: Color,
-    modifier: Modifier = Modifier,
-) {
-    var draggingProgress by remember { mutableStateOf<Float?>(null) }
-    val displayProgress = draggingProgress ?: progress
-
-    Canvas(
-        modifier = modifier
-            .height(32.dp)
-            .pointerInput(Unit) {
-                detectTapGestures { offset ->
-                    onProgressChange((offset.x / size.width).coerceIn(0f, 1f))
-                }
-            }
-            .pointerInput(Unit) {
-                detectDragGestures(
-                    onDragStart = { offset ->
-                        draggingProgress = (offset.x / size.width).coerceIn(0f, 1f)
-                    },
-                    onDragEnd = {
-                        draggingProgress?.let { onProgressChange(it) }
-                        draggingProgress = null
-                    },
-                    onDragCancel = { draggingProgress = null },
-                    onDrag = { change, _ ->
-                        draggingProgress = (change.position.x / size.width).coerceIn(0f, 1f)
-                    }
-                )
-            }
-    ) {
-        val trackH = 4.dp.toPx()
-        val trackY = (size.height - trackH) / 2f
-        val clamped = displayProgress.coerceIn(0f, 1f)
-
-        drawRoundRect(
-            color = trackColor, topLeft = Offset(0f, trackY),
-            size = Size(size.width, trackH), cornerRadius = CornerRadius(trackH / 2f),
-        )
-        val fillW = size.width * clamped
-        if (fillW > 0f) {
-            drawRoundRect(
-                color = progressColor, topLeft = Offset(0f, trackY),
-                size = Size(fillW, trackH), cornerRadius = CornerRadius(trackH / 2f),
-            )
-        }
-        val thumbR = 8.dp.toPx()
-        val thumbX = fillW.coerceIn(thumbR, size.width - thumbR)
-
-        drawCircle(
-            color = progressColor,
-            radius = thumbR,
-            center = Offset(thumbX, size.height / 2f)
-        )
-    }
-}
-
-// ── SelectionHandle ───────────────────────────────────────────────────────────
-
-@Composable
-private fun SelectionHandle(
-    anchor: SelectionAnchor,
-    isStart: Boolean,
-    onDrag: (x: Int, y: Int) -> Unit,
-    onDragEnd: () -> Unit = {},
-) {
-    val density = LocalDensity.current
-    val handleSizePx = with(density) { 20.dp.roundToPx() }
-    val color = MaterialTheme.colorScheme.primary
-
-    // Not keyed on anchor so cumulative drag survives anchor updates during a drag session.
-    // LaunchedEffect resets the offset whenever a new selection is established (anchor changes).
-    var cumDx by remember { mutableStateOf(0f) }
-    var cumDy by remember { mutableStateOf(0f) }
-    LaunchedEffect(anchor) {
-        cumDx = 0f
-        cumDy = 0f
-    }
-
-    Box(
-        modifier = Modifier
-            .offset {
-                val baseX = if (isStart) anchor.x.toInt() - handleSizePx else anchor.x.toInt()
-                IntOffset(baseX + cumDx.toInt(), anchor.y.toInt() + cumDy.toInt())
-            }
-            .size(40.dp)
-            .pointerInput(anchor) {
-                detectDragGestures(
-                    onDrag = { _, dragAmount ->
-                        cumDx += dragAmount.x
-                        cumDy += dragAmount.y
-                        val queryX =
-                            anchor.x + (if (isStart) -handleSizePx / 2f else handleSizePx / 2f) + cumDx
-                        val queryY = anchor.y + cumDy
-                        onDrag(queryX.toInt(), queryY.toInt())
-                    },
-                    onDragEnd = { onDragEnd() },
-                    onDragCancel = { onDragEnd() },
-                )
-            },
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(20.dp)
-                .background(color, CircleShape)
-        )
-    }
-}
-
-// ── ReaderNavItem ─────────────────────────────────────────────────────────────
-
-@Composable
-internal fun ReaderNavItem(
-    icon: @Composable () -> Unit,
-    label: UiText,
-    labelColor: Color,
-    onClick: () -> Unit,
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-    ) {
-        icon()
-        Spacer(Modifier.height(4.dp))
-        Text(
-            text = label.asString(),
-            style = MaterialTheme.typography.labelSmall,
-            color = labelColor,
-            fontSize = 10.sp,
-        )
-    }
-}
