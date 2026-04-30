@@ -10,6 +10,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -46,6 +47,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
@@ -66,11 +68,14 @@ import com.adamglin.phosphoricons.regular.ArrowLeft
 import com.adamglin.phosphoricons.regular.Clock
 import com.adamglin.phosphoricons.regular.DotsThree
 import com.adamglin.phosphoricons.regular.List
+import com.adamglin.phosphoricons.regular.SlidersHorizontal
 import com.example.liber.R
 import com.example.liber.core.designsystem.AudiobookCover
 import com.example.liber.core.designsystem.CoverStyle
+import com.example.liber.core.designsystem.Gambetta
 import com.example.liber.core.designsystem.LiberDialog
 import com.example.liber.core.designsystem.LiberModalBottomSheet
+import com.example.liber.core.designsystem.liberHorizontalDivider
 import com.example.liber.core.designsystem.responsiveMaxWidth
 import com.example.liber.core.util.UiText
 import com.example.liber.core.util.toFormattedPlaybackTime
@@ -101,397 +106,470 @@ fun AudioPlayerScreen(
     var showDetailsSheet by remember { mutableStateOf(false) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
 
-    BackHandler {
-        if (activeSheet != null) {
-            activeSheet = null
-        } else if (showDetailsSheet) {
-            showDetailsSheet = false
-        } else {
-            onBack()
-        }
-    }
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val isTabletLandscape = maxWidth >= 720.dp && maxWidth > maxHeight
 
-    androidx.compose.runtime.LaunchedEffect(book.id) {
-        if (book.isAudiobook && (book.author == null || book.coverUri == null)) {
-            val updatedBook = homeViewModel.bookImporter.fillAudiobookMetadata(book)
-            if (updatedBook.author != book.author || updatedBook.coverUri != book.coverUri || updatedBook.title != book.title) {
-                homeViewModel.updateFullMetadata(
-                    book.id,
-                    updatedBook.title,
-                    updatedBook.author,
-                    updatedBook.coverUri?.toString(),
-                    book.narrator
+        BackHandler {
+            if (!isTabletLandscape && activeSheet != null) {
+                activeSheet = null
+            } else if (showDetailsSheet) {
+                showDetailsSheet = false
+            } else {
+                onBack()
+            }
+        }
+
+        androidx.compose.runtime.LaunchedEffect(book.id) {
+            if (book.isAudiobook && (book.author == null || book.coverUri == null)) {
+                val updatedBook = homeViewModel.bookImporter.fillAudiobookMetadata(book)
+                if (updatedBook.author != book.author || updatedBook.coverUri != book.coverUri || updatedBook.title != book.title) {
+                    homeViewModel.updateFullMetadata(
+                        book.id,
+                        updatedBook.title,
+                        updatedBook.author,
+                        updatedBook.coverUri?.toString(),
+                        book.narrator
+                    )
+                }
+            }
+        }
+
+        val globalIsPlaying by liberAppViewModel.isPlaying.collectAsState()
+
+        var isDragging by remember { mutableStateOf(false) }
+        var dragPosition by remember { mutableFloatStateOf(0f) }
+
+        val currentSliderPosition = if (isDragging) dragPosition else {
+            if (durationMs > 0) positionMs / durationMs.toFloat() else 0f
+        }
+
+        androidx.compose.runtime.LaunchedEffect(isPlaying) {
+            if (isPlaying != globalIsPlaying) {
+                liberAppViewModel.setPlaying(isPlaying)
+            }
+        }
+
+        androidx.compose.runtime.LaunchedEffect(positionMs, durationMs) {
+            if (durationMs > 0) {
+                liberAppViewModel.setPlayerProgress(positionMs.toFloat() / durationMs.toFloat())
+            }
+        }
+
+        androidx.compose.animation.core.rememberInfiniteTransition(label = "vinyl")
+
+        if (showDeleteConfirmation) {
+            LiberDialog(
+                onDismissRequest = { showDeleteConfirmation = false },
+                title = UiText.StringResource(R.string.dialog_title_remove_download),
+                confirmLabel = UiText.StringResource(R.string.action_remove),
+                confirmLabelColor = MaterialTheme.colorScheme.error,
+                onConfirm = {
+                    homeViewModel.deleteBook(book.id)
+                    showDeleteConfirmation = false
+                    onBack()
+                },
+                dismissLabel = UiText.StringResource(R.string.action_cancel)
+            ) {
+                Text(
+                    stringResource(R.string.dialog_message_remove_download),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
-    }
 
-    val globalIsPlaying by liberAppViewModel.isPlaying.collectAsState()
-
-    var isDragging by remember { mutableStateOf(false) }
-    var dragPosition by remember { mutableFloatStateOf(0f) }
-
-    val currentSliderPosition = if (isDragging) dragPosition else {
-        if (durationMs > 0) positionMs / durationMs.toFloat() else 0f
-    }
-
-    androidx.compose.runtime.LaunchedEffect(isPlaying) {
-        if (isPlaying != globalIsPlaying) {
-            liberAppViewModel.setPlaying(isPlaying)
-        }
-    }
-
-    androidx.compose.runtime.LaunchedEffect(positionMs, durationMs) {
-        if (durationMs > 0) {
-            liberAppViewModel.setPlayerProgress(positionMs.toFloat() / durationMs.toFloat())
-        }
-    }
-
-    androidx.compose.animation.core.rememberInfiniteTransition(label = "vinyl")
-
-    if (showDeleteConfirmation) {
-        LiberDialog(
-            onDismissRequest = { showDeleteConfirmation = false },
-            title = UiText.StringResource(R.string.dialog_title_remove_download),
-            confirmLabel = UiText.StringResource(R.string.action_remove),
-            confirmLabelColor = MaterialTheme.colorScheme.error,
-            onConfirm = {
-                homeViewModel.deleteBook(book.id)
-                showDeleteConfirmation = false
-                onBack()
-            },
-            dismissLabel = UiText.StringResource(R.string.action_cancel)
-        ) {
-            Text(
-                stringResource(R.string.dialog_message_remove_download),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+        if (isTabletLandscape) {
+            AudioPlayerTabletLandscape(
+                book = book,
+                playWhenReady = playWhenReady,
+                positionMs = positionMs,
+                durationMs = durationMs,
+                currentTrackIndex = currentTrackIndex,
+                tracks = tracks,
+                playbackSpeed = playbackSpeed,
+                sleepTimerRemainingMs = sleepTimerRemainingMs,
+                audiobookPlayerViewModel = audiobookPlayerViewModel,
+                onBack = onBack,
+                onShowDetails = { showDetailsSheet = true }
             )
-        }
-    }
-
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = onBack,
-                        modifier = Modifier
-                            .padding(start = 8.dp)
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceContainerLowest)
-                            .border(
-                                1.dp,
-                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                                CircleShape
-                            )
-                    ) {
-                        Icon(
-                            imageVector = PhosphorIcons.Regular.ArrowLeft,
-                            contentDescription = stringResource(R.string.audio_control_back)
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(
-                        onClick = { showDetailsSheet = true },
-                        modifier = Modifier
-                            .padding(end = 8.dp)
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceContainerLowest)
-                            .border(
-                                1.dp,
-                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                                CircleShape
-                            )
-                    ) {
-                        Icon(
-                            imageVector = PhosphorIcons.Regular.DotsThree,
-                            contentDescription = stringResource(R.string.audio_control_more)
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
-                    actionIconContentColor = MaterialTheme.colorScheme.onSurface
-                ),
-                modifier = Modifier.fillMaxWidth()
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { padding ->
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.TopCenter
-        ) {
-            // Background Glow
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(0.4f)
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                Color.Transparent
-                            )
-                        )
-                    )
-            )
-
-            Column(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .responsiveMaxWidth()
-                    .padding(padding)
-                    .padding(horizontal = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Spacer(modifier = Modifier.height(40.dp))
-
-                // Vinyl Area - Flexible weight to allow breathing room
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    AudiobookCover(
-                        book = book,
-                        modifier = Modifier
-                            .fillMaxWidth(0.95f)
-                            .aspectRatio(1f),
-                        style = CoverStyle.LARGE,
-                        isActive = true,
-                        isPlaying = playWhenReady
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(40.dp))
-
-                // Metadata
-                if (tracks.isNotEmpty()) {
-                    Text(
-                        text = tracks[currentTrackIndex].name.uppercase(),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.2.sp
+        } else {
+            Scaffold(
+                topBar = {
+                    CenterAlignedTopAppBar(
+                        title = {
+                        },
+                        navigationIcon = {
+                            IconButton(
+                                onClick = onBack,
+                                modifier = Modifier
+                                    .padding(start = 8.dp)
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+                                    .border(
+                                        1.dp,
+                                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                                        CircleShape
+                                    )
+                            ) {
+                                Icon(
+                                    imageVector = PhosphorIcons.Regular.ArrowLeft,
+                                    contentDescription = stringResource(R.string.audio_control_back)
+                                )
+                            }
+                        },
+                        actions = {
+                            IconButton(
+                                onClick = { showDetailsSheet = true },
+                                modifier = Modifier
+                                    .padding(end = 8.dp)
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+                                    .border(
+                                        1.dp,
+                                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                                        CircleShape
+                                    )
+                            ) {
+                                Icon(
+                                    imageVector = PhosphorIcons.Regular.DotsThree,
+                                    contentDescription = stringResource(R.string.audio_control_more)
+                                )
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = Color.Transparent,
+                            navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+                            actionIconContentColor = MaterialTheme.colorScheme.onSurface
                         ),
-                        color = MaterialTheme.colorScheme.primary,
-                        textAlign = TextAlign.Center,
-                        maxLines = 1
+                        modifier = Modifier.fillMaxWidth()
                     )
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = book.title,
-                    style = MaterialTheme.typography.headlineSmall, // Gambetta
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2
-                )
-                Text(
-                    text = book.author ?: stringResource(R.string.label_unknown_author),
-                    style = MaterialTheme.typography.bodyMedium, // Switzer
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1
-                )
-
-                Spacer(modifier = Modifier.height(28.dp))
-
-                // Progress
-                Column {
-                    Slider(
-                        value = currentSliderPosition,
-                        onValueChange = {
-                            isDragging = true
-                            dragPosition = it
-                        },
-                        onValueChangeFinished = {
-                            audiobookPlayerViewModel.seekTo((dragPosition * durationMs).toLong())
-                            isDragging = false
-                        },
-                        enabled = isPrepared,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = SliderDefaults.colors(
-                            thumbColor = MaterialTheme.colorScheme.onSurface,
-                            activeTrackColor = MaterialTheme.colorScheme.primary,
-                            inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            positionMs.toFormattedPlaybackTime(),
-                            style = MaterialTheme.typography.labelSmall.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            "- ${(durationMs - positionMs).toFormattedPlaybackTime()}",
-                            style = MaterialTheme.typography.labelSmall.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Main Controls
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
+                },
+                containerColor = MaterialTheme.colorScheme.background
+            ) { padding ->
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.TopCenter
                 ) {
-                    IconButton(onClick = { audiobookPlayerViewModel.skipBackward(15) }) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                imageVector = PhosphorIcons.Regular.ArrowCounterClockwise,
-                                contentDescription = stringResource(R.string.audio_control_skip_backward),
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                                modifier = Modifier.size(28.dp)
-                            )
-                            Text(
-                                text = stringResource(R.string.audio_label_skip_backward_short),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.size(32.dp))
-
-                    IconButton(
-                        onClick = { audiobookPlayerViewModel.togglePlayPause() },
-                        modifier = Modifier
-                            .size(80.dp)
-                            .clip(CircleShape)
-                            .background(if (playWhenReady) MaterialTheme.colorScheme.surfaceContainerLowest else MaterialTheme.colorScheme.onSurface)
-                            .border(
-                                1.dp,
-                                if (playWhenReady) MaterialTheme.colorScheme.outlineVariant.copy(
-                                    alpha = 0.4f
-                                ) else Color.Transparent,
-                                CircleShape
-                            )
-                    ) {
-                        Icon(
-                            imageVector = if (playWhenReady) PhosphorIcons.Fill.Pause else PhosphorIcons.Fill.Play,
-                            contentDescription = if (playWhenReady) stringResource(R.string.audio_control_pause) else stringResource(
-                                R.string.audio_control_play
-                            ),
-                            tint = if (playWhenReady) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surface,
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.size(32.dp))
-
-                    IconButton(onClick = { audiobookPlayerViewModel.skipForward(15) }) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                imageVector = PhosphorIcons.Regular.ArrowClockwise,
-                                contentDescription = stringResource(R.string.audio_control_skip_forward),
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                                modifier = Modifier.size(28.dp)
-                            )
-                            Text(
-                                text = stringResource(R.string.audio_label_skip_forward_short),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // Bottom Controls
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .padding(bottom = 20.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                    // Background Glow
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(MaterialTheme.colorScheme.surfaceContainerLowest)
-                            .border(
-                                1.dp,
-                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                                RoundedCornerShape(6.dp)
+                            .fillMaxWidth()
+                            .fillMaxHeight(0.4f)
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                        Color.Transparent
+                                    )
+                                )
                             )
-                            .clickable { activeSheet = AudioPlayerSheet.SPEED }
-                            .padding(horizontal = 10.dp, vertical = 6.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.audio_label_speed, playbackSpeed),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
+                    )
 
-                    Row(
+                    Column(
                         modifier = Modifier
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceContainerLowest)
-                            .border(
-                                1.dp,
-                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                                CircleShape
-                            )
-                            .clickable { activeSheet = AudioPlayerSheet.CHAPTERS }
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            .fillMaxHeight()
+                            .responsiveMaxWidth()
+                            .padding(padding)
+                            .padding(horizontal = 24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Icon(
-                            imageVector = PhosphorIcons.Regular.List,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.onSurface
+                        Spacer(modifier = Modifier.height(40.dp))
+
+                        // Vinyl Area - Flexible weight to allow breathing room
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            AudiobookCover(
+                                book = book,
+                                modifier = Modifier
+                                    .fillMaxWidth(0.95f)
+                                    .aspectRatio(1f),
+                                style = CoverStyle.LARGE,
+                                isActive = true,
+                                isPlaying = playWhenReady
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(40.dp))
+
+                        // Metadata
+                        if (tracks.isNotEmpty()) {
+                            Text(
+                                text = tracks[currentTrackIndex].name.uppercase(),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.2.sp
+                                ),
+                                color = MaterialTheme.colorScheme.primary,
+                                textAlign = TextAlign.Center,
+                                maxLines = 1
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = book.title,
+                            style = MaterialTheme.typography.headlineSmall, // Gambetta
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center,
+                            maxLines = 2
                         )
                         Text(
-                            text = stringResource(R.string.audio_label_chapters),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurface
+                            text = book.author ?: stringResource(R.string.label_unknown_author),
+                            style = MaterialTheme.typography.bodyMedium, // Switzer
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1
                         )
-                    }
 
-                    IconButton(onClick = { activeSheet = AudioPlayerSheet.SLEEP }) {
-                        Box {
-                            Icon(
-                                PhosphorIcons.Regular.Clock,
-                                contentDescription = stringResource(R.string.audio_sleep_timer),
-                                tint = if (sleepTimerRemainingMs != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(24.dp)
+                        Spacer(modifier = Modifier.height(28.dp))
+
+                        // Progress
+                        Column {
+                            Slider(
+                                value = currentSliderPosition,
+                                onValueChange = {
+                                    isDragging = true
+                                    dragPosition = it
+                                },
+                                onValueChangeFinished = {
+                                    audiobookPlayerViewModel.seekTo((dragPosition * durationMs).toLong())
+                                    isDragging = false
+                                },
+                                enabled = isPrepared,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = SliderDefaults.colors(
+                                    thumbColor = MaterialTheme.colorScheme.onSurface,
+                                    activeTrackColor = MaterialTheme.colorScheme.primary,
+                                    inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                                )
                             )
-                            if (sleepTimerRemainingMs != null) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(8.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.primary)
-                                        .align(Alignment.TopEnd)
-                                        .border(
-                                            1.5.dp,
-                                            MaterialTheme.colorScheme.background,
-                                            CircleShape
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    positionMs.toFormattedPlaybackTime(),
+                                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    "- ${(durationMs - positionMs).toFormattedPlaybackTime()}",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // Main Controls
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(onClick = { audiobookPlayerViewModel.skipBackward(15) }) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Icon(
+                                        imageVector = PhosphorIcons.Regular.ArrowCounterClockwise,
+                                        contentDescription = stringResource(R.string.audio_control_skip_backward),
+                                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                                        modifier = Modifier.size(28.dp)
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.audio_label_skip_backward_short),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.size(32.dp))
+
+                            IconButton(
+                                onClick = { audiobookPlayerViewModel.togglePlayPause() },
+                                modifier = Modifier
+                                    .size(80.dp)
+                                    .clip(CircleShape)
+                                    .background(if (playWhenReady) MaterialTheme.colorScheme.surfaceContainerLowest else MaterialTheme.colorScheme.onSurface)
+                                    .border(
+                                        1.dp,
+                                        if (playWhenReady) MaterialTheme.colorScheme.outlineVariant.copy(
+                                            alpha = 0.4f
+                                        ) else Color.Transparent,
+                                        CircleShape
+                                    )
+                            ) {
+                                Icon(
+                                    imageVector = if (playWhenReady) PhosphorIcons.Fill.Pause else PhosphorIcons.Fill.Play,
+                                    contentDescription = if (playWhenReady) stringResource(R.string.audio_control_pause) else stringResource(
+                                        R.string.audio_control_play
+                                    ),
+                                    tint = if (playWhenReady) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surface,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.size(32.dp))
+
+                            IconButton(onClick = { audiobookPlayerViewModel.skipForward(15) }) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Icon(
+                                        imageVector = PhosphorIcons.Regular.ArrowClockwise,
+                                        contentDescription = stringResource(R.string.audio_control_skip_forward),
+                                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                                        modifier = Modifier.size(28.dp)
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.audio_label_skip_forward_short),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(32.dp))
+
+                        // Bottom Controls
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .navigationBarsPadding()
+                                .padding(bottom = 20.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+                                    .border(
+                                        1.dp,
+                                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                                        RoundedCornerShape(6.dp)
+                                    )
+                                    .clickable { activeSheet = AudioPlayerSheet.SPEED }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(
+                                        R.string.audio_label_speed,
+                                        playbackSpeed
+                                    ),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+
+                            Row(
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+                                    .border(
+                                        1.dp,
+                                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                                        CircleShape
+                                    )
+                                    .clickable { activeSheet = AudioPlayerSheet.CHAPTERS }
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = PhosphorIcons.Regular.List,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = stringResource(R.string.audio_label_chapters),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+
+                            IconButton(onClick = { activeSheet = AudioPlayerSheet.SLEEP }) {
+                                Box {
+                                    Icon(
+                                        PhosphorIcons.Regular.Clock,
+                                        contentDescription = stringResource(R.string.audio_sleep_timer),
+                                        tint = if (sleepTimerRemainingMs != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                    if (sleepTimerRemainingMs != null) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(8.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.primary)
+                                                .align(Alignment.TopEnd)
+                                                .border(
+                                                    1.5.dp,
+                                                    MaterialTheme.colorScheme.background,
+                                                    CircleShape
+                                                )
                                         )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                activeSheet?.let { sheet ->
+                    LiberModalBottomSheet(
+                        onDismissRequest = { activeSheet = null },
+                        title = when (sheet) {
+                            AudioPlayerSheet.SPEED -> UiText.StringResource(R.string.audio_playback_speed)
+                            AudioPlayerSheet.CHAPTERS -> UiText.StringResource(R.string.audio_chapters)
+                            AudioPlayerSheet.SLEEP -> UiText.StringResource(R.string.audio_sleep_timer)
+                        }
+                    ) {
+                        AnimatedContent(
+                            targetState = sheet,
+                            transitionSpec = {
+                                slideInHorizontally { it } togetherWith slideOutHorizontally { -it }
+                            },
+                            label = "sheet_transition"
+                        ) { targetSheet ->
+                            when (targetSheet) {
+                                AudioPlayerSheet.SPEED -> SpeedSheet(
+                                    currentSpeed = playbackSpeed,
+                                    onSpeedSelected = {
+                                        audiobookPlayerViewModel.setPlaybackSpeed(it)
+                                        activeSheet = null
+                                    }
+                                )
+
+                                AudioPlayerSheet.CHAPTERS -> ChaptersSheet(
+                                    tracks = tracks,
+                                    currentIndex = currentTrackIndex,
+                                    onTrackSelected = { index ->
+                                        audiobookPlayerViewModel.playTrack(index)
+                                        activeSheet = null
+                                    }
+                                )
+
+                                AudioPlayerSheet.SLEEP -> SleepTimerSheet(
+                                    remainingMs = sleepTimerRemainingMs,
+                                    onTimerSelected = { minutes ->
+                                        audiobookPlayerViewModel.setSleepTimer(minutes)
+                                        activeSheet = null
+                                    },
+                                    onEndOfChapterSelected = {
+                                        audiobookPlayerViewModel.setSleepTimerEndOfChapter()
+                                        activeSheet = null
+                                    }
                                 )
                             }
                         }
@@ -509,56 +587,423 @@ fun AudioPlayerScreen(
                 onShare = { /* Not implemented yet */ }
             )
         }
+    }
+}
 
-        activeSheet?.let { sheet ->
-            LiberModalBottomSheet(
-                onDismissRequest = { activeSheet = null },
-                title = when (sheet) {
-                    AudioPlayerSheet.SPEED -> UiText.StringResource(R.string.audio_playback_speed)
-                    AudioPlayerSheet.CHAPTERS -> UiText.StringResource(R.string.audio_chapters)
-                    AudioPlayerSheet.SLEEP -> UiText.StringResource(R.string.audio_sleep_timer)
-                }
+@Composable
+private fun AudioPlayerTabletLandscape(
+    book: Book,
+    playWhenReady: Boolean,
+    positionMs: Long,
+    durationMs: Long,
+    currentTrackIndex: Int,
+    tracks: List<AudiobookPlayerViewModel.TrackInfo>,
+    playbackSpeed: Float,
+    sleepTimerRemainingMs: Long?,
+    audiobookPlayerViewModel: AudiobookPlayerViewModel,
+    onBack: () -> Unit,
+    onShowDetails: () -> Unit,
+) {
+    var activePanel by remember { mutableStateOf(AudioPlayerSheet.CHAPTERS) }
+
+    Row(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        // LEFT PANE (40%)
+        Column(
+            modifier = Modifier
+                .weight(0.4f)
+                .fillMaxHeight()
+                .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 24.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                AnimatedContent(
-                    targetState = sheet,
-                    transitionSpec = {
-                        slideInHorizontally { it } togetherWith slideOutHorizontally { -it }
-                    },
-                    label = "sheet_transition"
-                ) { targetSheet ->
-                    when (targetSheet) {
-                        AudioPlayerSheet.SPEED -> SpeedSheet(
-                            currentSpeed = playbackSpeed,
-                            onSpeedSelected = {
-                                audiobookPlayerViewModel.setPlaybackSpeed(it)
-                                activeSheet = null
-                            }
-                        )
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+                ) {
+                    Icon(
+                        imageVector = PhosphorIcons.Regular.ArrowLeft,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                IconButton(
+                    onClick = onShowDetails,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+                ) {
+                    Icon(
+                        imageVector = PhosphorIcons.Regular.DotsThree,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
 
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 48.dp, vertical = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                AudiobookCover(
+                    book = book,
+                    modifier = Modifier
+                        .fillMaxWidth(0.85f)
+                        .aspectRatio(1f)
+                        .shadow(32.dp, shape = RoundedCornerShape(4.dp)),
+                    style = CoverStyle.LARGE,
+                    isActive = true,
+                    isPlaying = playWhenReady
+                )
+
+                Spacer(modifier = Modifier.height(48.dp))
+
+                Text(
+                    text = book.title,
+                    style = MaterialTheme.typography.displaySmall.copy(fontFamily = Gambetta),
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = (book.author
+                        ?: stringResource(R.string.label_unknown_author)).uppercase(),
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        letterSpacing = 2.sp,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+
+        // Divider
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .width(1.dp)
+                .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+        )
+
+        // RIGHT PANE (60%)
+        Column(
+            modifier = Modifier
+                .weight(0.6f)
+                .fillMaxHeight()
+        ) {
+            // TOP HALF: Contextual Panel
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(start = 64.dp, end = 64.dp, top = 32.dp, bottom = 12.dp)
+            ) {
+                // Panel Header
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 24.dp)
+                        .liberHorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(
+                                alpha = 0.2f
+                            )
+                        ),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Text(
+                        text = when (activePanel) {
+                            AudioPlayerSheet.CHAPTERS -> stringResource(R.string.audio_chapters)
+                            AudioPlayerSheet.SPEED -> stringResource(R.string.audio_playback_speed)
+                            AudioPlayerSheet.SLEEP -> stringResource(R.string.audio_sleep_timer)
+                        },
+                        style = MaterialTheme.typography.headlineLarge.copy(fontFamily = Gambetta),
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+
+                    if (activePanel == AudioPlayerSheet.CHAPTERS) {
+                        Text(
+                            text = pluralStringResource(
+                                R.plurals.audio_chapters_count,
+                                tracks.size,
+                                tracks.size
+                            ).uppercase(),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                letterSpacing = 1.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
+                    }
+                }
+
+                // Panel Content
+                Box(modifier = Modifier.fillMaxSize()) {
+                    when (activePanel) {
                         AudioPlayerSheet.CHAPTERS -> ChaptersSheet(
                             tracks = tracks,
                             currentIndex = currentTrackIndex,
-                            onTrackSelected = { index ->
-                                audiobookPlayerViewModel.playTrack(index)
-                                activeSheet = null
-                            }
+                            onTrackSelected = { audiobookPlayerViewModel.playTrack(it) }
+                        )
+
+                        AudioPlayerSheet.SPEED -> SpeedSheet(
+                            currentSpeed = playbackSpeed,
+                            onSpeedSelected = { audiobookPlayerViewModel.setPlaybackSpeed(it) }
                         )
 
                         AudioPlayerSheet.SLEEP -> SleepTimerSheet(
                             remainingMs = sleepTimerRemainingMs,
-                            onTimerSelected = { minutes ->
-                                audiobookPlayerViewModel.setSleepTimer(minutes)
-                                activeSheet = null
-                            },
-                            onEndOfChapterSelected = {
-                                audiobookPlayerViewModel.setSleepTimerEndOfChapter()
-                                activeSheet = null
-                            }
+                            onTimerSelected = { audiobookPlayerViewModel.setSleepTimer(it) },
+                            onEndOfChapterSelected = { audiobookPlayerViewModel.setSleepTimerEndOfChapter() }
                         )
                     }
                 }
             }
+
+            // BOTTOM HALF: Player Controls
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.verticalGradient(
+                            0f to Color.Transparent,
+                            0.2f to MaterialTheme.colorScheme.background
+                        )
+                    )
+                    .padding(horizontal = 64.dp, vertical = 24.dp)
+            ) {
+                // Current Chapter Pill
+                if (tracks.isNotEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                RoundedCornerShape(4.dp)
+                            )
+                            .padding(horizontal = 12.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = tracks[currentTrackIndex].name.uppercase(),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.ExtraBold,
+                                letterSpacing = 1.sp
+                            ),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Scrubber
+                var isDragging by remember { mutableStateOf(false) }
+                var dragPosition by remember { mutableFloatStateOf(0f) }
+                val currentSliderPosition = if (isDragging) dragPosition else {
+                    if (durationMs > 0) positionMs / durationMs.toFloat() else 0f
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = positionMs.toFormattedPlaybackTime(),
+                        style = MaterialTheme.typography.labelSmall.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                    Slider(
+                        value = currentSliderPosition,
+                        onValueChange = {
+                            isDragging = true
+                            dragPosition = it
+                        },
+                        onValueChangeFinished = {
+                            audiobookPlayerViewModel.seekTo((dragPosition * durationMs).toLong())
+                            isDragging = false
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 16.dp),
+                        colors = SliderDefaults.colors(
+                            thumbColor = MaterialTheme.colorScheme.onSurface,
+                            activeTrackColor = MaterialTheme.colorScheme.primary,
+                            inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                        )
+                    )
+                    Text(
+                        text = "- ${(durationMs - positionMs).toFormattedPlaybackTime()}",
+                        style = MaterialTheme.typography.labelSmall.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Controls Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Left side: Speed
+                    TabButton(
+                        icon = PhosphorIcons.Regular.SlidersHorizontal,
+                        label = stringResource(R.string.audio_label_speed, playbackSpeed),
+                        isActive = activePanel == AudioPlayerSheet.SPEED,
+                        onClick = { activePanel = AudioPlayerSheet.SPEED }
+                    )
+
+                    // Center: Playback
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(32.dp)
+                    ) {
+                        IconButton(onClick = { audiobookPlayerViewModel.skipBackward(15) }) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    PhosphorIcons.Regular.ArrowCounterClockwise,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                                Text(
+                                    "-15s",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                                )
+                            }
+                        }
+
+                        IconButton(
+                            onClick = { audiobookPlayerViewModel.togglePlayPause() },
+                            modifier = Modifier
+                                .size(88.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.onSurface)
+                        ) {
+                            Icon(
+                                imageVector = if (playWhenReady) PhosphorIcons.Fill.Pause else PhosphorIcons.Fill.Play,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.surface,
+                                modifier = Modifier.size(40.dp)
+                            )
+                        }
+
+                        IconButton(onClick = { audiobookPlayerViewModel.skipForward(15) }) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    PhosphorIcons.Regular.ArrowClockwise,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                                Text(
+                                    "+15s",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                                )
+                            }
+                        }
+                    }
+
+                    // Right side: Chapters & Timer
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        TabButton(
+                            icon = PhosphorIcons.Regular.List,
+                            label = stringResource(R.string.audio_label_chapters),
+                            isActive = activePanel == AudioPlayerSheet.CHAPTERS,
+                            onClick = { activePanel = AudioPlayerSheet.CHAPTERS }
+                        )
+
+                        IconButton(
+                            onClick = { activePanel = AudioPlayerSheet.SLEEP },
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (activePanel == AudioPlayerSheet.SLEEP || sleepTimerRemainingMs != null) MaterialTheme.colorScheme.primary.copy(
+                                        alpha = 0.1f
+                                    ) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+                                )
+                                .border(
+                                    1.dp,
+                                    if (activePanel == AudioPlayerSheet.SLEEP || sleepTimerRemainingMs != null) MaterialTheme.colorScheme.primary.copy(
+                                        alpha = 0.3f
+                                    ) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
+                                    CircleShape
+                                )
+                        ) {
+                            Icon(
+                                imageVector = PhosphorIcons.Regular.Clock,
+                                contentDescription = null,
+                                tint = if (activePanel == AudioPlayerSheet.SLEEP || sleepTimerRemainingMs != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun TabButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    isActive: Boolean,
+    onClick: () -> Unit,
+) {
+    val backgroundColor =
+        if (isActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant.copy(
+            alpha = 0.1f
+        )
+    val borderColor =
+        if (isActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else MaterialTheme.colorScheme.outlineVariant.copy(
+            alpha = 0.2f
+        )
+    val contentColor =
+        if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(backgroundColor)
+            .border(1.dp, borderColor, RoundedCornerShape(999.dp))
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+            tint = contentColor
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+            color = contentColor
+        )
     }
 }
 
