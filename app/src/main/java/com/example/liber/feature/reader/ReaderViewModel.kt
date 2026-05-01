@@ -24,7 +24,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -474,7 +473,10 @@ class ReaderViewModel(
                 tag = TAG,
             )
         } else {
-            appLogger.debug("updateHandleAnchors: NO anchors set (no rects and no fallback)", tag = TAG)
+            appLogger.debug(
+                "updateHandleAnchors: NO anchors set (no rects and no fallback)",
+                tag = TAG
+            )
         }
     }
 
@@ -726,12 +728,11 @@ class ReaderViewModel(
     }
 
     /** Returns an xpointer representing the current reading position. */
-    fun currentXPointer(): String? =
-        runBlocking(Dispatchers.IO) {
-            nativeEngineMutex.withLock {
-                docView.getCurrentPageBookmark()?.startPos
-            }
+    suspend fun currentXPointer(): String? = withContext(Dispatchers.IO) {
+        nativeEngineMutex.withLock {
+            docView.getCurrentPageBookmark()?.startPos
         }
+    }
 
     /** Re-renders the current page without changing position. Call after settings change. */
     fun redraw() {
@@ -1094,7 +1095,11 @@ class ReaderViewModel(
         super.onCleared()
         scrollChannel.close()
         selectionDragChannel.close()
-        runBlocking(Dispatchers.IO) {
+
+        // Use GlobalScope for cleanup to avoid blocking the main thread during ViewModel teardown.
+        // The engine mutex ensures we don't destroy while another thread is using the engine.
+        @OptIn(kotlinx.coroutines.DelicateCoroutinesApi::class)
+        kotlinx.coroutines.GlobalScope.launch(Dispatchers.IO) {
             nativeEngineMutex.withLock {
                 docView.destroy()
             }

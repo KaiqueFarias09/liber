@@ -25,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -40,10 +41,12 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.Headphones
@@ -192,9 +195,16 @@ fun AudiobookCover(
                         .border(1.dp, Color.White.copy(alpha = 0.1f), CircleShape)
                         .align(Alignment.Center)
                 ) {
+                    val context = LocalContext.current
+                    val request = remember(coverUri) {
+                        ImageRequest.Builder(context)
+                            .data(coverUri)
+                            .memoryCacheKey(coverUri?.toString()) // Avoid FileKeyer disk I/O on main thread
+                            .build()
+                    }
                     // Dimmed cover image on label
                     AsyncImage(
-                        model = coverUri,
+                        model = request,
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
@@ -265,8 +275,15 @@ fun AudiobookCover(
                     )
                 )
         ) {
+            val context = LocalContext.current
+            val request = remember(coverUri) {
+                ImageRequest.Builder(context)
+                    .data(coverUri)
+                    .memoryCacheKey(coverUri?.toString()) // Avoid FileKeyer disk I/O on main thread
+                    .build()
+            }
             AsyncImage(
-                model = coverUri,
+                model = request,
                 contentDescription = "Cover of $title",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()

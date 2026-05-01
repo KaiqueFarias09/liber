@@ -11,15 +11,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.liber.data.model.Book
 import com.example.liber.data.model.BookPreview
 
@@ -128,8 +131,15 @@ fun BookCover(
             .background(MaterialTheme.colorScheme.surfaceVariant)
     ) {
         if (coverUri != null) {
+            val context = LocalContext.current
+            val request = remember(coverUri) {
+                ImageRequest.Builder(context)
+                    .data(coverUri)
+                    .memoryCacheKey(coverUri.toString()) // Avoid Coil's FileKeyer doing disk I/O on main thread
+                    .build()
+            }
             AsyncImage(
-                model = coverUri,
+                model = request,
                 contentDescription = title,
                 modifier = if (fillBounds) Modifier.fillMaxSize() else Modifier.fillMaxWidth(),
                 contentScale = if (fillBounds) ContentScale.Crop else ContentScale.FillWidth,

@@ -297,12 +297,15 @@ fun ReaderScreen(
     val chromeLabel = theme.textColor.copy(alpha = 0.5f)
 
     // ── Back handling ────────────────────────────────────────────────────────
+    val backScope = rememberCoroutineScope()
     val handleBack: () -> Unit = {
-        val xpointer = viewModel.currentXPointer()
-        if (xpointer != null) {
-            onSaveLocator(xpointer, (progress * 100).toInt())
+        backScope.launch {
+            val xpointer = viewModel.currentXPointer()
+            if (xpointer != null) {
+                onSaveLocator(xpointer, (progress * 100).toInt())
+            }
+            onBack()
         }
-        onBack()
     }
     BackHandler(onBack = handleBack)
 
@@ -684,19 +687,21 @@ fun ReaderScreen(
                     .navigationBarsPadding()
                     .padding(bottom = 24.dp),
                 onColorSelected = { colorArgb ->
-                    val xptr = pendingXPointer ?: viewModel.currentXPointer()
-                    ?: run { viewModel.dismissHighlightColorPicker(); return@HighlightColorPicker }
-                    onSaveAnnotation(
-                        Annotation(
-                            bookId = bookId,
-                            type = AnnotationType.HIGHLIGHT,
-                            color = colorArgb,
-                            locator = xptr,
-                            endLocator = pendingEndXPointer ?: "",
-                            text = viewModel.pendingSelectedText.value,
+                    backScope.launch {
+                        val xptr = pendingXPointer ?: viewModel.currentXPointer()
+                        ?: run { viewModel.dismissHighlightColorPicker(); return@launch }
+                        onSaveAnnotation(
+                            Annotation(
+                                bookId = bookId,
+                                type = AnnotationType.HIGHLIGHT,
+                                color = colorArgb,
+                                locator = xptr,
+                                endLocator = pendingEndXPointer ?: "",
+                                text = viewModel.pendingSelectedText.value,
+                            )
                         )
-                    )
-                    viewModel.dismissHighlightColorPicker()
+                        viewModel.dismissHighlightColorPicker()
+                    }
                 },
                 onDismiss = { viewModel.dismissHighlightColorPicker() },
             )
@@ -1136,22 +1141,26 @@ fun ReaderScreen(
                                 )
                             )
                         }
+                        viewModel.cancelAnnotation()
                     } else {
-                        val xptr = viewModel.pendingXPointer.value ?: viewModel.currentXPointer()
-                        ?: run { viewModel.cancelAnnotation(); return@CreateAnnotationSheet }
-                        onSaveAnnotation(
-                            Annotation(
-                                bookId = bookId,
-                                type = if (annotationType.lowercase() == "note") AnnotationType.NOTE else AnnotationType.HIGHLIGHT,
-                                color = selectedColor,
-                                locator = xptr,
-                                endLocator = viewModel.pendingEndXPointer.value ?: "",
-                                text = selectedText,
-                                note = noteText.ifBlank { null },
+                        backScope.launch {
+                            val xptr =
+                                viewModel.pendingXPointer.value ?: viewModel.currentXPointer()
+                                ?: run { viewModel.cancelAnnotation(); return@launch }
+                            onSaveAnnotation(
+                                Annotation(
+                                    bookId = bookId,
+                                    type = if (annotationType.lowercase() == "note") AnnotationType.NOTE else AnnotationType.HIGHLIGHT,
+                                    color = selectedColor,
+                                    locator = xptr,
+                                    endLocator = viewModel.pendingEndXPointer.value ?: "",
+                                    text = selectedText,
+                                    note = noteText.ifBlank { null },
+                                )
                             )
-                        )
+                            viewModel.cancelAnnotation()
+                        }
                     }
-                    viewModel.cancelAnnotation()
                 },
                 onCancel = { viewModel.cancelAnnotation() },
             )
