@@ -322,4 +322,43 @@
     <string name="settings_restore_confirm_title">Restore Data?</string>
     <string name="settings_restore_confirm_message">This will overwrite your current progress, notes, and bookmarks if they match the imported data. Existing books not in the backup will remain. Proceed?</string>
     <string name="empty_filter_results">No %1$s %2$s yet.</string>
+
+    <!-- Library & Search -->
+    <string name="library_smart_collections">Smart Collections</string>
+    <string name="label_on">On</string>
+    <string name="label_off">Off</string>
+    <string name="label_showing">Showing</string>
+    <string name="label_sentence_separator">.</string>
+    <string name="action_grid_view">Grid View</string>
+    <string name="action_list_view">List View</string>
+    <string name="action_clear_search">Clear search</string>
+    <string name="search_recent_searches">RECENT SEARCHES</string>
+    <string name="search_quick_filters">QUICK FILTERS</string>
+    <string name="search_filter_ebooks">E-books</string>
+    <string name="search_filter_audiobooks">Audiobooks</string>
+    <string name="search_filter_dictionary">Dictionary</string>
+    <string name="search_in_dictionaries">IN DICTIONARIES</string>
+    <string name="search_in_your_library">IN YOUR LIBRARY</string>
+    <string name="search_universal_mode">UNIVERSAL SEARCH MODE</string>
+    <string name="search_press_esc">Press ESC to close</string>
+    <string name="search_placeholder_tablet">Search library, dictionary, or store…</string>
+    <string name="search_placeholder">Search…</string>
+    <string name="search_no_dictionaries_title">No dictionaries found</string>
+    <string name="search_no_dictionaries_subtitle">You haven’t downloaded any dictionaries yet. Download one to start looking up words.</string>
+    <string name="search_no_ebooks_title">No E-books found</string>
+    <string name="search_no_ebooks_subtitle">Try a different search term or add more books.</string>
+    <string name="search_no_audiobooks_title">No Audiobooks found</string>
+    <string name="search_no_audiobooks_subtitle">Try a different search term or add more audiobooks.</string>
+    <string name="search_no_dictionary_results_title">No results in dictionary</string>
+    <string name="search_no_dictionary_results_subtitle">Try searching for a different word.</string>
+    <string name="action_manage_dictionaries">Manage Dictionaries</string>
+
+    <!-- General Labels -->
+    <string name="label_folder_default">Folder</string>
+    <string name="action_share_book_title">Share Book</string>
+    <string name="dictionary_show_from">Show dictionaries from</string>
+    <string name="dictionary_to">to</string>
+    <string name="label_smart">Smart</string>
+    <string name="label_audiobook_singular">Audiobook</string>
+    <string name="label_ebook_singular">E-book</string>
 </resources>

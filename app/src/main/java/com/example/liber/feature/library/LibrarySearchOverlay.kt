@@ -50,6 +50,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -145,7 +146,7 @@ fun LibrarySearchOverlay(
                             ) {
                                 Icon(
                                     imageVector = PhosphorIcons.Regular.ArrowLeft,
-                                    contentDescription = "Back",
+                                    contentDescription = stringResource(R.string.audio_control_back),
                                     modifier = Modifier.size(20.dp),
                                     tint = MaterialTheme.colorScheme.onSurface
                                 )
@@ -166,7 +167,9 @@ fun LibrarySearchOverlay(
                                 EditorialSearchField(
                                     value = searchQuery,
                                     onValueChange = onSearchQueryChange,
-                                    placeholder = if (isTablet) "Search library, dictionary, or store..." else "Search...",
+                                    placeholder = if (isTablet) stringResource(R.string.search_placeholder_tablet) else stringResource(
+                                        R.string.search_placeholder
+                                    ),
                                     onClear = { onSearchQueryChange("") },
                                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                                     keyboardActions = KeyboardActions(onSearch = {
@@ -191,7 +194,7 @@ fun LibrarySearchOverlay(
                                 if (searchQuery.isEmpty()) {
                                     if (recentSearches.isNotEmpty()) {
                                         Text(
-                                            text = "RECENT SEARCHES",
+                                            text = stringResource(R.string.search_recent_searches),
                                             style = MaterialTheme.typography.labelSmall.copy(
                                                 fontWeight = FontWeight.Bold,
                                                 letterSpacing = 1.5.sp,
@@ -219,7 +222,7 @@ fun LibrarySearchOverlay(
                                     }
 
                                     Text(
-                                        text = "QUICK FILTERS",
+                                        text = stringResource(R.string.search_quick_filters),
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             fontWeight = FontWeight.Bold,
                                             letterSpacing = 1.5.sp,
@@ -237,7 +240,7 @@ fun LibrarySearchOverlay(
                                     ) {
                                         QuickFilterChip(
                                             icon = PhosphorIcons.Regular.BookOpen,
-                                            label = "E-books",
+                                            label = stringResource(R.string.search_filter_ebooks),
                                             selected = searchType == SearchType.BOOKS,
                                             onClick = {
                                                 val nextType =
@@ -247,7 +250,7 @@ fun LibrarySearchOverlay(
                                         )
                                         QuickFilterChip(
                                             icon = PhosphorIcons.Regular.Headphones,
-                                            label = "Audiobooks",
+                                            label = stringResource(R.string.search_filter_audiobooks),
                                             selected = searchType == SearchType.AUDIOBOOKS,
                                             onClick = {
                                                 val nextType =
@@ -257,7 +260,7 @@ fun LibrarySearchOverlay(
                                         )
                                         QuickFilterChip(
                                             icon = PhosphorIcons.Regular.Book,
-                                            label = "Dictionary",
+                                            label = stringResource(R.string.search_filter_dictionary),
                                             selected = searchType == SearchType.DICTIONARY,
                                             onClick = {
                                                 val nextType =
@@ -272,7 +275,9 @@ fun LibrarySearchOverlay(
                                     val isAudioFilter = searchType == SearchType.AUDIOBOOKS
 
                                     Text(
-                                        text = if (isDictFilter) "IN DICTIONARIES" else "IN YOUR LIBRARY",
+                                        text = if (isDictFilter) stringResource(R.string.search_in_dictionaries) else stringResource(
+                                            R.string.search_in_your_library
+                                        ),
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             fontWeight = FontWeight.Bold,
                                             letterSpacing = 1.5.sp,
@@ -295,13 +300,15 @@ fun LibrarySearchOverlay(
                                                         ) {
                                                             if (!hasDictionaries) {
                                                                 EmptyState(
-                                                                    title = UiText.DynamicString("No dictionaries found"),
-                                                                    subtitle = UiText.DynamicString(
-                                                                        "You haven't downloaded any dictionaries yet. Download one to start looking up words."
+                                                                    title = UiText.StringResource(
+                                                                        R.string.search_no_dictionaries_title
+                                                                    ),
+                                                                    subtitle = UiText.StringResource(
+                                                                        R.string.search_no_dictionaries_subtitle
                                                                     ),
                                                                     image = R.drawable.library_empty,
-                                                                    actionLabel = UiText.DynamicString(
-                                                                        "Manage Dictionaries"
+                                                                    actionLabel = UiText.StringResource(
+                                                                        R.string.action_manage_dictionaries
                                                                     ),
                                                                     onAction = onOpenDictionaryManager,
                                                                     modifier = Modifier.padding(
@@ -310,9 +317,11 @@ fun LibrarySearchOverlay(
                                                                 )
                                                             } else {
                                                                 EmptyState(
-                                                                    title = UiText.DynamicString("No results in dictionary"),
-                                                                    subtitle = UiText.DynamicString(
-                                                                        "Try searching for a different word."
+                                                                    title = UiText.StringResource(
+                                                                        R.string.search_no_dictionary_results_title
+                                                                    ),
+                                                                    subtitle = UiText.StringResource(
+                                                                        R.string.search_no_dictionary_results_subtitle
                                                                     ),
                                                                     image = R.drawable.library_empty,
                                                                     modifier = Modifier.padding(
@@ -355,11 +364,11 @@ fun LibrarySearchOverlay(
                                                             when {
                                                                 isEpubFilter -> {
                                                                     EmptyState(
-                                                                        title = UiText.DynamicString(
-                                                                            "No E-books found"
+                                                                        title = UiText.StringResource(
+                                                                            R.string.search_no_ebooks_title
                                                                         ),
-                                                                        subtitle = UiText.DynamicString(
-                                                                            "Try a different search term or add more books."
+                                                                        subtitle = UiText.StringResource(
+                                                                            R.string.search_no_ebooks_subtitle
                                                                         ),
                                                                         image = R.drawable.library_empty,
                                                                         modifier = Modifier.padding(
@@ -370,11 +379,11 @@ fun LibrarySearchOverlay(
 
                                                                 isAudioFilter -> {
                                                                     EmptyState(
-                                                                        title = UiText.DynamicString(
-                                                                            "No Audiobooks found"
+                                                                        title = UiText.StringResource(
+                                                                            R.string.search_no_audiobooks_title
                                                                         ),
-                                                                        subtitle = UiText.DynamicString(
-                                                                            "Try a different search term or add more audiobooks."
+                                                                        subtitle = UiText.StringResource(
+                                                                            R.string.search_no_audiobooks_subtitle
                                                                         ),
                                                                         image = R.drawable.audiobooks_empty,
                                                                         modifier = Modifier.padding(
@@ -447,7 +456,7 @@ fun LibrarySearchOverlay(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "UNIVERSAL SEARCH MODE",
+                                        text = stringResource(R.string.search_universal_mode),
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             fontWeight = FontWeight.Bold,
                                             letterSpacing = 1.5.sp,
@@ -458,7 +467,7 @@ fun LibrarySearchOverlay(
                                         )
                                     )
                                     Text(
-                                        text = "Press ESC to close",
+                                        text = stringResource(R.string.search_press_esc),
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                                             fontSize = 9.sp
@@ -576,8 +585,13 @@ private fun SearchResultItem(
                 ),
                 color = MaterialTheme.colorScheme.onSurface
             )
+            val author = book.author ?: stringResource(R.string.label_unknown_author)
+            val type =
+                if (book.isAudiobook) stringResource(R.string.label_audiobook_singular) else stringResource(
+                    R.string.label_ebook_singular
+                )
             Text(
-                text = "${book.author ?: "Unknown Author"} • ${if (book.isAudiobook) "Audiobook" else "E-book"}",
+                text = "$author • $type",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

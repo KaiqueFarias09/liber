@@ -45,6 +45,7 @@ import androidx.documentfile.provider.DocumentFile
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.liber.R
 import com.example.liber.core.designsystem.LiberBottomNav
 import com.example.liber.core.designsystem.LiberNavRail
 import com.example.liber.core.designsystem.responsiveMaxWidth
@@ -198,7 +199,9 @@ fun LiberApp(
         context.contentResolver.takePersistableUriPermission(
             treeUri, Intent.FLAG_GRANT_READ_URI_PERMISSION
         )
-        val folderName = DocumentFile.fromTreeUri(context, treeUri)?.name ?: "Folder"
+        val folderName = DocumentFile.fromTreeUri(context, treeUri)?.name ?: context.getString(
+            R.string.label_folder_default
+        )
         homeViewModel.addScanSource(treeUri, folderName)
         val intent = BookScanService.buildIntent(context, treeUri, folderName)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -398,7 +401,7 @@ fun LiberApp(
                                             context.startActivity(
                                                 Intent.createChooser(
                                                     intent,
-                                                    "Share Book"
+                                                    context.getString(R.string.action_share_book_title)
                                                 )
                                             )
                                         }

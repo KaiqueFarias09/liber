@@ -82,12 +82,15 @@ fun LibraryFilterAndSortRow(
                     .padding(vertical = 4.dp)
             ) {
                 Text(
-                    text = "Smart Collections ",
+                    text = stringResource(R.string.library_smart_collections),
                     style = MaterialTheme.typography.bodySmall.copy(fontFamily = Gambetta),
                     color = if (autoCollectionsEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                Spacer(Modifier.width(4.dp))
                 Text(
-                    text = if (autoCollectionsEnabled) "On" else "Off",
+                    text = if (autoCollectionsEnabled) stringResource(R.string.label_on) else stringResource(
+                        R.string.label_off
+                    ),
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp
@@ -102,7 +105,7 @@ fun LibraryFilterAndSortRow(
                 // Sort Dropdown for Collections
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "Sort: ",
+                        text = stringResource(R.string.sort_label),
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp,
@@ -137,7 +140,7 @@ fun LibraryFilterAndSortRow(
         // Sentence Filter
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = "Showing ",
+                text = stringResource(R.string.label_showing) + " ",
                 style = MaterialTheme.typography.bodySmall.copy(fontFamily = Gambetta),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -150,7 +153,7 @@ fun LibraryFilterAndSortRow(
                 }
             )
             Text(
-                text = " .",
+                text = stringResource(R.string.label_sentence_separator),
                 style = MaterialTheme.typography.bodySmall.copy(fontFamily = Gambetta),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -159,7 +162,7 @@ fun LibraryFilterAndSortRow(
         Row(verticalAlignment = Alignment.CenterVertically) {
             // Sort Dropdown
             Text(
-                text = "Sort: ",
+                text = stringResource(R.string.sort_label),
                 style = MaterialTheme.typography.labelSmall.copy(
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp,
@@ -199,7 +202,7 @@ fun LibraryFilterAndSortRow(
                     ) {
                         Icon(
                             imageVector = PhosphorIcons.Regular.SquaresFour,
-                            contentDescription = "Grid View",
+                            contentDescription = stringResource(R.string.action_grid_view),
                             modifier = iconModifier,
                             tint = if (viewMode == LibraryViewMode.GRID) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(
                                 alpha = 0.4f
@@ -212,7 +215,7 @@ fun LibraryFilterAndSortRow(
                     ) {
                         Icon(
                             imageVector = PhosphorIcons.Regular.Rows,
-                            contentDescription = "List View",
+                            contentDescription = stringResource(R.string.action_list_view),
                             modifier = iconModifier,
                             tint = if (viewMode == LibraryViewMode.LIST) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(
                                 alpha = 0.4f
@@ -351,7 +354,7 @@ fun LibraryBooksTab(
                                 title = UiText.StringResource(R.string.error_no_results),
                                 subtitle = UiText.StringResource(R.string.reader_search_no_results_subtitle),
                                 image = R.drawable.library_empty,
-                                actionLabel = UiText.DynamicString("Clear search"),
+                                actionLabel = UiText.StringResource(R.string.action_clear_search),
                                 onAction = onClearSearch,
                                 modifier = Modifier.padding(horizontal = 24.dp),
                             )

@@ -9,7 +9,7 @@
     <string name="action_remove">Remover</string>
     <string name="action_save">Salvar</string>
     <string name="action_retry">Tentar novamente</string>
-    <string name="dialog_title_rename_book">Renomear livro</string>
+    <string name="dialog_title_rename_book">Renombrar livro</string>
     <string name="field_label_title">Título</string>
     <string name="dialog_title_delete_book">Excluir livro?</string>
     <string name="dialog_title_remove_book">Remover livro?</string>
@@ -227,6 +227,7 @@
     <string name="sort_option_recent">Recente</string>
     <string name="sort_option_title">Título</string>
     <string name="sort_option_author">Autor</string>
+    <string name="sort_option_progress">Progresso</string>
     <string name="sort_option_alphabetical">Alfabética</string>
     <string name="sort_option_book_count">Número de livros</string>
     <string name="filter_all">Todos</string>
@@ -279,7 +280,7 @@
     <string name="settings_reading_insights_minutes_short">min</string>
     <string name="settings_reading_insights_goal_title">Meta de hoje</string>
     <string name="settings_reading_insights_goal_progress">%1$d / %2$d min</string>
-    <string name="settings_reading_insights_goal_complete">Meta atingida. Continue se a história prendeu você.</string>
+    <string name="settings_reading_insights_goal_complete">Meta atingida. Continue se a história te prendeu.</string>
     <plurals name="settings_reading_insights_goal_remaining">
         <item quantity="one">Você está perto. Falta apenas %1$d minuto para atingir a meta de hoje.</item>
         <item quantity="many">Você está perto. Faltam apenas %1$d minutos para atingir a meta de hoje.</item>
@@ -297,6 +298,15 @@
     </plurals>
     <string name="settings_reading_insights_habits">Hábitos e perfil</string>
     <string name="settings_reading_insights_avg_session">Sessão média</string>
+    <string name="settings_reading_insights_avg_session_desc">Um ritmo constante é melhor do que uma corrida.</string>
+    <string name="settings_reading_insights_vocabulary_title">Vocabulário</string>
+    <string name="settings_reading_insights_vocabulary_label">Palavras</string>
+    <string name="settings_reading_insights_vocabulary_desc">Mente curiosa. Palavras pesquisadas no dicionário offline esta semana.</string>
+    <string name="settings_reading_insights_obsession_title">Obsessão</string>
+    <string name="settings_reading_insights_obsession_desc">Por onde sua mente tem viajado ultimamente.</string>
+    <string name="settings_reading_insights_profile_label">Perfil</string>
+    <string name="settings_reading_insights_hero_quote">\"Lemos para saber que não estamos sozinhos.\"</string>
+    <string name="settings_reading_insights_hero_subtitle">Sua jornada pelas páginas esta semana.</string>
     <string name="settings_reading_insights_profile">Perfil</string>
     <string name="settings_reading_insights_minutes_value">%1$d min</string>
     <string name="settings_reading_insights_finished_title">Concluído em %1$d</string>
@@ -314,4 +324,53 @@
     <string name="scan_folders_add_action">Adicionar outra pasta</string>
     <string name="scan_folders_scan_now">Escanear agora</string>
     <string name="scan_folders_scanning">Escaneando…</string>
+    <string name="settings_section_data">Dados e Backup</string>
+    <string name="settings_backup_title">Fazer backup dos dados da biblioteca</string>
+    <string name="settings_backup_subtitle">Exportar destaques, notas e progresso de leitura para um arquivo JSON.</string>
+    <string name="settings_restore_title">Restaurar dados</string>
+    <string name="settings_restore_subtitle">Importar seus dados de um arquivo de backup exportado anteriormente.</string>
+    <string name="settings_backup_success">Backup exportado com sucesso</string>
+    <string name="settings_restore_success">Dados restaurados com sucesso</string>
+    <string name="settings_restore_confirm_title">Restaurar dados?</string>
+    <string name="settings_restore_confirm_message">Isso substituirá seu progresso atual, notas e marcadores se eles corresponderem aos dados importados. Livros existentes que não estão no backup permanecerão. Prosseguir?</string>
+    <string name="empty_filter_results">Nenhum %2$s %1$s ainda.</string>
+
+    <!-- Library & Search -->
+    <string name="library_smart_collections">Coleções inteligentes</string>
+    <string name="label_on">Ligado</string>
+    <string name="label_off">Desligado</string>
+    <string name="label_showing">Mostrando</string>
+    <string name="label_sentence_separator">.</string>
+    <string name="action_grid_view">Visualização em grade</string>
+    <string name="action_list_view">Visualização em lista</string>
+    <string name="action_clear_search">Limpar pesquisa</string>
+    <string name="search_recent_searches">PESQUISAS RECENTES</string>
+    <string name="search_quick_filters">FILTROS RÁPIDOS</string>
+    <string name="search_filter_ebooks">E-books</string>
+    <string name="search_filter_audiobooks">Audiolivros</string>
+    <string name="search_filter_dictionary">Dicionário</string>
+    <string name="search_in_dictionaries">NOS DICIONÁRIOS</string>
+    <string name="search_in_your_library">NA SUA BIBLIOTECA</string>
+    <string name="search_universal_mode">MODO DE PESQUISA UNIVERSAL</string>
+    <string name="search_press_esc">Pressione ESC para fechar</string>
+    <string name="search_placeholder_tablet">Pesquisar na biblioteca, dicionário ou loja…</string>
+    <string name="search_placeholder">Pesquisar…</string>
+    <string name="search_no_dictionaries_title">Nenhum dicionário encontrado</string>
+    <string name="search_no_dictionaries_subtitle">Você ainda não baixou nenhum dicionário. Baixe um para começar a consultar palavras.</string>
+    <string name="search_no_ebooks_title">Nenhum E-book encontrado</string>
+    <string name="search_no_ebooks_subtitle">Tente um termo de pesquisa diferente ou adicione mais livros.</string>
+    <string name="search_no_audiobooks_title">Nenhum Audiolivro encontrado</string>
+    <string name="search_no_audiobooks_subtitle">Tente um termo de pesquisa diferente ou adicione mais audiolivros.</string>
+    <string name="search_no_dictionary_results_title">Nenhum resultado no dicionário</string>
+    <string name="search_no_dictionary_results_subtitle">Tente pesquisar uma palavra diferente.</string>
+    <string name="action_manage_dictionaries">Gerenciar dicionários</string>
+
+    <!-- General Labels -->
+    <string name="label_folder_default">Pasta</string>
+    <string name="action_share_book_title">Compartilhar Livro</string>
+    <string name="dictionary_show_from">Mostrar dicionários de</string>
+    <string name="dictionary_to">para</string>
+    <string name="label_smart">Inteligente</string>
+    <string name="label_audiobook_singular">Audiolivro</string>
+    <string name="label_ebook_singular">E-book</string>
 </resources>

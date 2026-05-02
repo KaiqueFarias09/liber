@@ -71,7 +71,7 @@ fun EditorialFilterSentence(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
-            text = "Show dictionaries from",
+            text = stringResource(R.string.dictionary_show_from),
             style = MaterialTheme.typography.bodySmall.copy(fontFamily = Gambetta),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -83,7 +83,7 @@ fun EditorialFilterSentence(
         )
 
         Text(
-            text = "to",
+            text = stringResource(R.string.dictionary_to),
             style = MaterialTheme.typography.bodySmall.copy(fontFamily = Gambetta),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -95,7 +95,7 @@ fun EditorialFilterSentence(
         )
 
         Text(
-            text = ".",
+            text = stringResource(R.string.label_sentence_separator),
             style = MaterialTheme.typography.bodySmall.copy(fontFamily = Gambetta),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -145,7 +145,8 @@ fun EditorialDictionaryItem(
             verticalAlignment = Alignment.Top
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                val parts = title.split(" to ")
+                val toText = " to "
+                val parts = title.split(toText)
                 if (parts.size == 2) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
@@ -157,7 +158,7 @@ fun EditorialDictionaryItem(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = " to ",
+                            text = " " + stringResource(R.string.dictionary_to) + " ",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                             modifier = Modifier.padding(horizontal = 2.dp)
@@ -199,7 +200,7 @@ fun EditorialDictionaryItem(
                 ) {
                     Icon(
                         imageVector = PhosphorIcons.Regular.Trash,
-                        contentDescription = "Delete",
+                        contentDescription = stringResource(R.string.action_delete),
                         modifier = Modifier.size(18.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                     )
@@ -218,7 +219,7 @@ fun EditorialDictionaryItem(
                     } else {
                         Icon(
                             imageVector = PhosphorIcons.Regular.DownloadSimple,
-                            contentDescription = "Download",
+                            contentDescription = stringResource(R.string.settings_dictionary_download_action),
                             modifier = Modifier.size(22.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                         )
@@ -295,7 +296,7 @@ fun EditorialDictionaryItem(
                         )
                         Spacer(Modifier.width(4.dp))
                         Text(
-                            text = "Smart",
+                            text = stringResource(R.string.label_smart),
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
                             color = MaterialTheme.colorScheme.primary,
                             fontSize = 10.sp

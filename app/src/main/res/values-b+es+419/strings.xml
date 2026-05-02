@@ -215,9 +215,9 @@
     <string name="label_status_new">NUEVO</string>
     <string name="label_status_finished">TERMINADO</string>
     <plurals name="label_audiobooks">
-        <item quantity="one">%1$d audiolibro</item>
-        <item quantity="many">%1$d audiolibros</item>
-        <item quantity="other">%1$d audiolibros</item>
+        <item quantity="one">%1$d audiolivro</item>
+        <item quantity="many">%1$d audiolivros</item>
+        <item quantity="other">%1$d audiolivros</item>
     </plurals>
     <plurals name="label_collections">
         <item quantity="one">%1$d colección</item>
@@ -227,6 +227,7 @@
     <string name="sort_option_recent">Reciente</string>
     <string name="sort_option_title">Título</string>
     <string name="sort_option_author">Autor</string>
+    <string name="sort_option_progress">Progreso</string>
     <string name="sort_option_alphabetical">Alfabética</string>
     <string name="sort_option_book_count">Número de libros</string>
     <string name="filter_all">Todos</string>
@@ -295,7 +296,7 @@
         <item quantity="many">Mejor racha: %1$d días</item>
         <item quantity="other">Mejor racha: %1$d días</item>
     </plurals>
-    <string name="settings_reading_insights_habits">Hábitos y perfil</string>
+    <string name="settings_reading_insights_habits">Habitos y perfil</string>
     <string name="settings_reading_insights_avg_session">Sesión promedio</string>
     <string name="settings_reading_insights_avg_session_desc">Un ritmo constante es mejor que un sprint.</string>
     <string name="settings_reading_insights_vocabulary_title">Vocabulario</string>
@@ -319,8 +320,57 @@
     </plurals>
     <string name="scan_folders_title">Carpetas de escaneo</string>
     <string name="scan_folders_empty">Aún no se han agregado carpetas.</string>
-    <string name="scan_folders_description">Selecciona los directorios donde se guardan tus libros y audiolibros. Liber observará estas carpetas para detectar contenido nuevo.</string>
+    <string name="scan_folders_description">Selecciona los directorios donde se guardan tus libros y audiolivros. Liber observará estas carpetas para detectar contenido nuevo.</string>
     <string name="scan_folders_add_action">Agregar otra carpeta</string>
     <string name="scan_folders_scan_now">Escanear ahora</string>
     <string name="scan_folders_scanning">Escaneando…</string>
+    <string name="settings_section_data">Datos y Respaldo</string>
+    <string name="settings_backup_title">Respaldar datos de la biblioteca</string>
+    <string name="settings_backup_subtitle">Exportar resaltados, notas y progreso de lectura a un archivo JSON.</string>
+    <string name="settings_restore_title">Restaurar datos</string>
+    <string name="settings_restore_subtitle">Importar tus datos desde un archivo de respaldo exportado anteriormente.</string>
+    <string name="settings_backup_success">Respaldo exportado con éxito</string>
+    <string name="settings_restore_success">Datos restaurados con éxito</string>
+    <string name="settings_restore_confirm_title">¿Restaurar datos?</string>
+    <string name="settings_restore_confirm_message">Esto sobrescribirá tu progreso actual, notas y marcadores si coinciden con los datos importados. Los libros existentes que no estén en el respaldo permanecerán. ¿Continuar?</string>
+    <string name="empty_filter_results">Aún no hay %2$s %1$s.</string>
+
+    <!-- Library & Search -->
+    <string name="library_smart_collections">Colecciones inteligentes</string>
+    <string name="label_on">Activado</string>
+    <string name="label_off">Desactivado</string>
+    <string name="label_showing">Mostrando</string>
+    <string name="label_sentence_separator">.</string>
+    <string name="action_grid_view">Vista de cuadrícula</string>
+    <string name="action_list_view">Vista de lista</string>
+    <string name="action_clear_search">Borrar búsqueda</string>
+    <string name="search_recent_searches">BÚSQUEDAS RECIENTES</string>
+    <string name="search_quick_filters">FILTROS RÁPIDOS</string>
+    <string name="search_filter_ebooks">E-books</string>
+    <string name="search_filter_audiobooks">Audiolibros</string>
+    <string name="search_filter_dictionary">Diccionario</string>
+    <string name="search_in_dictionaries">EN DICCIONARIOS</string>
+    <string name="search_in_your_library">EN TU BIBLIOTECA</string>
+    <string name="search_universal_mode">MODO DE BÚSQUEDA UNIVERSAL</string>
+    <string name="search_press_esc">Presiona ESC para cerrar</string>
+    <string name="search_placeholder_tablet">Busca en la biblioteca, el diccionario o la tienda…</string>
+    <string name="search_placeholder">Buscar…</string>
+    <string name="search_no_dictionaries_title">No se encontraron diccionarios</string>
+    <string name="search_no_dictionaries_subtitle">Aún no has descargado ningún diccionario. Descarga uno para empezar a buscar palabras.</string>
+    <string name="search_no_ebooks_title">No se encontraron E-books</string>
+    <string name="search_no_ebooks_subtitle">Intenta con otro término de búsqueda o agrega más libros.</string>
+    <string name="search_no_audiobooks_title">No se encontraron Audiolibros</string>
+    <string name="search_no_audiobooks_subtitle">Intenta con otro término de búsqueda o agrega más audiolibros.</string>
+    <string name="search_no_dictionary_results_title">Sin resultados en el diccionario</string>
+    <string name="search_no_dictionary_results_subtitle">Intenta buscar una palabra diferente.</string>
+    <string name="action_manage_dictionaries">Administrar diccionarios</string>
+
+    <!-- General Labels -->
+    <string name="label_folder_default">Carpeta</string>
+    <string name="action_share_book_title">Compartir Libro</string>
+    <string name="dictionary_show_from">Mostrar diccionarios de</string>
+    <string name="dictionary_to">a</string>
+    <string name="label_smart">Inteligente</string>
+    <string name="label_audiobook_singular">Audiolibro</string>
+    <string name="label_ebook_singular">E-book</string>
 </resources>
