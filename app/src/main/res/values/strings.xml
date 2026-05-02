@@ -321,4 +321,5 @@
     <string name="settings_restore_success">Data restored successfully</string>
     <string name="settings_restore_confirm_title">Restore Data?</string>
     <string name="settings_restore_confirm_message">This will overwrite your current progress, notes, and bookmarks if they match the imported data. Existing books not in the backup will remain. Proceed?</string>
+    <string name="empty_filter_results">No %1$s %2$s yet.</string>
 </resources>

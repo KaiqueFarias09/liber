@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -310,6 +311,30 @@ fun LibraryBooksTab(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
                                 modifier = Modifier.padding(vertical = 8.dp)
                             )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 48.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = stringResource(
+                                        R.string.empty_filter_results,
+                                        filterStatus.label.asString().lowercase(),
+                                        if (isAudiobook) stringResource(R.string.tab_audiobooks)
+                                            .lowercase()
+                                        else stringResource(R.string.tab_books)
+                                            .lowercase()
+                                    ),
+                                    style = MaterialTheme.typography.bodyLarge.copy(
+                                        fontFamily = Gambetta,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                            alpha = 0.6f
+                                        )
+                                    )
+                                )
+                            }
                         }
                     }
                 }
@@ -382,24 +407,6 @@ fun LibraryBooksTab(
                             isAudiobookPlaying = isPlaying,
                             header = header
                         )
-                    }
-
-                    if (filteredBooks.isEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(top = 48.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            EmptyState(
-                                title = UiText.StringResource(R.string.error_no_results),
-                                subtitle = UiText.StringResource(R.string.reader_search_no_results_subtitle),
-                                image = R.drawable.library_empty,
-                                actionLabel = UiText.DynamicString("Show all"),
-                                onAction = { onFilterStatusChange(LibraryFilterStatus.ALL) },
-                                modifier = Modifier.padding(horizontal = 24.dp),
-                            )
-                        }
                     }
                 }
             }
