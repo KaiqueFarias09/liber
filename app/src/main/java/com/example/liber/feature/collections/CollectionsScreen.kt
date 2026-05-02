@@ -90,44 +90,47 @@ fun CollectionsListScreen(
             }
         },
     ) { innerPadding ->
-        if (collections.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center
-            ) {
-                EmptyState(
-                    title = UiText.StringResource(R.string.empty_collections_title),
-                    subtitle = UiText.StringResource(R.string.empty_collections_subtitle),
-                    image = R.drawable.collections_empty,
-                    actionLabel = UiText.StringResource(R.string.empty_collections_action),
-                    onAction = { showCreateDialog = true },
-                    modifier = Modifier.padding(horizontal = 24.dp)
-                )
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val columns = when {
+                maxWidth < 600.dp -> 1
+                else -> 2
             }
-        } else {
-            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                val columns = when {
-                    maxWidth < 600.dp -> 1
-                    else -> 2
+
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(columns),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    start = 24.dp,
+                    top = 8.dp, // Match BookGrid's top padding
+                    end = 24.dp,
+                    bottom = 80.dp + innerPadding.calculateBottomPadding()
+                ),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    header()
                 }
 
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(columns),
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        start = 24.dp,
-                        top = 8.dp, // Match BookGrid's top padding
-                        end = 24.dp,
-                        bottom = 80.dp + innerPadding.calculateBottomPadding()
-                    ),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
+                if (collections.isEmpty()) {
                     item(span = { GridItemSpan(maxLineSpan) }) {
-                        header()
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 48.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            EmptyState(
+                                title = UiText.StringResource(R.string.empty_collections_title),
+                                subtitle = UiText.StringResource(R.string.empty_collections_subtitle),
+                                image = R.drawable.collections_empty,
+                                actionLabel = UiText.StringResource(R.string.empty_collections_action),
+                                onAction = { showCreateDialog = true },
+                                modifier = Modifier.padding(horizontal = 24.dp)
+                            )
+                        }
                     }
+                } else {
                     items(sortedCollections, key = { "collection_${it.id}" }) { collection ->
                         CollectionShelfRow(
                             collection = collection,

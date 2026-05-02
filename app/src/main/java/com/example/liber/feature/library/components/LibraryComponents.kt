@@ -62,11 +62,12 @@ fun LibraryFilterAndSortRow(
     onCollectionsSortOptionChange: (CollectionSortOption) -> Unit,
     autoCollectionsEnabled: Boolean,
     onAutoCollectionsToggle: (Boolean) -> Unit,
+    showSortOptions: Boolean = true,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 4.dp),
+            .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -96,25 +97,31 @@ fun LibraryFilterAndSortRow(
                 )
             }
 
-            // Sort Dropdown for Collections
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "Sort: ",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp,
-                        fontSize = 9.sp
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                )
-                EditorialDropdown(
-                    value = collectionsSortOption.name,
-                    onValueChange = { onCollectionsSortOptionChange(CollectionSortOption.valueOf(it)) },
-                    options = CollectionSortOption.entries.map { it.name },
-                    labelProvider = { sortName ->
-                        CollectionSortOption.valueOf(sortName).label.asString()
-                    }
-                )
+            if (showSortOptions) {
+                // Sort Dropdown for Collections
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Sort: ",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp,
+                            fontSize = 9.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                    EditorialDropdown(
+                        value = collectionsSortOption.name,
+                        onValueChange = {
+                            onCollectionsSortOptionChange(
+                                CollectionSortOption.valueOf(it)
+                            )
+                        },
+                        options = CollectionSortOption.entries.map { it.name },
+                        labelProvider = { sortName ->
+                            CollectionSortOption.valueOf(sortName).label.asString()
+                        }
+                    )
+                }
             }
             return@Row
         }
@@ -238,6 +245,12 @@ fun LibraryBooksTab(
     onClearSearch: () -> Unit,
     activeBookId: String?,
     isPlaying: Boolean,
+    filterStatus: LibraryFilterStatus,
+    onFilterStatusChange: (LibraryFilterStatus) -> Unit,
+    autoCollectionsEnabled: Boolean = false,
+    onAutoCollectionsToggle: (Boolean) -> Unit = {},
+    collectionsSortOption: CollectionSortOption = CollectionSortOption.RECENT,
+    onCollectionsSortOptionChange: (CollectionSortOption) -> Unit = {},
 ) {
     when (booksState) {
         is UiState.Loading -> LoadingState()
@@ -247,28 +260,63 @@ fun LibraryBooksTab(
         )
 
         is UiState.Success -> {
-            val books = booksState.data.filter { it.isAudiobook == isAudiobook }
+            val allBooksOfType = booksState.data.filter { it.isAudiobook == isAudiobook }
+            val filteredBooks = allBooksOfType.filter { book ->
+                when (filterStatus) {
+                    LibraryFilterStatus.ALL -> true
+                    LibraryFilterStatus.UNREAD -> book.readingProgress == 0
+                    LibraryFilterStatus.IN_PROGRESS -> book.readingProgress in 1..99
+                    LibraryFilterStatus.FINISHED -> book.readingProgress == 100
+                }
+            }
             val header = @Composable {
-                if (books.isNotEmpty()) {
-                    Text(
-                        text = if (isAudiobook) pluralStringResource(
-                            R.plurals.label_audiobooks,
-                            books.size,
-                            books.size
-                        ) else pluralStringResource(R.plurals.label_books, books.size, books.size),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.5.sp,
-                            fontSize = 9.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
+                if (allBooksOfType.isNotEmpty()) {
+                    Column {
+                        LibraryFilterAndSortRow(
+                            currentTabIndex = if (isAudiobook) 1 else 0,
+                            filterStatus = filterStatus,
+                            onFilterStatusChange = onFilterStatusChange,
+                            booksSortOption = sortOption,
+                            onBooksSortOptionChange = onSortOptionChange,
+                            booksViewMode = viewMode,
+                            onBooksViewModeChange = onViewModeChange,
+                            audiobooksSortOption = sortOption,
+                            onAudiobooksSortOptionChange = onSortOptionChange,
+                            audiobooksViewMode = viewMode,
+                            onAudiobooksViewModeChange = onViewModeChange,
+                            collectionsSortOption = collectionsSortOption,
+                            onCollectionsSortOptionChange = onCollectionsSortOptionChange,
+                            autoCollectionsEnabled = autoCollectionsEnabled,
+                            onAutoCollectionsToggle = onAutoCollectionsToggle,
+                            showSortOptions = filteredBooks.isNotEmpty()
+                        )
+
+                        if (filteredBooks.isNotEmpty()) {
+                            Text(
+                                text = if (isAudiobook) pluralStringResource(
+                                    R.plurals.label_audiobooks,
+                                    filteredBooks.size,
+                                    filteredBooks.size
+                                ) else pluralStringResource(
+                                    R.plurals.label_books,
+                                    filteredBooks.size,
+                                    filteredBooks.size
+                                ),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.5.sp,
+                                    fontSize = 9.sp
+                                ),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                        }
+                    }
                 }
             }
 
             Column(modifier = Modifier.fillMaxSize()) {
-                if (books.isEmpty()) {
+                if (allBooksOfType.isEmpty()) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -299,7 +347,7 @@ fun LibraryBooksTab(
                 } else {
                     if (isAudiobook) {
                         AudiobookGrid(
-                            audiobooks = books,
+                            audiobooks = filteredBooks,
                             onBookClick = onBookClick,
                             onDeleteBook = onDeleteBook,
                             onShareBook = onShareBook,
@@ -316,7 +364,7 @@ fun LibraryBooksTab(
                         )
                     } else {
                         BookGrid(
-                            books = books,
+                            books = filteredBooks,
                             onBookClick = onBookClick,
                             onToggleWantToRead = onToggleWantToRead,
                             onToggleFinished = onToggleFinished,
@@ -334,6 +382,24 @@ fun LibraryBooksTab(
                             isAudiobookPlaying = isPlaying,
                             header = header
                         )
+                    }
+
+                    if (filteredBooks.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(top = 48.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            EmptyState(
+                                title = UiText.StringResource(R.string.error_no_results),
+                                subtitle = UiText.StringResource(R.string.reader_search_no_results_subtitle),
+                                image = R.drawable.library_empty,
+                                actionLabel = UiText.DynamicString("Show all"),
+                                onAction = { onFilterStatusChange(LibraryFilterStatus.ALL) },
+                                modifier = Modifier.padding(horizontal = 24.dp),
+                            )
+                        }
                     }
                 }
             }

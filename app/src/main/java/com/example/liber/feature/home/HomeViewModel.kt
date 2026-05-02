@@ -62,8 +62,12 @@ class HomeViewModel @Inject constructor(
     private val _isLibrarySearchOpen = MutableStateFlow(false)
     val isLibrarySearchOpen: StateFlow<Boolean> = _isLibrarySearchOpen.asStateFlow()
 
-    private val _libraryFilterStatus = MutableStateFlow(LibraryFilterStatus.ALL)
-    val libraryFilterStatus: StateFlow<LibraryFilterStatus> = _libraryFilterStatus.asStateFlow()
+    private val _booksFilterStatus = MutableStateFlow(LibraryFilterStatus.ALL)
+    val booksFilterStatus: StateFlow<LibraryFilterStatus> = _booksFilterStatus.asStateFlow()
+
+    private val _audiobooksFilterStatus = MutableStateFlow(LibraryFilterStatus.ALL)
+    val audiobooksFilterStatus: StateFlow<LibraryFilterStatus> =
+        _audiobooksFilterStatus.asStateFlow()
 
     val booksViewMode: StateFlow<LibraryViewMode> = userPreferencesRepository.booksViewMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LibraryViewMode.GRID)
@@ -75,9 +79,7 @@ class HomeViewModel @Inject constructor(
         bookRepository.getAllBookPreviews(),
         librarySearchQuery,
         librarySearchType,
-        libraryFilterStatus,
-        booksSortOption,
-    ) { books: List<BookPreview>, query: String, searchType: SearchType, status: LibraryFilterStatus, sort: LibrarySortOption ->
+    ) { books: List<BookPreview>, query: String, searchType: SearchType ->
         val filtered = books.filter { book ->
             if (searchType == SearchType.DICTIONARY) return@filter false
 
@@ -91,26 +93,10 @@ class HomeViewModel @Inject constructor(
                 book.title.contains(query, ignoreCase = true) ||
                         (book.author?.contains(query, ignoreCase = true) ?: false)
             }
-            val matchesStatus = when (status) {
-                LibraryFilterStatus.ALL -> true
-                LibraryFilterStatus.UNREAD -> book.readingProgress == 0
-                LibraryFilterStatus.IN_PROGRESS -> book.readingProgress in 1..99
-                LibraryFilterStatus.FINISHED -> book.readingProgress == 100
-            }
-            matchesType && matchesSearch && matchesStatus
+            matchesType && matchesSearch
         }
 
-        val sorted = when (sort) {
-            LibrarySortOption.RECENT -> filtered.sortedByDescending { it.lastOpenedAt ?: 0L }
-            LibrarySortOption.TITLE -> filtered.sortedBy { it.title.lowercase() }
-            LibrarySortOption.AUTHOR -> filtered.sortedBy {
-                it.author?.lowercase() ?: "zzzz"
-            }
-
-            LibrarySortOption.PROGRESS -> filtered.sortedByDescending { it.readingProgress }
-        }
-
-        UiState.Success(sorted)
+        UiState.Success(filtered.sortedBy { it.title.lowercase() })
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UiState.Loading)
 
     // For compatibility with simple list consumers
@@ -188,8 +174,12 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun setLibraryFilterStatus(status: LibraryFilterStatus) {
-        _libraryFilterStatus.value = status
+    fun setBooksFilterStatus(status: LibraryFilterStatus) {
+        _booksFilterStatus.value = status
+    }
+
+    fun setAudiobooksFilterStatus(status: LibraryFilterStatus) {
+        _audiobooksFilterStatus.value = status
     }
 
     fun setAudiobooksViewMode(mode: LibraryViewMode) {

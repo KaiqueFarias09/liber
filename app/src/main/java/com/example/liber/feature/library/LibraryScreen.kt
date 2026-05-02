@@ -2,6 +2,7 @@ package com.example.liber.feature.library
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -83,8 +84,10 @@ fun LibraryScreen(
     searchQuery: String = "",
     onSearchQueryChange: (String) -> Unit = {},
     onSearch: (String) -> Unit = {},
-    filterStatus: LibraryFilterStatus = LibraryFilterStatus.ALL,
-    onFilterStatusChange: (LibraryFilterStatus) -> Unit = {},
+    booksFilterStatus: LibraryFilterStatus = LibraryFilterStatus.ALL,
+    onBooksFilterStatusChange: (LibraryFilterStatus) -> Unit = {},
+    audiobooksFilterStatus: LibraryFilterStatus = LibraryFilterStatus.ALL,
+    onAudiobooksFilterStatusChange: (LibraryFilterStatus) -> Unit = {},
     autoCollectionsEnabled: Boolean = true,
     onAutoCollectionsToggle: (Boolean) -> Unit = {},
     onOpenDictionaryManager: () -> Unit = {},
@@ -162,24 +165,6 @@ fun LibraryScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            LibraryFilterAndSortRow(
-                currentTabIndex = currentTabIndex,
-                filterStatus = filterStatus,
-                onFilterStatusChange = onFilterStatusChange,
-                booksSortOption = booksSortOption,
-                onBooksSortOptionChange = onBooksSortOptionChange,
-                booksViewMode = booksViewMode,
-                onBooksViewModeChange = onBooksViewModeChange,
-                audiobooksSortOption = audiobooksSortOption,
-                onAudiobooksSortOptionChange = onAudiobooksSortOptionChange,
-                audiobooksViewMode = audiobooksViewMode,
-                onAudiobooksViewModeChange = onAudiobooksViewModeChange,
-                collectionsSortOption = collectionsSortOption,
-                onCollectionsSortOptionChange = onCollectionsSortOptionChange,
-                autoCollectionsEnabled = autoCollectionsEnabled,
-                onAutoCollectionsToggle = onAutoCollectionsToggle
-            )
-
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier.weight(1f),
@@ -206,7 +191,13 @@ fun LibraryScreen(
                             searchQuery = searchQuery,
                             onClearSearch = { onSearchQueryChange("") },
                             activeBookId = activeBookId,
-                            isPlaying = isPlaying
+                            isPlaying = isPlaying,
+                            filterStatus = booksFilterStatus,
+                            onFilterStatusChange = onBooksFilterStatusChange,
+                            autoCollectionsEnabled = autoCollectionsEnabled,
+                            onAutoCollectionsToggle = onAutoCollectionsToggle,
+                            collectionsSortOption = collectionsSortOption,
+                            onCollectionsSortOptionChange = onCollectionsSortOptionChange
                         )
                     }
 
@@ -230,7 +221,13 @@ fun LibraryScreen(
                             searchQuery = searchQuery,
                             onClearSearch = { onSearchQueryChange("") },
                             activeBookId = activeBookId,
-                            isPlaying = isPlaying
+                            isPlaying = isPlaying,
+                            filterStatus = audiobooksFilterStatus,
+                            onFilterStatusChange = onAudiobooksFilterStatusChange,
+                            autoCollectionsEnabled = autoCollectionsEnabled,
+                            onAutoCollectionsToggle = onAutoCollectionsToggle,
+                            collectionsSortOption = collectionsSortOption,
+                            onCollectionsSortOptionChange = onCollectionsSortOptionChange
                         )
                     }
 
@@ -249,23 +246,43 @@ fun LibraryScreen(
                                     onCreateCollection = onCreateCollection,
                                     sortOption = collectionsSortOption,
                                     header = {
-                                        if (collectionsState.data.isNotEmpty()) {
-                                            Text(
-                                                text = pluralStringResource(
-                                                    R.plurals.label_collections,
-                                                    collectionsState.data.size,
-                                                    collectionsState.data.size
-                                                ),
-                                                style = MaterialTheme.typography.labelSmall.copy(
-                                                    fontWeight = FontWeight.Bold,
-                                                    letterSpacing = 1.5.sp,
-                                                    fontSize = 9.sp
-                                                ),
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                                                    alpha = 0.4f
-                                                ),
-                                                modifier = Modifier.padding(vertical = 8.dp)
+                                        Column {
+                                            LibraryFilterAndSortRow(
+                                                currentTabIndex = 2,
+                                                filterStatus = booksFilterStatus, // Not used but required
+                                                onFilterStatusChange = onBooksFilterStatusChange, // Not used but required
+                                                booksSortOption = booksSortOption,
+                                                onBooksSortOptionChange = onBooksSortOptionChange,
+                                                booksViewMode = booksViewMode,
+                                                onBooksViewModeChange = onBooksViewModeChange,
+                                                audiobooksSortOption = audiobooksSortOption,
+                                                onAudiobooksSortOptionChange = onAudiobooksSortOptionChange,
+                                                audiobooksViewMode = audiobooksViewMode,
+                                                onAudiobooksViewModeChange = onAudiobooksViewModeChange,
+                                                collectionsSortOption = collectionsSortOption,
+                                                onCollectionsSortOptionChange = onCollectionsSortOptionChange,
+                                                autoCollectionsEnabled = autoCollectionsEnabled,
+                                                onAutoCollectionsToggle = onAutoCollectionsToggle,
+                                                showSortOptions = collectionsState.data.isNotEmpty()
                                             )
+                                            if (collectionsState.data.isNotEmpty()) {
+                                                Text(
+                                                    text = pluralStringResource(
+                                                        R.plurals.label_collections,
+                                                        collectionsState.data.size,
+                                                        collectionsState.data.size
+                                                    ),
+                                                    style = MaterialTheme.typography.labelSmall.copy(
+                                                        fontWeight = FontWeight.Bold,
+                                                        letterSpacing = 1.5.sp,
+                                                        fontSize = 9.sp
+                                                    ),
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                                        alpha = 0.4f
+                                                    ),
+                                                    modifier = Modifier.padding(vertical = 8.dp)
+                                                )
+                                            }
                                         }
                                     }
                                 )
@@ -332,7 +349,8 @@ fun LibraryScreen(
     val collectionsSortOption by collectionsViewModel.collectionsSortOption.collectAsState()
     val scanState by viewModel.scanState.collectAsState()
     val searchQuery by viewModel.librarySearchQuery.collectAsState()
-    val filterStatus by viewModel.libraryFilterStatus.collectAsState()
+    val booksFilterStatus by viewModel.booksFilterStatus.collectAsState()
+    val audiobooksFilterStatus by viewModel.audiobooksFilterStatus.collectAsState()
     val isSearchOpen by viewModel.isLibrarySearchOpen.collectAsState()
     val autoCollectionsEnabled by collectionsViewModel.autoCollectionsEnabled.collectAsState()
     val recentSearches by viewModel.recentSearches.collectAsState()
@@ -402,8 +420,10 @@ fun LibraryScreen(
         searchQuery = searchQuery,
         onSearchQueryChange = { viewModel.setLibrarySearchQuery(it) },
         onSearch = { viewModel.addRecentSearch(it) },
-        filterStatus = filterStatus,
-        onFilterStatusChange = { viewModel.setLibraryFilterStatus(it) },
+        booksFilterStatus = booksFilterStatus,
+        onBooksFilterStatusChange = { viewModel.setBooksFilterStatus(it) },
+        audiobooksFilterStatus = audiobooksFilterStatus,
+        onAudiobooksFilterStatusChange = { viewModel.setAudiobooksFilterStatus(it) },
         autoCollectionsEnabled = autoCollectionsEnabled,
         onAutoCollectionsToggle = { collectionsViewModel.setAutoCollectionsEnabled(it) },
         onOpenDictionaryManager = onOpenDictionaryManager,
