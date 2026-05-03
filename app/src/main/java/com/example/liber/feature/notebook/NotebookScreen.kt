@@ -78,6 +78,9 @@ fun NotebookScreen(
     var showExportSheet by remember { mutableStateOf(false) }
     var exportContext by remember { mutableStateOf<ExportContext>(ExportContext.All) }
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val exportScope = androidx.compose.runtime.rememberCoroutineScope()
+
     LiberScrollableScreen(
         title = UiText.DynamicString("Notebook"),
         onBack = onBack,
@@ -155,7 +158,11 @@ fun NotebookScreen(
                                 bookPreview = books.find { it.id == bookData.bookId },
                                 onExportClick = {
                                     exportContext =
-                                        ExportContext.Book(bookData.bookTitle, bookData.items.size)
+                                        ExportContext.Book(
+                                            bookData.bookId,
+                                            bookData.bookTitle,
+                                            bookData.items.size
+                                        )
                                     showExportSheet = true
                                 },
                                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 24.dp)
@@ -182,8 +189,27 @@ fun NotebookScreen(
         ExportBottomSheet(
             context = exportContext,
             onDismiss = { showExportSheet = false },
-            onExport = { _ ->
+            onExport = { format ->
                 showExportSheet = false
+                val dataToExport = when (val ctx = exportContext) {
+                    is ExportContext.All -> {
+                        (uiState as? UiState.Success)?.data ?: emptyList()
+                    }
+
+                    is ExportContext.Book -> {
+                        ((uiState as? UiState.Success)?.data?.filter { it.bookId == ctx.id })
+                            ?: emptyList()
+                    }
+                }
+
+                if (dataToExport.isNotEmpty()) {
+                    com.example.liber.feature.reader.exportNotebookData(
+                        context = context,
+                        scope = exportScope,
+                        data = dataToExport,
+                        format = format
+                    )
+                }
             }
         )
     }
@@ -191,7 +217,7 @@ fun NotebookScreen(
 
 sealed class ExportContext {
     object All : ExportContext()
-    data class Book(val title: String, val count: Int) : ExportContext()
+    data class Book(val id: String, val title: String, val count: Int) : ExportContext()
 }
 
 @Composable

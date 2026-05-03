@@ -990,11 +990,12 @@ fun ReaderScreen(
                                 text = { Text("Markdown (.md)") },
                                 onClick = {
                                     showExportMenu = false
-                                    exportAnnotations(
+                                    exportReaderData(
                                         context,
                                         exportScope,
                                         bookTitle,
                                         annotations,
+                                        bookmarks,
                                         "markdown"
                                     )
                                 }
@@ -1003,11 +1004,12 @@ fun ReaderScreen(
                                 text = { Text("Plain Text (.txt)") },
                                 onClick = {
                                     showExportMenu = false
-                                    exportAnnotations(
+                                    exportReaderData(
                                         context,
                                         exportScope,
                                         bookTitle,
                                         annotations,
+                                        bookmarks,
                                         "text"
                                     )
                                 }
@@ -1016,11 +1018,12 @@ fun ReaderScreen(
                                 text = { Text("JSON (.json)") },
                                 onClick = {
                                     showExportMenu = false
-                                    exportAnnotations(
+                                    exportReaderData(
                                         context,
                                         exportScope,
                                         bookTitle,
                                         annotations,
+                                        bookmarks,
                                         "json"
                                     )
                                 }
@@ -1029,11 +1032,12 @@ fun ReaderScreen(
                                 text = { Text("HTML (.html)") },
                                 onClick = {
                                     showExportMenu = false
-                                    exportAnnotations(
+                                    exportReaderData(
                                         context,
                                         exportScope,
                                         bookTitle,
                                         annotations,
+                                        bookmarks,
                                         "html"
                                     )
                                 }
