@@ -697,6 +697,7 @@ fun ReaderScreen(
                                 color = colorArgb,
                                 locator = xptr,
                                 endLocator = pendingEndXPointer ?: "",
+                                chapter = currentChapter,
                                 text = viewModel.pendingSelectedText.value,
                             )
                         )
@@ -1138,6 +1139,7 @@ fun ReaderScreen(
                                     type = if (noteText.isNotBlank()) AnnotationType.NOTE else AnnotationType.HIGHLIGHT,
                                     note = noteText.ifBlank { null },
                                     color = selectedColor,
+                                    chapter = existing.chapter ?: currentChapter
                                 )
                             )
                         }
@@ -1154,6 +1156,7 @@ fun ReaderScreen(
                                     color = selectedColor,
                                     locator = xptr,
                                     endLocator = viewModel.pendingEndXPointer.value ?: "",
+                                    chapter = currentChapter,
                                     text = selectedText,
                                     note = noteText.ifBlank { null },
                                 )
