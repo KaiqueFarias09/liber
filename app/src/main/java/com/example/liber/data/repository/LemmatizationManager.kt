@@ -107,9 +107,16 @@ class LemmatizationManager(
                 var bytesRead = 0L
                 val lemmas = mutableListOf<WordLemma>()
 
+                // Initial progress to show something is happening
+                val initialProgress = if (totalBytes > 0) 1 else -1
+                updateProgress(
+                    if (initialProgress > 0) "Importing... 1%" else "Importing...",
+                    initialProgress
+                )
+
                 InputStreamReader(body.byteStream()).buffered().use { reader ->
                     var line = reader.readLine()
-                    var lastUpdate = 0L
+                    var lastUpdate = System.currentTimeMillis()
                     while (line != null) {
                         bytesRead += line.length + 1 // roughly
                         val parts = line.split("\t")
@@ -131,8 +138,11 @@ class LemmatizationManager(
                             val now = System.currentTimeMillis()
                             if (now - lastUpdate > 1000) {
                                 val progress =
-                                    if (totalBytes > 0) ((bytesRead * 100) / totalBytes).toInt() else -1
-                                updateProgress("Importing... $progress%", progress)
+                                    if (totalBytes > 0) ((bytesRead * 100) / totalBytes).toInt()
+                                        .coerceIn(1, 99) else -1
+                                val status =
+                                    if (progress >= 0) "Importing... $progress%" else "Importing..."
+                                updateProgress(status, progress)
                                 lastUpdate = now
                             }
                         }
@@ -155,7 +165,7 @@ class LemmatizationManager(
                     NotificationCompat.Builder(appContext, CHANNEL_ID)
                         .setSmallIcon(R.mipmap.ic_launcher_foreground)
                         .setContentTitle("Lemmas Ready: $languageName")
-                        .setContentText("Import complete.")
+                        .setContentText("Completed")
                         .setAutoCancel(true)
                         .build()
                 )
