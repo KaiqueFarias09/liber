@@ -17,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,7 +39,8 @@ fun LiberModalBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = skipPartiallyExpanded),
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = 1.dp,
         contentColor = MaterialTheme.colorScheme.onSurface,
         modifier = modifier
     ) {
@@ -63,7 +65,10 @@ fun LiberModalBottomSheet(
             Box(
                 modifier = Modifier
                     .size(28.dp)
-                    .background(MaterialTheme.colorScheme.surfaceContainerLow, CircleShape)
+                    .background(
+                        MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp),
+                        CircleShape
+                    )
                     .clickable(onClick = onDismissRequest),
                 contentAlignment = Alignment.Center,
             ) {

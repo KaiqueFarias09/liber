@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -42,22 +43,25 @@ fun Modifier.responsiveMaxWidth(): Modifier = this
  * A reusable modifier to apply the standard Liber container style.
  *
  * It applies:
- * 1. Background color (defaults to surface)
+ * 1. Background color (defaults to surface with tonal elevation)
  * 2. Border (defaults to outlineVariant with 1.dp)
  * 3. Clipping to the specified shape
  *
  * @param shape The shape of the container (defaults to 12.dp rounded corners)
- * @param backgroundColor The background color (defaults to MaterialTheme.colorScheme.surface)
+ * @param backgroundColor The background color (defaults to MaterialTheme.colorScheme.surface with elevation tint)
  * @param borderColor The border color (defaults to MaterialTheme.colorScheme.outlineVariant)
  * @param borderWidth The thickness of the border (defaults to 1.dp)
+ * @param elevation The tonal elevation to apply to the background color (defaults to 0.dp)
  */
 fun Modifier.liberContainer(
     shape: Shape = RoundedCornerShape(12.dp),
     backgroundColor: Color? = null,
     borderColor: Color? = null,
     borderWidth: Dp = 1.dp,
+    elevation: Dp = 0.dp,
 ): Modifier = composed {
-    val finalBgColor = backgroundColor ?: MaterialTheme.colorScheme.surface
+    val finalBgColor =
+        backgroundColor ?: MaterialTheme.colorScheme.surfaceColorAtElevation(elevation)
     val finalBorderColor = borderColor ?: MaterialTheme.colorScheme.outlineVariant
 
     this.then(

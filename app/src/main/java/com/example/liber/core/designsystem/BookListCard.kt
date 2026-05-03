@@ -41,7 +41,7 @@ fun BookListCard(
         modifier = modifier
             .width(320.dp) // Slightly wider for audiobook vinyl
             .height(112.dp)
-            .liberContainer()
+            .liberContainer(elevation = 1.dp)
             .clickable(onClick = onClick),
     ) {
         Row(

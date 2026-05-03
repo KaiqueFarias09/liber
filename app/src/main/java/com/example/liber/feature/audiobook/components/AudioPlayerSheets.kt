@@ -56,7 +56,7 @@ fun SpeedSheet(currentSpeed: Float, onSpeedSelected: (Float) -> Unit) {
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLowest)
+                        .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface)
                         .border(
                             1.dp,
                             if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outlineVariant.copy(

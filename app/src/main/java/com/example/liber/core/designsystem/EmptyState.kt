@@ -26,7 +26,6 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
@@ -66,6 +65,7 @@ fun EmptyState(
             shape = RoundedCornerShape(2.dp),
             tonalElevation = 0.dp
         ) {
+            val cornerColor = MaterialTheme.colorScheme.outlineVariant
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -73,7 +73,7 @@ fun EmptyState(
                         val cornerSize = 8.dp.toPx()
                         val strokeWidth = 1.dp.toPx()
                         val margin = 8.dp.toPx()
-                        val color = Color.LightGray
+                        val color = cornerColor
 
                         // Top Left
                         drawRect(color, Offset(margin, margin), Size(cornerSize, strokeWidth))

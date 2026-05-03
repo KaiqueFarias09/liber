@@ -57,8 +57,12 @@ class MainActivity : AppCompatActivity() {
         handleIntent(intent)
         setContent {
             val themeMode by settingsViewModel.themeMode.collectAsState()
+            val accentColor by settingsViewModel.accentColor.collectAsState()
 
-            LiberTheme(themeMode = themeMode) {
+            LiberTheme(
+                themeMode = themeMode,
+                accentColor = accentColor
+            ) {
                 val windowSizeClass = calculateWindowSizeClass(this)
                 LiberApp(
                     windowSizeClass = windowSizeClass

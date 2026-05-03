@@ -347,7 +347,11 @@ private fun ThemePreviewTile(
             .background(theme.background, RoundedCornerShape(16.dp))
             .then(
                 if (isSelected)
-                    Modifier.border(3.dp, Color(0xFF007AFF), RoundedCornerShape(16.dp))
+                    Modifier.border(
+                        3.dp,
+                        MaterialTheme.colorScheme.primary,
+                        RoundedCornerShape(16.dp)
+                    )
                 else
                     Modifier.border(
                         1.5.dp,

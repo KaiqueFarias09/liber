@@ -25,7 +25,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -59,7 +58,7 @@ fun NowPlayingBar(
             .shadow(
                 elevation = 8.dp,
                 shape = RoundedCornerShape(12.dp),
-                spotColor = Color.Black.copy(alpha = 0.2f)
+                spotColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.2f)
             )
             .clickable(onClick = onClick),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),

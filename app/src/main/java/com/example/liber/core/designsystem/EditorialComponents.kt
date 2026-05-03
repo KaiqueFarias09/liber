@@ -31,7 +31,6 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontStyle
@@ -147,7 +146,7 @@ fun EditorialDropdown(
     labelProvider: @Composable (String) -> String = { it }
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val accentColor = Color(0xFFD86A77) // The React app's red/pink
+    val accentColor = MaterialTheme.colorScheme.primary
 
     Box(modifier = modifier) {
         Text(

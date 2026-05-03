@@ -45,7 +45,8 @@ fun LiberDropdownMenu(
         modifier = modifier,
         offset = offset,
         shape = shape,
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = 3.dp,
         properties = properties,
     ) {
         content()

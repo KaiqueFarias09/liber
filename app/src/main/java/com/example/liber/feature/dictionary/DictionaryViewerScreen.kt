@@ -113,13 +113,13 @@ fun DictionaryViewerScreen(
                 // Info block for lemmatization
                 item {
                     Surface(
-                        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                        color = MaterialTheme.colorScheme.surface,
                         shape = RoundedCornerShape(16.dp),
                         border = androidx.compose.foundation.BorderStroke(
                             1.dp,
                             MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
                         ),
-                        tonalElevation = 1.dp,
+                        tonalElevation = 2.dp,
                         modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
                     ) {
                         Row(
@@ -179,7 +179,7 @@ fun DictionaryViewerScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surfaceContainerLowest.copy(alpha = 0.5f))
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
                         .padding(vertical = 8.dp)
                 ) {
                     EditorialSearchField(

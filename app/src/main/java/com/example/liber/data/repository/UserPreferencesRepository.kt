@@ -19,6 +19,10 @@ enum class ThemeMode {
     AUTO, DARK, LIGHT
 }
 
+enum class AccentColor {
+    ROSE, SEPIA, SAGE, BLUE, PURPLE, YELLOW
+}
+
 class UserPreferencesRepository(
     private val dataStore: DataStore<Preferences>,
     appLogger: AppLogger,
@@ -26,6 +30,7 @@ class UserPreferencesRepository(
 
     private object PreferencesKeys {
         val THEME_MODE = stringPreferencesKey("theme_mode")
+        val ACCENT_COLOR = stringPreferencesKey("accent_color")
         val READER_THEME = stringPreferencesKey("reader_theme")
         val FONT_SIZE = floatPreferencesKey("font_size")
         val PAGE_SCROLL = booleanPreferencesKey("page_scroll")
@@ -63,6 +68,25 @@ class UserPreferencesRepository(
     ) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.THEME_MODE] = themeMode.name
+        }
+    }
+
+    val accentColor: Flow<AccentColor> = dataStore.data
+        .map { preferences ->
+            val name = preferences[PreferencesKeys.ACCENT_COLOR] ?: AccentColor.ROSE.name
+            try {
+                AccentColor.valueOf(name)
+            } catch (e: IllegalArgumentException) {
+                AccentColor.ROSE
+            }
+        }
+
+    suspend fun setAccentColor(accentColor: AccentColor) = executeOperation(
+        operationName = "setAccentColor",
+        parameters = mapOf("accentColor" to accentColor.name),
+    ) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ACCENT_COLOR] = accentColor.name
         }
     }
 

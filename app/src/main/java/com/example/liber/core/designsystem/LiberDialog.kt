@@ -61,7 +61,7 @@ fun LiberDialog(
         Surface(
             modifier = modifier.fillMaxWidth(),
             shape = RoundedCornerShape(32.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+            color = MaterialTheme.colorScheme.surface,
             tonalElevation = 6.dp,
         ) {
             Column(modifier = Modifier.padding(24.dp)) {

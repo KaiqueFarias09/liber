@@ -183,7 +183,8 @@ fun LibraryFilterAndSortRow(
 
             // View Mode Toggle
             Surface(
-                color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 1.dp,
                 shape = MaterialTheme.shapes.extraSmall,
                 border = androidx.compose.foundation.BorderStroke(
                     1.dp,

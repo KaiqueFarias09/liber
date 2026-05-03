@@ -8,28 +8,63 @@ val Rose100 = Color(0xFFFCE4E6)
 val Rose200 = Color(0xFFFAD0D4)
 val Rose300 = Color(0xFFF7B8BD)
 val Rose400 = Color(0xFFF29AA1)
-val Rose500 = Color(0xFFE87881)
+val Rose500 = Color(0xFFD86A77) // Editorial Dusty Rose
 val Rose600 = Color(0xFFD4596A)
 val Rose700 = Color(0xFFB8394A)
 val Rose800 = Color(0xFF8F2535)
 val Rose900 = Color(0xFF5E1420)
 val Rose950 = Color(0xFF3B0A14)
 
-// ── Warm Mauve family (Secondary) ────────────────────────────────────────────
-val Mauve50 = Color(0xFFF5F0F1)
-val Mauve100 = Color(0xFFEBE1E3)
-val Mauve300 = Color(0xFFC2ABB0)
-val Mauve500 = Color(0xFF8D6D74)
-val Mauve800 = Color(0xFF3E2C30)
-val Mauve850 = Color(0xFF2E2023)
+// ── Sepia Ink family (Secondary/Accent) ──────────────────────────────────────
+val Sepia50 = Color(0xFFF5F0F1)
+val Sepia100 = Color(0xFFEBE1E3)
+val Sepia200 = Color(0xFFDAC6C9)
+val Sepia300 = Color(0xFFC2ABB0)
+val Sepia400 = Color(0xFFA68D93)
+val Sepia500 = Color(0xFFA88B7D) // Editorial Sepia Ink
+val Sepia600 = Color(0xFF71545A)
+val Sepia800 = Color(0xFF3E2C30)
+val Sepia850 = Color(0xFF2E2023)
+val Sepia900 = Color(0xFF28191B)
 
-// ── Dusty Sage family (Tertiary) ─────────────────────────────────────────────
+// ── Vintage Sage family (Tertiary/Accent) ────────────────────────────────────
+val Sage50 = Color(0xFFF2F6F3)
 val Sage100 = Color(0xFFDFEBE1)
 val Sage200 = Color(0xFFC3D9C7)
 val Sage300 = Color(0xFFA3C4AA)
-val Sage500 = Color(0xFF5E9068)
+val Sage400 = Color(0xFF7EA787)
+val Sage500 = Color(0xFF5E9068) // Editorial Vintage Sage
+val Sage600 = Color(0xFF4B7353)
 val Sage800 = Color(0xFF243F2A)
 val Sage850 = Color(0xFF1A2E1F)
+val Sage900 = Color(0xFF152619)
+
+// ── Oxford Blue family (Accent) ──────────────────────────────────────────────
+val Blue100 = Color(0xFFDCE8FF)
+val Blue200 = Color(0xFFB8CDFB)
+val Blue300 = Color(0xFFA9C3FF)
+val Blue400 = Color(0xFF86ACD1)
+val Blue500 = Color(0xFF5B7B9E) // Editorial Oxford Blue
+val Blue800 = Color(0xFF163C5E)
+val Blue900 = Color(0xFF0D253B)
+
+// ── Twilight Violet family (Accent) ──────────────────────────────────────────
+val Purple100 = Color(0xFFEEDFFF)
+val Purple200 = Color(0xFFD6C8F2)
+val Purple300 = Color(0xFFCDB8FF)
+val Purple400 = Color(0xFFAC9AD4)
+val Purple500 = Color(0xFF8B6D9C) // Editorial Twilight Violet
+val Purple800 = Color(0xFF3B2E5E)
+val Purple900 = Color(0xFF261D3B)
+
+// ── Gilded Foil family (Accent) ──────────────────────────────────────────────
+val Yellow100 = Color(0xFFFFF8DC)
+val Yellow200 = Color(0xFFF7E6B8)
+val Yellow300 = Color(0xFFEDD97A)
+val Yellow400 = Color(0xFFD6C08A)
+val Yellow500 = Color(0xFFC89F5D) // Editorial Gilded Foil
+val Yellow800 = Color(0xFF5E4A1C)
+val Yellow900 = Color(0xFF3B2E11)
 
 // ── Warm Neutral family (Atualizado: Estética Editorial/Papel) ───────────────
 val Neutral50 = Color(0xFFFDFAF6)    // Premium Paper (Cards destacados)

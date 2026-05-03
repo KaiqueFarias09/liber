@@ -87,7 +87,7 @@ fun BookGridItem(
                 Box(
                     modifier = Modifier.liberContainer(
                         shape = RoundedCornerShape(4.dp),
-                        backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                        elevation = 2.dp
                     )
                 ) {
                     Text(

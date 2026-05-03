@@ -8,6 +8,7 @@ import com.example.liber.core.logging.AppLogger
 import com.example.liber.core.logging.BaseAndroidViewModel
 import com.example.liber.core.util.UiState
 import com.example.liber.core.util.UiText
+import com.example.liber.data.repository.AccentColor
 import com.example.liber.data.repository.BackupRepository
 import com.example.liber.data.repository.ThemeMode
 import com.example.liber.data.repository.UserPreferencesRepository
@@ -17,7 +18,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -68,11 +68,30 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    val accentColor: StateFlow<AccentColor> = repository.accentColor
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = AccentColor.ROSE
+        )
+
+    fun setAccentColor(accentColor: AccentColor) {
+        launchSafely(
+            actionName = "setAccentColor",
+            parameters = mapOf("accentColor" to accentColor.name),
+        ) {
+            repository.setAccentColor(accentColor)
+        }
+    }
+
     fun exportBackup(onJsonReady: (String) -> Unit) {
         _backupState.value = UiState.Loading
         launchSafely(
             actionName = "exportBackup",
-            onError = { _backupState.value = UiState.Error(UiText.DynamicString(it.message ?: "Export failed")) }
+            onError = {
+                _backupState.value =
+                    UiState.Error(UiText.DynamicString(it.message ?: "Export failed"))
+            }
         ) {
             val json = backupRepository.createBackupJson()
             _backupState.value = UiState.Success(Unit)
@@ -84,7 +103,10 @@ class SettingsViewModel @Inject constructor(
         _backupState.value = UiState.Loading
         launchSafely(
             actionName = "importBackup",
-            onError = { _backupState.value = UiState.Error(UiText.DynamicString(it.message ?: "Import failed")) }
+            onError = {
+                _backupState.value =
+                    UiState.Error(UiText.DynamicString(it.message ?: "Import failed"))
+            }
         ) {
             backupRepository.restoreFromBackupJson(jsonString)
             _backupState.value = UiState.Success(Unit)

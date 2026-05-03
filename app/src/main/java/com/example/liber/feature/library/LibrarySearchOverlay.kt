@@ -188,7 +188,7 @@ fun LibrarySearchOverlay(
                             Column(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+                                    .background(MaterialTheme.colorScheme.surface)
                                     .padding(horizontal = 24.dp, vertical = 16.dp)
                             ) {
                                 if (searchQuery.isEmpty()) {
@@ -283,10 +283,14 @@ fun LibrarySearchOverlay(
                                             letterSpacing = 1.5.sp,
                                             fontSize = 10.sp
                                         ),
-                                        color = Color(0xFFD86A77).copy(alpha = 0.6f)
+                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
                                     )
                                     Spacer(Modifier.height(12.dp))
-                                    HorizontalDivider(color = Color(0xFFD86A77).copy(alpha = 0.1f))
+                                    HorizontalDivider(
+                                        color = MaterialTheme.colorScheme.primary.copy(
+                                            alpha = 0.1f
+                                        )
+                                    )
 
                                     when {
                                         searchType == SearchType.DICTIONARY -> {
@@ -435,6 +439,8 @@ fun LibrarySearchOverlay(
 
                             if (isTablet) {
                                 // Search Footer
+                                val dividerColor =
+                                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -446,7 +452,7 @@ fun LibrarySearchOverlay(
                                         .padding(horizontal = 24.dp, vertical = 12.dp)
                                         .drawBehind {
                                             drawLine(
-                                                color = Color.LightGray.copy(alpha = 0.2f),
+                                                color = dividerColor,
                                                 start = Offset.Zero,
                                                 end = Offset(size.width, 0f),
                                                 strokeWidth = 1.dp.toPx()

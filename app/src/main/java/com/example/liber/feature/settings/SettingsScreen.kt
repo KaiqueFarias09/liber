@@ -4,9 +4,15 @@ import android.text.format.DateUtils
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,7 +20,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -38,16 +49,21 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.adamglin.PhosphorIcons
+import com.adamglin.phosphoricons.Fill
 import com.adamglin.phosphoricons.Regular
+import com.adamglin.phosphoricons.fill.Check
 import com.adamglin.phosphoricons.regular.CaretRight
 import com.adamglin.phosphoricons.regular.ChartBar
 import com.adamglin.phosphoricons.regular.Check
@@ -63,12 +79,20 @@ import com.adamglin.phosphoricons.regular.Sun
 import com.adamglin.phosphoricons.regular.SunHorizon
 import com.adamglin.phosphoricons.regular.Translate
 import com.example.liber.R
+import com.example.liber.core.designsystem.Blue500
 import com.example.liber.core.designsystem.Gambetta
 import com.example.liber.core.designsystem.LiberModalBottomSheet
 import com.example.liber.core.designsystem.LiberScreen
+import com.example.liber.core.designsystem.Neutral850
+import com.example.liber.core.designsystem.Purple500
+import com.example.liber.core.designsystem.Rose500
+import com.example.liber.core.designsystem.Sage500
+import com.example.liber.core.designsystem.Sepia500
+import com.example.liber.core.designsystem.Yellow500
 import com.example.liber.core.util.UiState
 import com.example.liber.core.util.UiText
 import com.example.liber.data.model.ScanSource
+import com.example.liber.data.repository.AccentColor
 import com.example.liber.data.repository.ThemeMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -90,6 +114,7 @@ fun SettingsScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val themeMode by viewModel.themeMode.collectAsState()
+    val accentColor by viewModel.accentColor.collectAsState()
     val currentLanguage by viewModel.currentLanguage.collectAsState()
     val backupState by viewModel.backupState.collectAsState()
 
@@ -107,11 +132,19 @@ fun SettingsScreen(
                             it.write(json.toByteArray())
                         }
                         withContext(Dispatchers.Main) {
-                            Toast.makeText(context, R.string.settings_backup_success, Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                R.string.settings_backup_success,
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     } catch (e: Exception) {
                         withContext(Dispatchers.Main) {
-                            Toast.makeText(context, "Export failed: ${e.message}", Toast.LENGTH_LONG).show()
+                            Toast.makeText(
+                                context,
+                                "Export failed: ${e.message}",
+                                Toast.LENGTH_LONG
+                            ).show()
                         }
                     }
                 }
@@ -134,7 +167,11 @@ fun SettingsScreen(
                     }
                 } catch (e: Exception) {
                     withContext(Dispatchers.Main) {
-                        Toast.makeText(context, "Failed to read backup: ${e.message}", Toast.LENGTH_LONG).show()
+                        Toast.makeText(
+                            context,
+                            "Failed to read backup: ${e.message}",
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
                 }
             }
@@ -165,7 +202,11 @@ fun SettingsScreen(
 
     LaunchedEffect(backupState) {
         if (backupState is UiState.Error) {
-            Toast.makeText(context, (backupState as UiState.Error).message.asString(context), Toast.LENGTH_LONG).show()
+            Toast.makeText(
+                context,
+                (backupState as UiState.Error).message.asString(context),
+                Toast.LENGTH_LONG
+            ).show()
         } else if (backupState is UiState.Success && pendingImportJson == null) {
             // Restore was successful if it's Success and we just finished an import
             // (Actually we can just show a toast if we want)
@@ -189,6 +230,10 @@ fun SettingsScreen(
                     ThemeSetting(
                         currentMode = themeMode,
                         onModeSelected = { viewModel.setThemeMode(it) }
+                    )
+                    AccentColorSetting(
+                        currentAccent = accentColor,
+                        onAccentSelected = { viewModel.setAccentColor(it) }
                     )
                 }
 
@@ -263,7 +308,7 @@ fun SettingsScreen(
             if (backupState is UiState.Loading) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = Color.Black.copy(alpha = 0.2f)
+                    color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
@@ -500,9 +545,9 @@ private fun LanguageBottomSheet(
                 Surface(
                     onClick = { onLanguageSelected(language.tag) },
                     color = if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                    else MaterialTheme.colorScheme.surfaceContainerHigh,
+                    else MaterialTheme.colorScheme.surface,
                     shape = MaterialTheme.shapes.medium,
-                    border = androidx.compose.foundation.BorderStroke(
+                    border = BorderStroke(
                         1.dp,
                         MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
                     ),
@@ -585,6 +630,140 @@ private fun ThemeSetting(
                     inactiveBorderColor = MaterialTheme.colorScheme.outlineVariant,
                 )
             )
+        }
+    }
+}
+
+private data class ColorSwatch(
+    val id: AccentColor,
+    val name: String,
+    val color: Color,
+    val theme: String
+)
+
+@Composable
+private fun AccentColorSetting(
+    currentAccent: AccentColor,
+    onAccentSelected: (AccentColor) -> Unit,
+) {
+    val swatches = listOf(
+        ColorSwatch(AccentColor.ROSE, "Dusty Rose", Rose500, "Classic"),
+        ColorSwatch(AccentColor.SAGE, "Vintage Sage", Sage500, "Nature"),
+        ColorSwatch(AccentColor.BLUE, "Oxford Blue", Blue500, "Academic"),
+        ColorSwatch(AccentColor.SEPIA, "Sepia Ink", Sepia500, "Nostalgia"),
+        ColorSwatch(AccentColor.PURPLE, "Twilight Violet", Purple500, "Poetry"),
+        ColorSwatch(AccentColor.YELLOW, "Gilded Foil", Yellow500, "Fable")
+    )
+
+    val activeSwatch = swatches.find { it.id == currentAccent } ?: swatches.first()
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp, top = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Bottom
+        ) {
+            Text(
+                text = stringResource(R.string.settings_accent_color),
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontFamily = Gambetta,
+                    fontSize = 18.sp
+                ),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = activeSwatch.name.uppercase(),
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                    letterSpacing = 2.sp,
+                    fontSize = 10.sp
+                ),
+                color = activeSwatch.color
+            )
+        }
+
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(bottom = 12.dp)
+        ) {
+            items(swatches) { swatch ->
+                val isActive = swatch.id == currentAccent
+                val scale by animateFloatAsState(
+                    if (isActive) 1.02f else 1f,
+                    label = "swatch_scale"
+                )
+
+                Column(
+                    modifier = Modifier
+                        .width(112.dp)
+                        .scale(scale)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Neutral850)
+                        .border(
+                            1.dp,
+                            if (isActive) Color.White.copy(alpha = 0.3f) else Color.White.copy(alpha = 0.05f),
+                            RoundedCornerShape(16.dp)
+                        )
+                        .clickable { onAccentSelected(swatch.id) }
+                ) {
+                    // Top half: Color fill
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(80.dp)
+                            .background(swatch.color)
+                            .padding(8.dp),
+                        contentAlignment = Alignment.TopEnd
+                    ) {
+                        if (isActive) {
+                            Box(
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .background(Color.Black.copy(alpha = 0.2f), CircleShape)
+                                    .padding(4.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = PhosphorIcons.Fill.Check,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    // Bottom half: Labels
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = swatch.name,
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontFamily = Gambetta,
+                                fontStyle = if (isActive) FontStyle.Italic else FontStyle.Normal,
+                                fontWeight = if (isActive) FontWeight.Medium else FontWeight.Normal
+                            ),
+                            color = if (isActive) Color.White else Color.White.copy(alpha = 0.7f),
+                            maxLines = 1
+                        )
+                        Text(
+                            text = swatch.theme.uppercase(),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                letterSpacing = 1.5.sp,
+                                fontSize = 9.sp
+                            ),
+                            color = Color.White.copy(alpha = 0.3f)
+                        )
+                    }
+                }
+            }
         }
     }
 }
