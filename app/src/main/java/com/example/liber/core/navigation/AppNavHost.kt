@@ -22,6 +22,8 @@ import com.example.liber.feature.home.HomeViewModel
 import com.example.liber.feature.insights.ReadingInsightsScreen
 import com.example.liber.feature.insights.ReadingInsightsViewModel
 import com.example.liber.feature.library.LibraryScreen
+import com.example.liber.feature.notebook.NotebookScreen
+import com.example.liber.feature.notebook.NotebookViewModel
 import com.example.liber.feature.settings.ScanFoldersScreen
 import com.example.liber.feature.settings.SettingsScreen
 import com.example.liber.feature.settings.SettingsViewModel
@@ -35,6 +37,7 @@ object AppRoute {
     const val READING_INSIGHTS = "reading_insights"
     const val SCAN_FOLDERS = "scan_folders"
     const val DICTIONARIES = "dictionaries"
+    const val NOTEBOOK = "notebook"
     const val COLLECTION_DETAIL = "collection_detail/{collectionId}"
 
     fun collectionDetail(id: Long) = "collection_detail/$id"
@@ -97,6 +100,7 @@ fun AppNavHost(
             SettingsScreen(
                 viewModel = settingsViewModel,
                 scanSources = scanSources,
+                onOpenNotebook = { navController.navigate(AppRoute.NOTEBOOK) },
                 onOpenReadingInsights = { navController.navigate(AppRoute.READING_INSIGHTS) },
                 onAddBooks = onAddBooks,
                 onAddScanFolder = { navController.navigate(AppRoute.SCAN_FOLDERS) },
@@ -138,6 +142,15 @@ fun AppNavHost(
                 viewModel = dictionaryViewModel,
                 onBack = { navController.popBackStack() },
                 modifier = modifier,
+            )
+        }
+
+        composable(AppRoute.NOTEBOOK) {
+            val notebookViewModel: NotebookViewModel = hiltViewModel()
+            NotebookScreen(
+                viewModel = notebookViewModel,
+                onBack = { navController.popBackStack() },
+                modifier = modifier
             )
         }
 

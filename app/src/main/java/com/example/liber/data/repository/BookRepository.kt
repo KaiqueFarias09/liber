@@ -58,6 +58,16 @@ class BookRepository(
         bookDao.getAllBooksList()
     }
 
+    fun getAllAnnotations(): Flow<List<Annotation>> = observeOperation(
+        "getAllAnnotations",
+        upstream = bookDao.getAllAnnotations()
+    )
+
+    fun getAllBookmarks(): Flow<List<Bookmark>> = observeOperation(
+        "getAllBookmarks",
+        upstream = bookDao.getAllBookmarks()
+    )
+
     suspend fun insertBook(book: Book) = executeOperation(
         operationName = "insertBook",
         parameters = mapOf("bookId" to book.id, "mediaType" to book.mediaType),

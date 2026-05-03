@@ -58,6 +58,7 @@ import com.adamglin.phosphoricons.regular.FolderOpen
 import com.adamglin.phosphoricons.regular.Globe
 import com.adamglin.phosphoricons.regular.Info
 import com.adamglin.phosphoricons.regular.Moon
+import com.adamglin.phosphoricons.regular.Notebook
 import com.adamglin.phosphoricons.regular.Sun
 import com.adamglin.phosphoricons.regular.SunHorizon
 import com.adamglin.phosphoricons.regular.Translate
@@ -78,6 +79,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel,
     modifier: Modifier = Modifier,
     scanSources: List<ScanSource> = emptyList(),
+    onOpenNotebook: () -> Unit = {},
     onOpenReadingInsights: () -> Unit = {},
     onAddBooks: () -> Unit = {},
     onAddScanFolder: () -> Unit = {},
@@ -192,6 +194,13 @@ fun SettingsScreen(
 
                 // GENERAL SECTION
                 SettingsSection(title = UiText.StringResource(R.string.settings_section_general)) {
+                    SettingsRow(
+                        icon = PhosphorIcons.Regular.Notebook,
+                        label = "Notebook",
+                        subtitle = "Your annotations, highlights and bookmarks",
+                        onClick = onOpenNotebook,
+                        showDivider = true,
+                    )
                     SettingsRow(
                         icon = PhosphorIcons.Regular.ChartBar,
                         label = stringResource(R.string.settings_reading_insights_title),

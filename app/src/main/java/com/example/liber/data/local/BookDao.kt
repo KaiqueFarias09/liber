@@ -25,6 +25,12 @@ interface BookDao {
     suspend fun getAllBooksList(): List<Book>
 
     @Query("SELECT * FROM annotations ORDER BY createdAt DESC")
+    fun getAllAnnotations(): Flow<List<Annotation>>
+
+    @Query("SELECT * FROM bookmarks ORDER BY createdAt DESC")
+    fun getAllBookmarks(): Flow<List<Bookmark>>
+
+    @Query("SELECT * FROM annotations ORDER BY createdAt DESC")
     suspend fun getAllAnnotationsList(): List<Annotation>
 
     @Query("SELECT * FROM bookmarks ORDER BY createdAt DESC")
