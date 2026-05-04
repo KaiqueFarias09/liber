@@ -17,12 +17,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -37,7 +39,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -316,52 +317,71 @@ fun LiberApp(
             Scaffold(
                 containerColor = MaterialTheme.colorScheme.background,
                 contentColor = MaterialTheme.colorScheme.onBackground,
+                contentWindowInsets = WindowInsets(0, 0, 0, 0),
                 bottomBar = {
                     val showBottomBarContent =
                         (isAudiobook && !isReaderOpen) || (!showNavRail && isTopLevelRoute && !isLibrarySearchOpen)
 
-                    Column(
-                        modifier = Modifier
-                            .background(if (showBottomBarContent) MaterialTheme.colorScheme.surface else Color.Transparent)
-                            .navigationBarsPadding()
-                    ) {
-                        if (isAudiobook) {
-                            AnimatedVisibility(
-                                visible = !isReaderOpen,
-                                enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
-                                exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
+                    if (showBottomBarContent) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.surface)
+                        ) {
+                            Column(
+                                modifier = Modifier.navigationBarsPadding()
                             ) {
-                                Box(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    NowPlayingBar(
-                                        book = book!!,
-                                        isPlaying = playWhenReadyGlobal,
-                                        progress = playerProgress,
-                                        onTogglePlay = { audiobookPlayerViewModel.togglePlayPause() },
-                                        onRewind = { audiobookPlayerViewModel.skipBackward(15) },
-                                        onForward = { audiobookPlayerViewModel.skipForward(15) },
-                                        onClick = { liberAppViewModel.openReader() },
-                                        modifier = Modifier
-                                            .responsiveMaxWidth()
-                                            .padding(horizontal = 8.dp)
+                                if (isAudiobook) {
+                                    AnimatedVisibility(
+                                        visible = !isReaderOpen,
+                                        enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+                                        exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
+                                    ) {
+                                        Box(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            NowPlayingBar(
+                                                book = book!!,
+                                                isPlaying = playWhenReadyGlobal,
+                                                progress = playerProgress,
+                                                onTogglePlay = { audiobookPlayerViewModel.togglePlayPause() },
+                                                onRewind = {
+                                                    audiobookPlayerViewModel.skipBackward(
+                                                        15
+                                                    )
+                                                },
+                                                onForward = {
+                                                    audiobookPlayerViewModel.skipForward(
+                                                        15
+                                                    )
+                                                },
+                                                onClick = { liberAppViewModel.openReader() },
+                                                modifier = Modifier
+                                                    .responsiveMaxWidth()
+                                                    .padding(horizontal = 8.dp)
+                                            )
+                                        }
+                                        Spacer(Modifier.height(4.dp))
+                                    }
+                                }
+                                if (!showNavRail && isTopLevelRoute && !isLibrarySearchOpen) {
+                                    LiberBottomNav(
+                                        activeTab = activeTab,
+                                        onTabChange = onTabChange,
                                     )
                                 }
-                                Spacer(Modifier.height(4.dp))
                             }
                         }
-                        if (!showNavRail && isTopLevelRoute && !isLibrarySearchOpen) {
-                            LiberBottomNav(
-                                activeTab = activeTab,
-                                onTabChange = onTabChange,
-                            )
-                        }
+                    } else if (!showNavRail && !isTopLevelRoute) {
+                        Spacer(Modifier.navigationBarsPadding())
                     }
                 },
             ) { innerPadding ->
                 Row(
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .statusBarsPadding()
                 ) {
                     if (showNavRail && isTopLevelRoute) {
                         LiberNavRail(
