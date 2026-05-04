@@ -37,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -316,7 +317,14 @@ fun LiberApp(
                 containerColor = MaterialTheme.colorScheme.background,
                 contentColor = MaterialTheme.colorScheme.onBackground,
                 bottomBar = {
-                    Column {
+                    val showBottomBarContent =
+                        (isAudiobook && !isReaderOpen) || (!showNavRail && isTopLevelRoute && !isLibrarySearchOpen)
+
+                    Column(
+                        modifier = Modifier
+                            .background(if (showBottomBarContent) MaterialTheme.colorScheme.surface else Color.Transparent)
+                            .navigationBarsPadding()
+                    ) {
                         if (isAudiobook) {
                             AnimatedVisibility(
                                 visible = !isReaderOpen,
@@ -348,10 +356,6 @@ fun LiberApp(
                                 activeTab = activeTab,
                                 onTabChange = onTabChange,
                             )
-                        } else if (!showNavRail && !isTopLevelRoute) {
-                            Spacer(Modifier.navigationBarsPadding())
-                        } else {
-                            Spacer(Modifier.navigationBarsPadding())
                         }
                     }
                 },
