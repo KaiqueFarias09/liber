@@ -24,11 +24,11 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -45,6 +45,7 @@ import com.adamglin.phosphoricons.regular.Trash
 import com.adamglin.phosphoricons.regular.X
 import com.example.liber.R
 import com.example.liber.core.designsystem.LiberTextField
+import com.example.liber.core.designsystem.liberAccentContainer
 import com.example.liber.core.util.InputValidator
 import com.example.liber.core.util.UiText
 import com.example.liber.data.model.Annotation
@@ -196,11 +197,14 @@ fun HighlightColorPicker(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(50.dp),
-        color = Color(0xCC1C1C1E),
-        shadowElevation = 12.dp,
+    Box(
+        modifier = modifier
+            .shadow(elevation = 12.dp, shape = RoundedCornerShape(50.dp))
+            .liberAccentContainer(
+                shape = RoundedCornerShape(50.dp),
+                tintAlpha = 0.12f,
+                baseColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.95f)
+            )
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -364,12 +368,14 @@ fun SelectionActionsMenu(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        shadowElevation = 4.dp,
-        tonalElevation = 0.dp,
+    Box(
+        modifier = modifier
+            .shadow(elevation = 4.dp, shape = RoundedCornerShape(8.dp))
+            .liberAccentContainer(
+                shape = RoundedCornerShape(8.dp),
+                tintAlpha = 0.08f,
+                baseColor = MaterialTheme.colorScheme.surfaceContainerHigh
+            )
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,

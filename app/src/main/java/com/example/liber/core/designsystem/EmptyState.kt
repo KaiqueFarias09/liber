@@ -1,7 +1,6 @@
 package com.example.liber.core.designsystem
 
 import androidx.annotation.DrawableRes
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,7 +16,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -25,8 +23,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -52,20 +48,14 @@ fun EmptyState(
         verticalArrangement = Arrangement.Center,
     ) {
         // --- SKETCHBOOK / POLAROID CONTAINER ---
-        Surface(
+        Box(
             modifier = Modifier
                 .widthIn(max = 360.dp)
                 .fillMaxWidth()
-                .aspectRatio(1f),
-            color = MaterialTheme.colorScheme.surface,
-            border = BorderStroke(
-                1.dp,
-                MaterialTheme.colorScheme.outlineVariant
-            ),
-            shape = RoundedCornerShape(2.dp),
-            tonalElevation = 0.dp
+                .aspectRatio(1f)
+                .liberAccentContainer(shape = RoundedCornerShape(2.dp)),
         ) {
-            val cornerColor = MaterialTheme.colorScheme.outlineVariant
+            val cornerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -142,10 +132,6 @@ fun EmptyState(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .padding(20.dp), // Sufficient breathing room from edges
-                                colorFilter = if (MaterialTheme.extendedColors.isDark) ColorFilter.tint(
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    blendMode = BlendMode.SrcIn
-                                ) else null
                             )
                         } else if (icon != null) {
                             Icon(

@@ -4,15 +4,20 @@ import android.text.format.DateUtils
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,10 +26,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -49,21 +52,20 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.adamglin.PhosphorIcons
-import com.adamglin.phosphoricons.Fill
 import com.adamglin.phosphoricons.Regular
-import com.adamglin.phosphoricons.fill.Check
 import com.adamglin.phosphoricons.regular.CaretRight
 import com.adamglin.phosphoricons.regular.ChartBar
 import com.adamglin.phosphoricons.regular.Check
@@ -83,12 +85,12 @@ import com.example.liber.core.designsystem.Blue500
 import com.example.liber.core.designsystem.Gambetta
 import com.example.liber.core.designsystem.LiberModalBottomSheet
 import com.example.liber.core.designsystem.LiberScreen
-import com.example.liber.core.designsystem.Neutral850
 import com.example.liber.core.designsystem.Purple500
 import com.example.liber.core.designsystem.Rose500
 import com.example.liber.core.designsystem.Sage500
 import com.example.liber.core.designsystem.Sepia500
 import com.example.liber.core.designsystem.Yellow500
+import com.example.liber.core.designsystem.liberAccentContainer
 import com.example.liber.core.util.UiState
 import com.example.liber.core.util.UiText
 import com.example.liber.data.model.ScanSource
@@ -684,85 +686,136 @@ private fun AccentColorSetting(
             )
         }
 
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(bottom = 12.dp)
-        ) {
-            items(swatches) { swatch ->
-                val isActive = swatch.id == currentAccent
-                val scale by animateFloatAsState(
-                    if (isActive) 1.02f else 1f,
-                    label = "swatch_scale"
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .liberAccentContainer(
+                    shape = RoundedCornerShape(24.dp)
                 )
+                .padding(horizontal = 20.dp)
+        ) {
+            // Sombra interna no topo para simular a fenda
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(16.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.scrim.copy(alpha = 0.2f),
+                                Color.Transparent
+                            )
+                        )
+                    )
+            )
 
-                Column(
-                    modifier = Modifier
-                        .width(112.dp)
-                        .scale(scale)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Neutral850)
-                        .border(
-                            1.dp,
-                            if (isActive) Color.White.copy(alpha = 0.3f) else Color.White.copy(alpha = 0.05f),
-                            RoundedCornerShape(16.dp)
-                        )
-                        .clickable { onAccentSelected(swatch.id) }
-                ) {
-                    // Top half: Color fill
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(80.dp)
-                            .background(swatch.color)
-                            .padding(8.dp),
-                        contentAlignment = Alignment.TopEnd
-                    ) {
-                        if (isActive) {
-                            Box(
-                                modifier = Modifier
-                                    .size(24.dp)
-                                    .background(Color.Black.copy(alpha = 0.2f), CircleShape)
-                                    .padding(4.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = PhosphorIcons.Fill.Check,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                            }
-                        }
-                    }
-
-                    // Bottom half: Labels
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            text = swatch.name,
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                fontFamily = Gambetta,
-                                fontStyle = if (isActive) FontStyle.Italic else FontStyle.Normal,
-                                fontWeight = if (isActive) FontWeight.Medium else FontWeight.Normal
-                            ),
-                            color = if (isActive) Color.White else Color.White.copy(alpha = 0.7f),
-                            maxLines = 1
-                        )
-                        Text(
-                            text = swatch.theme.uppercase(),
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                                letterSpacing = 1.5.sp,
-                                fontSize = 9.sp
-                            ),
-                            color = Color.White.copy(alpha = 0.3f)
-                        )
-                    }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 1.dp)
+                    .height(144.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                swatches.forEach { swatch ->
+                    BookmarkSwatch(
+                        swatch = swatch,
+                        isActive = swatch.id == currentAccent,
+                        onClick = { onAccentSelected(swatch.id) }
+                    )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BookmarkSwatch(
+    swatch: ColorSwatch,
+    isActive: Boolean,
+    onClick: () -> Unit,
+) {
+    val density = LocalDensity.current
+    val bookmarkHeight by animateDpAsState(
+        targetValue = if (isActive) 124.dp else 64.dp,
+        animationSpec = tween(
+            durationMillis = 500,
+            easing = CubicBezierEasing(0.34f, 1.56f, 0.64f, 1f)
+        ),
+        label = "bookmarkHeight"
+    )
+
+    val opacity by animateFloatAsState(
+        targetValue = if (isActive) 1f else 0.6f,
+        label = "bookmarkOpacity"
+    )
+
+    val bookmarkShape = remember(density) {
+        GenericShape { size, _ ->
+            val vHeight = with(density) { 12.dp.toPx() }
+            moveTo(0f, 0f)
+            lineTo(size.width, 0f)
+            lineTo(size.width, size.height)
+            lineTo(size.width / 2f, size.height - vHeight)
+            lineTo(0f, size.height)
+            close()
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .width(40.dp)
+            .graphicsLayer {
+                this.alpha = opacity
+            }
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Box(
+            modifier = Modifier
+                .width(40.dp)
+                .height(bookmarkHeight)
+                .shadow(
+                    elevation = if (isActive) 12.dp else 2.dp,
+                    shape = bookmarkShape,
+                    clip = false
+                )
+                .background(swatch.color, bookmarkShape)
+                .padding(top = 12.dp),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            // Detalhe estético: Ponto de "costura" do tecido no topo da fita
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(
+                    modifier = Modifier
+                        .size(width = 20.dp, height = 1.dp)
+                        .background(Color.Black.copy(alpha = 0.2f))
+                )
+                Spacer(modifier = Modifier.height(1.dp))
+                Box(
+                    modifier = Modifier
+                        .size(width = 20.dp, height = 1.dp)
+                        .background(Color.White.copy(alpha = 0.3f))
+                )
+            }
+
+            AnimatedVisibility(
+                visible = isActive,
+                enter = fadeIn() + scaleIn(initialScale = 0.8f),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 20.dp)
+            ) {
+                Icon(
+                    imageVector = PhosphorIcons.Regular.Check,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.9f),
+                    modifier = Modifier.size(16.dp)
+                )
             }
         }
     }

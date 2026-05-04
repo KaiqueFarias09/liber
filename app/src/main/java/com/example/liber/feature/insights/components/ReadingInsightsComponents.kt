@@ -50,6 +50,7 @@ import com.example.liber.R
 import com.example.liber.core.designsystem.BookCover
 import com.example.liber.core.designsystem.CoverStyle
 import com.example.liber.core.designsystem.Gambetta
+import com.example.liber.core.designsystem.liberAccentContainer
 import com.example.liber.core.designsystem.liberOutlinedContainer
 import com.example.liber.data.model.Book
 import com.example.liber.feature.insights.HeatmapCellUiModel
@@ -334,6 +335,8 @@ fun GoalCard(
                 .fillMaxWidth()
                 .height(8.dp)
                 .clip(RoundedCornerShape(999.dp)),
+            color = MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
         )
 
         Spacer(modifier = Modifier.height(10.dp))
@@ -699,7 +702,7 @@ fun InsightCard(
 ) {
     Box(
         modifier = modifier
-            .liberOutlinedContainer(
+            .liberAccentContainer(
                 shape = RoundedCornerShape(24.dp)
             ),
     ) {

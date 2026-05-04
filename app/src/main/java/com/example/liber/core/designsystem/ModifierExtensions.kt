@@ -16,6 +16,7 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -68,6 +69,34 @@ fun Modifier.liberContainer(
         Modifier
             .background(finalBgColor, shape)
             .border(borderWidth, finalBorderColor, shape)
+            .clip(shape)
+    )
+}
+
+/**
+ * A container with a background and border tinted with the app's accent (primary) color.
+ *
+ * @param shape The shape of the container.
+ * @param borderWidth The thickness of the border.
+ * @param tintAlpha The alpha of the accent color to composite over the base color.
+ * @param baseColor The base background color (defaults to surface).
+ */
+fun Modifier.liberAccentContainer(
+    shape: Shape = RoundedCornerShape(12.dp),
+    borderWidth: Dp = 1.dp,
+    tintAlpha: Float = 0.04f,
+    baseColor: Color? = null,
+): Modifier = composed {
+    val accentColor = MaterialTheme.colorScheme.primary
+    val resolvedBaseColor = baseColor ?: MaterialTheme.colorScheme.surface
+    val containerColor = accentColor.copy(alpha = tintAlpha).compositeOver(resolvedBaseColor)
+    val borderColor = accentColor.copy(alpha = tintAlpha * 3f)
+        .compositeOver(MaterialTheme.colorScheme.outlineVariant)
+
+    this.then(
+        Modifier
+            .background(containerColor, shape)
+            .border(borderWidth, borderColor, shape)
             .clip(shape)
     )
 }

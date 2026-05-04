@@ -1,6 +1,5 @@
 package com.example.liber.feature.collections
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -23,8 +22,6 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -52,6 +49,7 @@ import com.example.liber.core.designsystem.BookCover
 import com.example.liber.core.designsystem.CoverStyle
 import com.example.liber.core.designsystem.EmptyState
 import com.example.liber.core.designsystem.LiberFAB
+import com.example.liber.core.designsystem.liberAccentContainer
 import com.example.liber.core.util.UiText
 import com.example.liber.data.model.BookPreview
 import com.example.liber.feature.collections.components.CollectionNameDialog
@@ -164,19 +162,11 @@ private fun CollectionShelfRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(
+    Box(
         modifier = modifier
             .fillMaxWidth()
+            .liberAccentContainer(shape = RoundedCornerShape(20.dp))
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
-        border = BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.outlineVariant,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
             modifier = Modifier.padding(

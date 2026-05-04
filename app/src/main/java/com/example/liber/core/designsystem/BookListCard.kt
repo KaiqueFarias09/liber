@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,7 +42,7 @@ fun BookListCard(
         modifier = modifier
             .width(320.dp) // Slightly wider for audiobook vinyl
             .height(112.dp)
-            .liberContainer(elevation = 1.dp)
+            .liberAccentContainer(shape = RoundedCornerShape(12.dp))
             .clickable(onClick = onClick),
     ) {
         Row(
