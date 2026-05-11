@@ -576,23 +576,29 @@ fun ReadingNowSection(
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.Bottom,
         ) {
             books.forEach { book ->
                 Column(
                     modifier = Modifier.width(100.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Surface(
-                        tonalElevation = 2.dp,
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(2f / 3f),
+                        contentAlignment = Alignment.BottomCenter
                     ) {
-                        BookCover(
-                            book = book,
-                            style = CoverStyle.SMALL,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .aspectRatio(2f / 3f),
-                            fillBounds = true,
-                        )
+                        Surface(
+                            tonalElevation = 2.dp,
+                        ) {
+                            BookCover(
+                                book = book,
+                                style = CoverStyle.SMALL,
+                                modifier = Modifier.fillMaxWidth(),
+                                fillBounds = true,
+                            )
+                        }
                     }
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
@@ -664,23 +670,29 @@ fun FinishedBooksSection(
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.Bottom,
         ) {
             books.forEach { book ->
                 Column(
                     modifier = Modifier.width(90.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Surface(
-                        tonalElevation = 2.dp,
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(2f / 3f),
+                        contentAlignment = Alignment.BottomCenter
                     ) {
-                        BookCover(
-                            book = book,
-                            style = CoverStyle.SMALL,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .aspectRatio(2f / 3f),
-                            fillBounds = true,
-                        )
+                        Surface(
+                            tonalElevation = 2.dp,
+                        ) {
+                            BookCover(
+                                book = book,
+                                style = CoverStyle.SMALL,
+                                modifier = Modifier.fillMaxWidth(),
+                                fillBounds = true,
+                            )
+                        }
                     }
                     Text(
                         text = book.title,
