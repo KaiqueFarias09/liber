@@ -88,7 +88,7 @@ fun Modifier.liberAccentContainer(
     baseColor: Color? = null,
 ): Modifier = composed {
     val accentColor = MaterialTheme.colorScheme.primary
-    val resolvedBaseColor = baseColor ?: MaterialTheme.colorScheme.surface
+    val resolvedBaseColor = baseColor ?: MaterialTheme.colorScheme.surfaceContainerLow
     val containerColor = accentColor.copy(alpha = tintAlpha).compositeOver(resolvedBaseColor)
     val borderColor = accentColor.copy(alpha = tintAlpha * 3f)
         .compositeOver(MaterialTheme.colorScheme.outlineVariant)

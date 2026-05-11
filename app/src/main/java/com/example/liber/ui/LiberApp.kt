@@ -326,7 +326,7 @@ fun LiberApp(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(MaterialTheme.colorScheme.surface)
+                                .background(MaterialTheme.colorScheme.surfaceContainerLow)
                         ) {
                             Column(
                                 modifier = Modifier.navigationBarsPadding()

@@ -10,7 +10,6 @@ import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.liber.core.util.UiText
@@ -25,7 +24,7 @@ fun LiberTabBar(
 ) {
     SecondaryScrollableTabRow(
         selectedTabIndex = selectedTabIndex,
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         edgePadding = 24.dp,
         indicator = {
             TabRowDefaults.SecondaryIndicator(

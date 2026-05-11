@@ -28,15 +28,15 @@ fun LiberNavRail(
     modifier: Modifier = Modifier,
 ) {
     val itemColors = NavigationRailItemDefaults.colors(
-        selectedIconColor = MaterialTheme.colorScheme.onSurface,
-        selectedTextColor = MaterialTheme.colorScheme.onSurface,
+        selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        selectedTextColor = MaterialTheme.colorScheme.onSecondaryContainer,
         unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
         unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+        indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
     )
 
     Surface(
-        color = MaterialTheme.colorScheme.surface,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         modifier = modifier.fillMaxHeight()
     ) {
         NavigationRail(

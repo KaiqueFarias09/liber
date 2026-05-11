@@ -17,10 +17,18 @@ import androidx.core.view.WindowCompat
 import com.example.liber.data.repository.AccentColor
 import com.example.liber.data.repository.ThemeMode
 
+private data class PrimaryRoles(
+    val primary: Color,
+    val onPrimary: Color,
+    val primaryContainer: Color,
+    val onPrimaryContainer: Color,
+    val inversePrimary: Color,
+)
+
 private val LiberLightColorScheme = lightColorScheme(
     primary = Rose500,
     onPrimary = Color.White,
-    primaryContainer = Rose300,
+    primaryContainer = Rose100,
     onPrimaryContainer = Rose900,
 
     secondary = Sepia500,
@@ -33,16 +41,24 @@ private val LiberLightColorScheme = lightColorScheme(
     tertiaryContainer = Sage100,
     onTertiaryContainer = Sage800,
 
-    background = Neutral200,
+    background = Neutral100,
     onBackground = Neutral950,
 
-    surface = Neutral150,
+    surface = Neutral100,
     onSurface = Neutral950,
-    surfaceVariant = Neutral100,
+    surfaceTint = Rose500,
+    surfaceBright = Neutral50,
+    surfaceDim = Neutral150,
+    surfaceContainerLowest = Neutral50,
+    surfaceContainerLow = Neutral100,
+    surfaceContainer = Neutral150,
+    surfaceContainerHigh = Neutral200,
+    surfaceContainerHighest = Neutral300,
+    surfaceVariant = Neutral200,
     onSurfaceVariant = Neutral600,
 
-    outline = Neutral600,
-    outlineVariant = Neutral400,
+    outline = Neutral400,
+    outlineVariant = Neutral300,
 
     error = Error600,
     onError = Color.White,
@@ -75,13 +91,21 @@ private val LiberDarkColorScheme = darkColorScheme(
     background = Neutral900,
     onBackground = Neutral150,
 
-    surface = Neutral850,
+    surface = Neutral900,
     onSurface = Neutral150,
+    surfaceTint = Rose400,
+    surfaceBright = Neutral800,
+    surfaceDim = Neutral900,
+    surfaceContainerLowest = Neutral950,
+    surfaceContainerLow = Neutral900,
+    surfaceContainer = Neutral850,
+    surfaceContainerHigh = Neutral800,
+    surfaceContainerHighest = Neutral750,
     surfaceVariant = Neutral700,
     onSurfaceVariant = Neutral300,
 
     outline = Neutral300,
-    outlineVariant = Neutral750,
+    outlineVariant = Neutral700,
 
     error = Error200,
     onError = Error700,
@@ -95,40 +119,119 @@ private val LiberDarkColorScheme = darkColorScheme(
     scrim = Color.Black,
 )
 
+private fun lightPrimaryRoles(accentColor: AccentColor): PrimaryRoles = when (accentColor) {
+    AccentColor.ROSE -> PrimaryRoles(
+        primary = Rose500,
+        onPrimary = Color.White,
+        primaryContainer = Rose100,
+        onPrimaryContainer = Rose900,
+        inversePrimary = Rose400,
+    )
+    AccentColor.SEPIA -> PrimaryRoles(
+        primary = Sepia500,
+        onPrimary = Color.White,
+        primaryContainer = Sepia100,
+        onPrimaryContainer = Sepia900,
+        inversePrimary = Sepia300,
+    )
+    AccentColor.SAGE -> PrimaryRoles(
+        primary = Sage500,
+        onPrimary = Color.White,
+        primaryContainer = Sage100,
+        onPrimaryContainer = Sage900,
+        inversePrimary = Sage300,
+    )
+    AccentColor.BLUE -> PrimaryRoles(
+        primary = Blue500,
+        onPrimary = Color.White,
+        primaryContainer = Blue100,
+        onPrimaryContainer = Blue900,
+        inversePrimary = Blue300,
+    )
+    AccentColor.PURPLE -> PrimaryRoles(
+        primary = Purple500,
+        onPrimary = Color.White,
+        primaryContainer = Purple100,
+        onPrimaryContainer = Purple900,
+        inversePrimary = Purple300,
+    )
+    AccentColor.YELLOW -> PrimaryRoles(
+        primary = Yellow500,
+        onPrimary = Yellow900,
+        primaryContainer = Yellow100,
+        onPrimaryContainer = Yellow900,
+        inversePrimary = Yellow300,
+    )
+}
+
+private fun darkPrimaryRoles(accentColor: AccentColor): PrimaryRoles = when (accentColor) {
+    AccentColor.ROSE -> PrimaryRoles(
+        primary = Rose400,
+        onPrimary = Rose900,
+        primaryContainer = Rose800,
+        onPrimaryContainer = Rose200,
+        inversePrimary = Rose500,
+    )
+    AccentColor.SEPIA -> PrimaryRoles(
+        primary = Sepia300,
+        onPrimary = Sepia900,
+        primaryContainer = Sepia850,
+        onPrimaryContainer = Sepia100,
+        inversePrimary = Sepia500,
+    )
+    AccentColor.SAGE -> PrimaryRoles(
+        primary = Sage300,
+        onPrimary = Sage900,
+        primaryContainer = Sage850,
+        onPrimaryContainer = Sage100,
+        inversePrimary = Sage500,
+    )
+    AccentColor.BLUE -> PrimaryRoles(
+        primary = Blue300,
+        onPrimary = Blue900,
+        primaryContainer = Blue800,
+        onPrimaryContainer = Blue100,
+        inversePrimary = Blue500,
+    )
+    AccentColor.PURPLE -> PrimaryRoles(
+        primary = Purple300,
+        onPrimary = Purple900,
+        primaryContainer = Purple800,
+        onPrimaryContainer = Purple100,
+        inversePrimary = Purple500,
+    )
+    AccentColor.YELLOW -> PrimaryRoles(
+        primary = Yellow300,
+        onPrimary = Yellow900,
+        primaryContainer = Yellow800,
+        onPrimaryContainer = Yellow100,
+        inversePrimary = Yellow500,
+    )
+}
+
 private fun getLiberLightColorScheme(accentColor: AccentColor): ColorScheme {
-    val (primary, primaryContainer, onPrimaryContainer) = when (accentColor) {
-        AccentColor.ROSE -> Triple(Rose500, Rose300, Rose900)
-        AccentColor.SEPIA -> Triple(Sepia500, Sepia300, Sepia800)
-        AccentColor.SAGE -> Triple(Sage500, Sage300, Sage800)
-        AccentColor.BLUE -> Triple(Blue500, Blue300, Blue900)
-        AccentColor.PURPLE -> Triple(Purple500, Purple300, Purple900)
-        AccentColor.YELLOW -> Triple(Yellow500, Yellow300, Yellow900)
-    }
+    val primaryRoles = lightPrimaryRoles(accentColor)
 
     return LiberLightColorScheme.copy(
-        primary = primary,
-        primaryContainer = primaryContainer,
-        onPrimaryContainer = onPrimaryContainer,
-        surfaceTint = primary
+        primary = primaryRoles.primary,
+        onPrimary = primaryRoles.onPrimary,
+        primaryContainer = primaryRoles.primaryContainer,
+        onPrimaryContainer = primaryRoles.onPrimaryContainer,
+        inversePrimary = primaryRoles.inversePrimary,
+        surfaceTint = primaryRoles.primary,
     )
 }
 
 private fun getLiberDarkColorScheme(accentColor: AccentColor): ColorScheme {
-    val (primary, onPrimary, primaryContainer, onPrimaryContainer) = when (accentColor) {
-        AccentColor.ROSE -> listOf(Rose400, Rose900, Rose800, Rose200)
-        AccentColor.SEPIA -> listOf(Sepia300, Sepia800, Sepia850, Sepia100)
-        AccentColor.SAGE -> listOf(Sage300, Sage800, Sage850, Sage100)
-        AccentColor.BLUE -> listOf(Blue400, Blue900, Blue800, Blue200)
-        AccentColor.PURPLE -> listOf(Purple400, Purple900, Purple800, Purple200)
-        AccentColor.YELLOW -> listOf(Yellow400, Yellow900, Yellow800, Yellow200)
-    }
+    val primaryRoles = darkPrimaryRoles(accentColor)
 
     return LiberDarkColorScheme.copy(
-        primary = primary,
-        onPrimary = onPrimary,
-        primaryContainer = primaryContainer,
-        onPrimaryContainer = onPrimaryContainer,
-        surfaceTint = primary
+        primary = primaryRoles.primary,
+        onPrimary = primaryRoles.onPrimary,
+        primaryContainer = primaryRoles.primaryContainer,
+        onPrimaryContainer = primaryRoles.onPrimaryContainer,
+        inversePrimary = primaryRoles.inversePrimary,
+        surfaceTint = primaryRoles.primary,
     )
 }
 
